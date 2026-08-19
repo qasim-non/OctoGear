@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('stores_cars', function (Blueprint $table) {
             $table->id();
-            $table->integer('manufuctionary_year');
+            $table->integer('manufacturing_year');
             $table->string('vehicle_plat_number', 50);
             $table->foreignId('car_name_id')->constrained('cars_names', 'id')->onDelete('cascade');
             $table->foreignId('color_id')->constrained('colors', 'id')->onDelete('cascade');

@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stores', function (Blueprint $table) {
+            Schema::create('store_requests', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users', 'id')->onDelete('cascade');
             $table->string('name', 100);
-            $table->string('mobile', 15)->unique();
+            $table->string('mobile', 15);
             $table->string('nick_name', 100);
             $table->string('employee_name', 100);
             $table->string('url_location', 255);
-            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->string('commercial_registration_number', 50);
             $table->string('commercial_registration_picture', 255);
             $table->foreignId('city_id')->constrained('cities', 'id')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users', 'id')->onDelete('cascade');
+            $table->enum('request_status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stores');
+        Schema::dropIfExists('store_requests');
     }
 };

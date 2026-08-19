@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('notes')->nullable();
             $table->foreignId('customer_id')->constrained('users', 'id')->onDelete('cascade');
             $table->foreignId('store_car_id')->nullable()->constrained('stores_cars', 'id')->onDelete('cascade');
-            $table->foreignId('component_id')->nullable()->constrained('car_components', 'id')->onDelete('cascade');
+            $table->foreignId('store_car_component_id')->nullable()->constrained('store_car_components', 'id')->onDelete('cascade');
             $table->foreignId('model_id')->nullable()->constrained('models', 'id')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();

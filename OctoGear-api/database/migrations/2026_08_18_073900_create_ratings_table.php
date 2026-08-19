@@ -11,16 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customer_cars', function (Blueprint $table) {
+            Schema::create('ratings', function (Blueprint $table) {
             $table->id();
-            $table->integer('manufacturing_year');
-            $table->string('vehicle_plat_number', 50);
-            $table->foreignId('car_name_id')->constrained('cars_names', 'id')->onDelete('cascade');
-            $table->foreignId('color_id')->constrained('colors', 'id')->onDelete('cascade');
             $table->foreignId('customer_id')->constrained('users', 'id')->onDelete('cascade');
-            $table->foreignId('fuel_type')->constrained('fuel_types', 'id')->onDelete('cascade');
+            $table->foreignId('store_id')->constrained('stores', 'id')->onDelete('cascade');
+            $table->foreignId('order_id')->constrained('orders', 'id')->onDelete('cascade');
+            $table->tinyInteger('rating');
+            $table->text('comment')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['customer_id', 'order_id']);
         });
     }
 
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customer_cars');
+        Schema::dropIfExists('ratings');
     }
 };

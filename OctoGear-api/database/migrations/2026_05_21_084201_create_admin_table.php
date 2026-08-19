@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('assigned_role', ['admin', 'manager', 'employee', 'hr', 'developer']);
             $table->string('mobile');
             $table->string('email', 255)->unique();
+            $table->string('password');
             $table->enum('status', ['active', 'inactive', 'blocked']);
             $table->timestamps();
             $table->softDeletes();
