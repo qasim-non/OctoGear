@@ -208,7 +208,7 @@ customer_car_pictures (id, picture, car_id FK, timestamps, soft_deletes)
 
 ### Orders & Payments
 ```
-orders (id, order_type[enum], quantity, customer_image, status[enum], offered_price, notes, customer_id FK, store_car_component_id FK(nullable), store_car_id FK(nullable), model_id FK(nullable), timestamps, soft_deletes)
+orders (id, order_type[enum], quantity, customer_image, status[enum], offered_price, notes, customer_id FK, store_car_component_id FK(nullable), model_id FK(nullable), timestamps, soft_deletes)
 order_offers (id, order_id FK, store_id FK, price, notes, timestamps, soft_deletes)
 payments (id, order_id FK, amount, payment_method[enum], payment_status[enum], timestamps, soft_deletes)
 ```
@@ -299,6 +299,201 @@ cms (id, arabic_text, english_text, timestamps, soft_deletes)
 
 ---
 
+## Production Best Practices
+
+These are the rules applied to every endpoint in this project. Review before building any feature.
+
+### 1. Validation
+Always validate every request. Never trust the frontend.
+- Required fields, email format, password length, unique values
+- Use Form Request classes (NOT inline `$request->validate()` in controllers)
+```php
+// WRONG — inline validation clutters the controller
+$request->validate(['name' => 'required|string|max:255']);
+
+// RIGHT — dedicated Form Request class
+class CreateStoreRequest extends FormRequest {
+    public function rules(): array {
+        return ['name' => 'required|string|max:255'];
+    }
+}
+```
+
+### 2. Authorization
+Never trust the frontend. Check:
+- Is the user logged in?
+- Does the user own this resource?
+- Does the user have permission?
+- Use Policies + `$this->authorize()` in controllers
+
+### 3. Transactions
+Use `DB::transaction()` when multiple queries must all succeed:
+```php
+DB::transaction(function () use ($data) {
+    $order = Order::create($data);
+    StoreCarComponent::where('id', $data['component_id'])
+        ->decrement('stock_quantity', $data['quantity']);
+    Payment::create(['order_id' => $order->id, ...]);
+});
+// If anything fails → automatic rollback
+```
+Use for: Orders, Payments, Wallets, Stock updates
+
+### 4. Logging
+Log unexpected events. Don't log everything.
+- Good: Payment failed, external API error, unexpected exception
+- Bad: Passwords, tokens, routine operations
+```php
+Log::error('Payment failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+```
+
+### 5. Caching
+Use cache for data that changes rarely: settings, countries, categories.
+```php
+Cache::remember('countries', 3600, fn() => Country::all());
+```
+Don't cache frequently changing data unless needed.
+
+### 6. Pagination
+Never return thousands of rows.
+```php
+// WRONG — loads entire table into memory
+User::all();
+
+// RIGHT — returns 20 per page
+User::paginate(20);
+```
+
+### 7. API Resources
+Never return raw models. Always use API Resource transformers.
+```php
+// WRONG
+return User::find(1);
+
+// RIGHT
+return new UserResource($user);
+```
+
+### 8. Consistent API Response
+Every endpoint must return the same format:
+```json
+{
+    "success": true,
+    "message": "Store created.",
+    "data": { "id": 1, "name": "AlFaris" }
+}
+```
+
+### 9. Exception Handling
+Don't wrap everything in try/catch. Use Laravel's global exception handler. Only catch when you need to transform the error message or take recovery action.
+
+### 10. Service Layer
+For complex business logic, use Services:
+```
+Controller → Service → Model
+```
+Controller stays thin. No Services for simple CRUD.
+
+### 11. Dependency Injection
+```php
+// WRONG
+$userService = new UserService();
+
+// RIGHT
+public function __construct(UserService $service) {
+    $this->service = $service;
+}
+```
+
+### 12. Eager Loading (Avoid N+1)
+```php
+// WRONG — N+1 query problem (1 query for orders + N queries for each customer)
+$orders = Order::all();
+foreach ($orders as $order) {
+    echo $order->customer->full_name; // triggers a query each time!
+}
+
+// RIGHT — eager loads all customers in one query
+$orders = Order::with('customer')->get();
+```
+
+### 13. Database Indexes
+Index columns used in: WHERE, JOIN, ORDER BY, search queries.
+
+### 14. Soft Deletes
+Use `SoftDeletes` when data shouldn't disappear permanently. Allows recovery and audit trails.
+
+### 15. Queue Jobs
+For slow tasks (Send email, Send SMS, Generate PDF, Upload image), use Queues instead of making the user wait.
+
+### 16. Events & Listeners
+Break side effects into separate listeners:
+```
+User registered → CreateProfile listener
+                → SendWelcomeEmail listener
+                → GiveBonus listener
+```
+
+### 17. Rate Limiting
+Protect APIs from abuse:
+```php
+Route::middleware('throttle:60,1')->group(function () {
+    // 60 requests per minute
+});
+```
+
+### 18. Secure Passwords
+Never store plain passwords. Always use `Hash::make()`. Model casts `'password' => 'hashed'` handles this automatically.
+
+### 19. Environment Variables
+Never hardcode API keys, passwords, or database credentials. Always use `.env`.
+
+### 20. File Storage
+Never store uploads inside `public/`. Use Laravel's `Storage` facade (S3, local disk, etc.).
+
+### 21. Database Seeders
+Use seeders for: Countries, Roles, Permissions, Default settings, Reference data.
+
+### 22. Factories
+Generate fake data for testing. One factory per model.
+
+### 23. Database Constraints
+Use foreign keys, unique constraints, cascade rules. Don't rely only on validation — the database is the last line of defense.
+
+---
+
+## Professional Request Flow
+
+Every request in this API follows this flow:
+
+```
+Request
+  ↓
+Middleware (auth, block check, rate limit)
+  ↓
+Form Request Validation
+  ↓
+Policy Authorization
+  ↓
+Controller (thin — delegates to Service)
+  ↓
+Service (business logic)
+  ↓
+DB::transaction (if multi-step)
+  ↓
+Model (Eloquent)
+  ↓
+Cache (read/write if needed)
+  ↓
+Event / Queue (if async work needed)
+  ↓
+API Resource (transform to JSON)
+  ↓
+JSON Response (consistent format)
+```
+
+---
+
 ## API Route Groups
 
 ```
@@ -377,3 +572,24 @@ api.php
 | Created notifications migration | `2026_08_18_075055_create_notifications_table.php` | Laravel built-in: in-app notification storage (polymorphic, read_at tracking) |
 | Created 11 PHP 8.2 Enums | `app/Enums/*.php` | Type safety for all enum DB columns (UserType, UserStatus, StoreStatus, AdminStatus, AdminRole, OrderType, OrderStatus, PaymentMethod, PaymentStatus, RequestStatus, DevicePlatform) |
 | Created 31 Eloquent Models | `app/Models/*.php` | All models with $fillable, $hidden, casts(), typed relationships, SoftDeletes, helper methods. Admin extends Authenticatable with employee_id PK. |
+| Removed store_car_id from orders | `2026_08_18_073600_create_orders_table.php` | Redundant — store reachable via store_car_component → storeCar → store |
+| Updated Order model | `app/Models/Order.php` | Removed store_car_id from $fillable, removed storeCar() relationship, added getStoreAttribute() convenience accessor |
+| Removed broken orders() from StoresCar | `app/Models/StoresCar.php` | FK store_car_id no longer exists on orders table |
+| Removed broken orders() from Store | `app/Models/Store.php` | Store→Order was wrong (no store_id FK on orders). Indirect access via storeCarComponent |
+| Added getTable() to CarName | `app/Models/CarName.php` | Table is `cars_names` but Laravel guesses `car_names` — would crash on every query |
+| Added getTable() to CarCompany | `app/Models/CarCompany.php` | Table is `cars_companies` but Laravel guesses `car_companies` — would crash on every query |
+| Added getStoreAttribute() to StoreCarComponent | `app/Models/StoreCarComponent.php` | Convenience accessor: chain through storeCar → store |
+| Added Production Best Practices | `CODE.md` | 30 best practices + professional request flow for reference during development |
+| Added getTable() to Admin | `app/Models/Admin.php` | Table is `admin` (singular) but Laravel guesses `admins` — would crash every query |
+| Removed remember_token from Admin $hidden | `app/Models/Admin.php` | Migration has no remember_token column — misleading |
+| Added deleted_at cast to User | `app/Models/User.php` | Missing datetime cast for soft delete timestamp — inconsistent with all other models |
+| Fixed Store $hidden doc comment | `app/Models/Store.php` | Comment said status should be hidden but it wasn't in array — corrected comment |
+| Removed redundant getTable() from PlatformSetting | `app/Models/PlatformSetting.php` | Laravel already guesses platform_settings correctly — no override needed |
+| Made country_id nullable on cars_companies | `2026_05_18_162656_create_cars_companies_table.php` | Not every brand maps to a single country |
+| Fixed UserFactory | `database/factories/UserFactory.php` | Was using wrong fields (name, email) — fixed to match User model (full_name, mobile, type) |
+| Created 12 model factories | `database/factories/*.php` | Admin, Store, StoresCar, StoreCarComponent, CustomerCar, Order, OrderOffer, Payment, Rating, Conversation, Message, (User fixed) |
+| Created ReferenceDataSeeder | `database/seeders/ReferenceDataSeeder.php` | 92 countries (EN/AR), 46 Saudi cities, 250+ international cities, 5 fuel types, 12 colors |
+| Created CarDataSeeder | `database/seeders/CarDataSeeder.php` | 54 car companies, 276 car names, 2005 car models (year variants) |
+| Created ComponentSeeder | `database/seeders/ComponentSeeder.php` | 7 car sections, 130 car components (all major parts) |
+| Created PlatformDataSeeder | `database/seeders/PlatformDataSeeder.php` | 12 platform settings, 4 CMS pages, default admin account |
+| Updated DatabaseSeeder | `database/seeders/DatabaseSeeder.php` | Calls all seeders in dependency order |

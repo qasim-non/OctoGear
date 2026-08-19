@@ -23,7 +23,6 @@ class Order extends Model
         'notes',
         'customer_id',
         'store_car_component_id',
-        'store_car_id',
         'model_id',
     ];
 
@@ -44,24 +43,59 @@ class Order extends Model
         ];
     }
 
+    /*
+     |--------------------------------------------------------------------------
+     | RELATIONSHIPS
+     |--------------------------------------------------------------------------
+     |
+     | Order flow:
+     |
+     | SPECIFIC order:
+     |   Order → storeCarComponent → storeCar → Store (direct chain)
+     |
+     | GENERAL order:
+     |   Order → model_id (what car the part is for, no store selected yet)
+     |   Order → offers (multiple stores bid on it)
+     */
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
     }
 
-    public function storeCar(): BelongsTo
-    {
-        return $this->belongsTo(StoresCar::class, 'store_car_id');
-    }
-
+    /**
+     * The specific store car component this order targets.
+     * NULL for general orders (no store selected yet).
+     *
+     * @return BelongsTo
+     */
     public function storeCarComponent(): BelongsTo
     {
         return $this->belongsTo(StoreCarComponent::class, 'store_car_component_id');
     }
 
+    /**
+     * The car model this order is for.
+     * Used mainly for general orders (no specific component selected yet).
+     * For specific orders, the model can be derived from storeCarComponent.
+     *
+     * @return BelongsTo
+     */
     public function carModel(): BelongsTo
     {
         return $this->belongsTo(CarModel::class, 'model_id');
+    }
+
+    /**
+     * Convenience: get the store that owns this order's component.
+     * Chain: order → storeCarComponent → storeCar → store
+     * NULL for general orders.
+     *
+     * @return Store|null
+     */
+    public function getStoreAttribute(): ?Store
+    {
+        return $this->storeCarComponent?->storeCar?->store;
     }
 
     public function offers(): HasMany

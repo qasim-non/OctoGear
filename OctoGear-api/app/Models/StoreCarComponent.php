@@ -47,6 +47,17 @@ class StoreCarComponent extends Model
         return $this->belongsTo(Component::class);
     }
 
+    /**
+     * Convenience: get the store that owns this component.
+     * Chain: storeCarComponent → storeCar → store
+     *
+     * @return \App\Models\Store|null
+     */
+    public function getStoreAttribute(): ?Store
+    {
+        return $this->storeCar?->store;
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'store_car_component_id');

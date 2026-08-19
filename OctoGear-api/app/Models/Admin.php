@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\AdminRole;
 use App\Enums\AdminStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,8 +15,15 @@ class Admin extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
+     * Laravel guesses "admins" from "Admin", but our table is "admin" (singular).
+     */
+    public function getTable(): string
+    {
+        return 'admin';
+    }
+
+    /**
      * The table uses 'employee_id' as primary key instead of 'id'.
-     * Laravel assumes 'id' by default, so we MUST override getKeyName().
      */
     public function getKeyName(): string
     {
@@ -35,11 +41,9 @@ class Admin extends Authenticatable
 
     /**
      * password is hidden so it never leaks in API responses or JSON output.
-     * Even though we use Hash::make(), we never want the hash to be exposed.
      */
     protected $hidden = [
         'password',
-        'remember_token',
         'deleted_at',
     ];
 

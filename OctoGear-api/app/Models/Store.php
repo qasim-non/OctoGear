@@ -46,11 +46,8 @@ class Store extends Model
     ];
 
     /**
-     * Why hide status and deleted_at:
-     *
-     * - status: Internal admin status (active/inactive). Users see stores only if active.
-     *          If we show inactive stores, it's confusing. Filter in queries instead.
-     * - deleted_at: Same as before — internal soft-delete timestamp.
+     * status is NOT hidden — API consumers need it to know if a store is active.
+     * Filter inactive stores in queries instead of hiding the field.
      */
     protected $hidden = [
         'deleted_at',
@@ -160,20 +157,6 @@ class Store extends Model
     public function ratings(): HasMany
     {
         return $this->hasMany(Rating::class);
-    }
-
-    /**
-     * A store has received many orders (via its cars/components).
-     *
-     * This is an INDIRECT relationship:
-     * Store → StoresCar → Order
-     * But we can define it directly for convenience.
-     *
-     * @return HasMany
-     */
-    public function orders(): HasMany
-    {
-        return $this->hasMany(Order::class);
     }
 
     /**

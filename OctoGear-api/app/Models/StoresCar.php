@@ -63,9 +63,4 @@ class StoresCar extends Model
     {
         return $this->hasMany(StoreCarComponent::class, 'store_car_id');
     }
-
-    public function orders(): HasMany
-    {
-        return $this->hasMany(Order::class, 'store_car_id');
-    }
 }

@@ -11,11 +11,6 @@ class PlatformSetting extends Model
      * They're either active or removed entirely.
      */
 
-    public function getTable(): string
-    {
-        return 'platform_settings';
-    }
-
     protected $fillable = [
         'key',
         'value',

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name_en', 100);
             $table->string('name_ar', 100);
-            $table->foreignId('country_id')->constrained('countries', 'id')->onDelete('cascade');
+            $table->foreignId('country_id')->nullable()->constrained('countries', 'id')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });

@@ -38,6 +38,7 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

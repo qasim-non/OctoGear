@@ -11,6 +11,14 @@ class CarName extends Model
 {
     use SoftDeletes;
 
+    /**
+     * Laravel guesses "car_names" from "CarName", but our table is "cars_names".
+     */
+    public function getTable(): string
+    {
+        return 'cars_names';
+    }
+
     protected $fillable = [
         'name_en',
         'name_ar',
