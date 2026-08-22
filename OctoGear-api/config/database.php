@@ -181,4 +181,6 @@ return [
 
     ],
 
+    'seed_test_data' => env('DB_SEED_TEST_DATA', false),
+
 ];

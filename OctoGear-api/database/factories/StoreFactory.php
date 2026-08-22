@@ -18,13 +18,13 @@ class StoreFactory extends Factory
     {
         return [
             'name' => fake()->company() . ' Auto Parts',
-            'mobile' => fake->numerify('+9665########'),
+            'mobile' => fake()->numerify('+9665########'),
             'nick_name' => fake()->lastName(),
             'employee_name' => fake()->name(),
             'url_location' => fake()->url(),
             'status' => StoreStatus::Active,
             'commercial_registration_number' => fake()->numerify('###########'),
-            'commercial_registration_picture' => null,
+            'commercial_registration_picture' => fake()->imageUrl(400, 300, 'business'),
             'city_id' => City::factory(),
             'user_id' => null,
         ];

@@ -3,13 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Admin;
-use App\Models\Cms;
-use App\Models\PlatformSetting;
 use App\Enums\AdminRole;
 use App\Enums\AdminStatus;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class PlatformDataSeeder extends Seeder
 {
@@ -26,6 +25,8 @@ class PlatformDataSeeder extends Seeder
 
     private function seedPlatformSettings(): void
     {
+        $now = Carbon::now();
+
         $settings = [
             ['key' => 'platform_fee_percentage', 'value' => '5'],
             ['key' => 'min_order_amount', 'value' => '50'],
@@ -41,15 +42,22 @@ class PlatformDataSeeder extends Seeder
             ['key' => 'max_delivery_distance_km', 'value' => '100'],
         ];
 
-        foreach ($settings as $setting) {
-            PlatformSetting::create($setting);
-        }
+        $rows = array_map(fn (array $setting): array => [
+            ...$setting,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $settings);
+
+        // Single INSERT ... ON DUPLICATE KEY UPDATE ('key' has a unique index).
+        DB::table('platform_settings')->upsert($rows, ['key'], ['value', 'updated_at']);
 
         $this->command->info('Seeded ' . count($settings) . ' platform settings');
     }
 
     private function seedCms(): void
     {
+        $now = Carbon::now();
+
         $pages = [
             [
                 'english_text' => 'Welcome to YARDY — the car parts marketplace that connects you with trusted service providers. Find the right parts for your car at the best prices.',
@@ -69,9 +77,14 @@ class PlatformDataSeeder extends Seeder
             ],
         ];
 
-        foreach ($pages as $page) {
-            Cms::create($page);
-        }
+        $rows = array_map(fn (array $page): array => [
+            ...$page,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'deleted_at' => null,
+        ], $pages);
+
+        DB::table('cms')->insert($rows);
 
         $this->command->info('Seeded ' . count($pages) . ' CMS pages');
     }

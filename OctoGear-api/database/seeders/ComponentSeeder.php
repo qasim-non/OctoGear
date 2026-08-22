@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\CarSection;
-use App\Models\Component;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ComponentSeeder extends Seeder
 {
@@ -181,29 +180,47 @@ class ComponentSeeder extends Seeder
             ],
         ];
 
-        $totalSections = 0;
-        $totalComponents = 0;
+        $now = Carbon::now();
+        $sectionRows = [];
+        $componentRows = [];
+        $sectionIndex = 1;
 
         foreach ($sections as $sectionEn => [$sectionAr, $components]) {
-            $section = CarSection::create([
+            $sectionRows[] = [
                 'name_en' => $sectionEn,
                 'name_ar' => $sectionAr,
-            ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
 
             foreach ($components as [$componentEn, $componentAr]) {
-                Component::create([
+                $componentRows[] = [
                     'name_en' => $componentEn,
                     'name_ar' => $componentAr,
-                    'section_id' => $section->id,
-                ]);
-                $totalComponents++;
+                    'section_id' => $sectionIndex,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
             }
 
-            $totalSections++;
+            $sectionIndex++;
         }
+
+        $totalSections = count($sectionRows);
+        $totalComponents = count($componentRows);
+
+        DB::table('car_sections')->insert($sectionRows);
+        $firstSectionId = DB::table('car_sections')->max('id') - $totalSections + 1;
+
+        foreach ($componentRows as &$row) {
+            $row['section_id'] = $firstSectionId + $row['section_id'];
+        }
+        unset($row);
+
+        DB::table('components')->insert($componentRows);
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $this->command->info("Seeded {$totalSections} car sections and {$totalComponents} components");
+        $this->command->info("Seeded {$totalSections} car sections and {$totalComponents} components (2 queries)");
     }
 }

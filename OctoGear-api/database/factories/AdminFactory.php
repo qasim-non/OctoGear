@@ -20,8 +20,8 @@ class AdminFactory extends Factory
         return [
             'name' => fake()->name(),
             'assigned_role' => AdminRole::Employee,
-            'mobile' => fake->numerify('+9665########'),
-            'email' => fake->unique()->safeEmail(),
+            'mobile' => fake()->numerify('+9665########'),
+            'email' => fake()->unique()->safeEmail(),
             'password' => Hash::make('password'),
             'status' => AdminStatus::Active,
         ];

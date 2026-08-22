@@ -2,11 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\CarCompany;
-use App\Models\CarName;
-use App\Models\CarModel;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class CarDataSeeder extends Seeder
 {
@@ -588,37 +586,69 @@ class CarDataSeeder extends Seeder
             ],
         ];
 
-        $companyCount = 0;
-        $carNameCount = 0;
-        $carModelCount = 0;
+        $now = Carbon::now();
+        $companyRows = [];
+        $carNameRows = [];
+        $carModelRows = [];
+        $companyIndex = 1;
+        $carNameIndex = 1;
 
         foreach ($companies as [$companyEn, $companyAr, $models]) {
-            $company = CarCompany::create([
+            $companyRows[] = [
                 'name_en' => $companyEn,
                 'name_ar' => $companyAr,
                 'country_id' => null,
-            ]);
-            $companyCount++;
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
 
             foreach ($models as [$modelEn, $modelAr, $years]) {
-                $carName = CarName::create([
+                $carNameRows[] = [
                     'name_en' => $modelEn,
                     'name_ar' => $modelAr,
-                    'car_company_id' => $company->id,
-                ]);
-                $carNameCount++;
+                    'car_company_id' => $companyIndex,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
 
                 foreach ($years as $year) {
-                    CarModel::create([
+                    $carModelRows[] = [
                         'name_en' => "$modelEn $year",
                         'name_ar' => "$modelAr $year",
-                        'car_name_id' => $carName->id,
-                    ]);
-                    $carModelCount++;
+                        'car_name_id' => $carNameIndex,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
+
+                $carNameIndex++;
             }
+
+            $companyIndex++;
         }
 
-        $this->command->info("Seeded car data: {$companyCount} companies, {$carNameCount} car names, {$carModelCount} car models.");
+        $companyCount = count($companyRows);
+        $carNameCount = count($carNameRows);
+        $carModelCount = count($carModelRows);
+
+        DB::table('cars_companies')->insert($companyRows);
+        $firstCompanyId = DB::table('cars_companies')->max('id') - $companyCount + 1;
+
+        foreach ($carNameRows as &$row) {
+            $row['car_company_id'] = $firstCompanyId + $row['car_company_id'];
+        }
+        unset($row);
+
+        DB::table('cars_names')->insert($carNameRows);
+        $firstCarNameId = DB::table('cars_names')->max('id') - $carNameCount + 1;
+
+        foreach ($carModelRows as &$row) {
+            $row['car_name_id'] = $firstCarNameId + $row['car_name_id'];
+        }
+        unset($row);
+
+        DB::table('models')->insert($carModelRows);
+
+        $this->command->info("Seeded car data: {$companyCount} companies, {$carNameCount} car names, {$carModelCount} car models (3 queries)");
     }
 }
