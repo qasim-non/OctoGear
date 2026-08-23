@@ -1,15 +1,14 @@
 <?php
 
-
-
+use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 
-Route::get('/test', function () {
-    return response()->json(['message' => 'API is working!']);
-});
+Route::middleware(['locale'])->group(function () {
 
-// Example: Fetching a user (requires authentication middleware)
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    Route::prefix('auth')->group(function () {
+        Route::post('/otp/send', [AuthController::class, 'sendOtp']);
+        Route::post('/otp/verify', [AuthController::class, 'verifyOtp']);
+        Route::post('/register', [AuthController::class, 'register']);
+        Route::post('/admin/login', [AuthController::class, 'adminLogin']);
+    });
 });

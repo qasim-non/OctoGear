@@ -12,8 +12,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'auth'         => \App\Http\Middleware\Authenticate::class,
+            'locale'       => \App\Http\Middleware\SetLocale::class,
+            'user.active'  => \App\Http\Middleware\EnsureUserIsActive::class,
+            'admin.active' => \App\Http\Middleware\EnsureAdminIsActive::class,
+            'customer'     => \App\Http\Middleware\EnsureIsCustomer::class,
+            'provider'     => \App\Http\Middleware\EnsureIsProvider::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            return response()->json([
+                'success' => false,
+                'message' => __('auth.general.unauthenticated'),
+            ], 401);
+        });
     })->create();

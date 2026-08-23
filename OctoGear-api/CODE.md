@@ -58,10 +58,12 @@ OctoGear-api/
 │   │   │   └── Controller.php          # Base abstract controller
 │   │   │
 │   │   ├── Middleware/
-│   │   │   ├── EnsureUserIsCustomer.php
-│   │   │   ├── EnsureUserIsProvider.php
-│   │   │   ├── EnsureUserIsAdmin.php
-│   │   │   └── EnsureUserIsUnblocked.php
+│   │   │   ├── Authenticate.php          # Overrides default auth — returns JSON 401 (no redirects)
+│   │   │   ├── SetLocale.php             # Accept-Language header → ar/en locale
+│   │   │   ├── EnsureUserIsActive.php    # Blocks blocked users (customer/provider)
+│   │   │   ├── EnsureAdminIsActive.php   # Blocks blocked admins
+│   │   │   ├── EnsureIsCustomer.php      # Checks type === Customer
+│   │   │   └── EnsureIsProvider.php      # Checks type === ServiceProvider
 │   │   │
 │   │   ├── Requests/                   # Form Request validation classes
 │   │   │   ├── Auth/
@@ -231,6 +233,43 @@ cms (id, arabic_text, english_text, timestamps, soft_deletes)
 ---
 
 ## Coding Conventions
+
+### Response Format
+Every endpoint returns this envelope:
+```json
+// Success
+{
+    "success": true,
+    "message": "Store created.",
+    "data": { "id": 1, "name": "AlFaris" }
+}
+
+// Success with pagination
+{
+    "success": true,
+    "message": "OK",
+    "data": [...],
+    "meta": { "current_page": 1, "last_page": 5, "per_page": 20, "total": 95 }
+}
+
+// Error
+{
+    "success": false,
+    "message": "Validation failed",
+    "errors": { "name": ["The name field is required."] }
+}
+```
+
+### Base Classes
+- **`Controller`** — Uses `ApiResponse` trait. Every controller extends this.
+  - `$this->success($data, $message, $code)` — 200
+  - `$this->created($data, $message)` — 201
+  - `$this->error($message, $code, $errors)` — 400
+  - `$this->notFound($message)` — 404
+  - `$this->forbidden($message)` — 403
+  - `$this->unauthorized($message)` — 401
+  - `$this->paginated($paginator, $message)` — 200 with meta
+- **`BaseRequest`** — Every Form Request extends this. Overrides failedValidation to return JSON 422 (no redirects).
 
 ### Models
 - Use `$fillable` for mass-assignable fields (NEVER `*`)
@@ -460,6 +499,54 @@ Generate fake data for testing. One factory per model.
 ### 23. Database Constraints
 Use foreign keys, unique constraints, cascade rules. Don't rely only on validation — the database is the last line of defense.
 
+### 24. Logging
+Structured, purposeful logging. Never log sensitive data (passwords, tokens, OTPs, full card numbers).
+
+**Channels:**
+- `daily` (default) — Application errors, exceptions, debug info. Auto-rotated, 14-day retention.
+- `operations` — Third-party API calls, payment transactions, SMS delivery status. 30-day retention. Use via `Log::channel('operations')`.
+
+**When to log:**
+| Log Level | When | Example |
+|---|---|---|
+| `error` | Unhandled exceptions, system failures | Payment gateway timeout, DB connection lost |
+| `warning` | Recoverable issues, degraded state | Cache miss, retry succeeded, rate limit hit |
+| `info` | Business events, audit trail | Order created, user registered, OTP sent (production-safe) |
+| `debug` | Development debugging only | Variable dumps, query logs (NEVER in production) |
+
+**Production rules:**
+- Default stack is `daily` (auto-rotated, 14-day retention)
+- All logs are **JSON-formatted** via `LoggingServiceProvider` (structured, parseable by log aggregators)
+- `LOG_LEVEL=info` in production (no debug noise)
+- OTP codes are **NEVER** logged in production (`Log::info` only in `local` environment)
+- Use `Log::channel('operations')` for financial/transactional logs
+
+**Code examples:**
+```php
+// Application error — always log with context
+Log::error('Payment failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+
+// Business event — use info level
+Log::info('Order created', ['order_id' => $order->id, 'customer_id' => $user->id]);
+
+// Third-party API / financial — use operations channel
+Log::channel('operations')->info('SMS sent', ['mobile' => $mobile, 'provider' => 'unifonic', 'status' => 'delivered']);
+Log::channel('operations')->info('Payment processed', ['order_id' => $order->id, 'amount' => $amount, 'method' => 'credit_card']);
+
+// NEVER do this
+Log::info("OTP for {$mobile}: {$otp}");           // leaks secrets
+Log::debug($user->toArray());                      // debug in production
+Log::info($request->all());                        // may contain passwords
+```
+
+**Log file structure:**
+```
+storage/logs/
+├── laravel-YYYY-MM-DD.log    # daily channel (14 days retention)
+├── operations-YYYY-MM-DD.log # operations channel (30 days retention)
+└── laravel.log               # emergency fallback
+```
+
 ---
 
 ## Professional Request Flow
@@ -496,51 +583,67 @@ JSON Response (consistent format)
 
 ## API Route Groups
 
+All routes use `locale` middleware globally (Accept-Language header → ar/en).
+
 ```
 api.php
 ├── Public routes (no auth)
-│   ├── POST /auth/send-otp
-│   ├── POST /auth/verify-otp
+│   ├── GET /test
+│   ├── POST /auth/otp/send
+│   ├── POST /auth/otp/verify
+│   ├── POST /auth/admin/login
+│   ├── GET /countries, /cities, /fuel-types, /colors
+│   ├── GET /car-companies, /car-names, /car-models
+│   ├── GET /car-sections, /components
 │   └── GET /cms
 │
-├── Customer routes (auth:sanctum + EnsureUserIsCustomer + EnsureUserIsUnblocked)
-│   ├── POST /auth/register
-│   ├── GET/PUT /auth/me, /auth/profile
-│   ├── CRUD /customer/cars
-│   ├── POST /orders
-│   ├── GET /orders, /orders/{id}
-│   ├── PUT /orders/{id}/cancel
-│   ├── GET /orders/{id}/offers
-│   ├── POST /orders/{id}/offers/{offer_id}/accept
-│   ├── POST /orders/{id}/pay
-│   ├── GET /conversations
-│   ├── GET/POST /conversations/{id}/messages
-│   └── Search: GET /stores, /stores/{id}, /components/search
+├── Customer routes (auth:sanctum + user.active + customer)
+│   ├── GET/PUT /customer/profile
+│   ├── GET/POST/DELETE /customer/customer-cars
+│   ├── POST /customer/orders
+│   ├── GET /customer/orders, /customer/orders/{order}
+│   ├── POST /customer/orders/{order}/accept-offer, /cancel
+│   ├── GET /customer/stores, /customer/stores/{store}
+│   ├── GET /customer/stores/{store}/components
+│   ├── GET/POST /customer/conversations
+│   ├── GET/POST /customer/conversations/{conversation}/messages
+│   ├── POST /customer/ratings
+│   └── GET /customer/notifications, PUT .../read
 │
-├── Provider routes (auth:sanctum + EnsureUserIsProvider + EnsureUserIsUnblocked)
-│   ├── POST /provider/register
-│   ├── CRUD /provider/store
-│   ├── CRUD /provider/cars
-│   ├── CRUD /provider/cars/{id}/components
-│   ├── GET /provider/orders
-│   ├── PUT /provider/orders/{id}/accept, /reject
-│   ├── POST /provider/orders/{id}/offers
-│   ├── GET/POST /conversations
-│   └── GET/POST /conversations/{id}/messages
+├── Provider routes (auth:sanctum + user.active + provider)
+│   ├── GET/PUT /provider/profile
+│   ├── GET/POST/PUT /provider/store
+│   ├── POST/DELETE /provider/store/pictures, /provider/store/picture-car
+│   ├── GET/POST/DELETE /provider/store-cars
+│   ├── GET/POST /provider/store-cars/{storeCar}/components
+│   ├── PUT/DELETE /provider/store-cars/{storeCar}/components/{component}
+│   ├── GET /provider/orders, /provider/orders/{order}
+│   ├── POST /provider/orders/{order}/offer
+│   ├── PUT/DELETE /provider/orders/{order}/offer/{offer}
+│   ├── POST /provider/orders/{order}/reject
+│   ├── GET /provider/store-requests
+│   ├── POST /provider/store-requests/{request}/accept, /reject
+│   ├── GET /provider/conversations
+│   ├── GET/POST /provider/conversations/{conversation}/messages
+│   ├── GET /provider/ratings
+│   └── GET /provider/notifications, PUT .../read
 │
-└── Admin routes (auth:sanctum + EnsureUserIsAdmin)
-    ├── POST /admin/auth/login, /logout, GET /me
+└── Admin routes (auth:admin + admin.active)
+    ├── GET/PUT /admin/profile
     ├── GET /admin/dashboard
-    ├── CRUD /admin/customers
-    ├── CRUD /admin/service-providers
-    ├── CRUD /admin/provider-requests
-    ├── CRUD /admin/store-requests
-    ├── CRUD /admin/stores
-    ├── CRUD /admin/orders
-    ├── CRUD /admin/payments
-    ├── CRUD /admin/admins
-    ├── CRUD /admin/cars-companies, /cars-names, /models, /fuel-types, /colors, /countries, /cities, /car-sections, /components
-    └── GET/PUT /admin/cms
+    ├── GET /admin/users, /admin/users/{user}
+    ├── PUT /admin/users/{user}/block, /unblock
+    ├── GET /admin/stores, /admin/stores/{store}
+    ├── PUT /admin/stores/{store}/activate, /deactivate
+    ├── GET/POST /admin/admins
+    ├── PUT/DELETE /admin/admins/{admin}
+    ├── GET /admin/service-provider-requests
+    ├── PUT /admin/service-provider-requests/{request}/approve, /reject
+    ├── GET /admin/orders, /admin/orders/{order}
+    ├── GET/PUT /admin/cms, /admin/cms/{cms}
+    ├── GET/PUT /admin/platform-settings, /admin/platform-settings/{setting}
+    ├── GET /admin/ratings
+    └── GET /admin/notifications
 ```
 
 ---
@@ -593,3 +696,32 @@ api.php
 | Created ComponentSeeder | `database/seeders/ComponentSeeder.php` | 7 car sections, 130 car components (all major parts) |
 | Created PlatformDataSeeder | `database/seeders/PlatformDataSeeder.php` | 12 platform settings, 4 CMS pages, default admin account |
 | Updated DatabaseSeeder | `database/seeders/DatabaseSeeder.php` | Calls all seeders in dependency order |
+| Optimized all 4 seeders to bulk inserts | `database/seeders/*.php` | ~2,650 queries → ~13 queries (15x faster) |
+| Added seed_test_data config | `config/database.php` | Controls TestDataSeeder execution via env var |
+| Created Authenticate middleware | `app/Http/Middleware/Authenticate.php` | Overrides default auth — returns JSON 401 instead of redirect |
+| Created SetLocale middleware | `app/Http/Middleware/SetLocale.php` | Accept-Language header → ar/en locale (defaults to ar) |
+| Created EnsureUserIsActive middleware | `app/Http/Middleware/EnsureUserIsActive.php` | Blocks blocked customers/providers with 403 |
+| Created EnsureAdminIsActive middleware | `app/Http/Middleware/EnsureAdminIsActive.php` | Blocks blocked admins with 403 |
+| Created EnsureIsCustomer middleware | `app/Http/Middleware/EnsureIsCustomer.php` | Checks user type === Customer, 403 if not |
+| Created EnsureIsProvider middleware | `app/Http/Middleware/EnsureIsProvider.php` | Checks user type === ServiceProvider, 403 if not |
+| Added admin guard to auth config | `config/auth.php` | Separate guard for admin table (email+password, employee_id PK) |
+| Registered all middleware aliases | `bootstrap/app.php` | auth, locale, user.active, admin.active, customer, provider |
+| Handled unauthenticated JSON responses | `bootstrap/app.php` | AuthenticationException → JSON 401 (no redirect attempts) |
+| Created full route skeleton | `routes/api.php` | 91 routes across 4 groups (public, customer, provider, admin) |
+| Created ApiResponse trait | `app/Http/Traits/ApiResponse.php` | Consistent JSON envelope: success, message, data, meta, errors |
+| Updated Base Controller | `app/Http/Controllers/Controller.php` | Uses ApiResponse trait — all controllers inherit response helpers |
+| Created BaseRequest | `app/Http/Requests/BaseRequest.php` | JSON 422 on validation failure (no redirect) |
+| Cleaned api.php | `routes/api.php` | Removed closure routes — clean slate for controller-based routing |
+| Created SendOtpRequest | `app/Http/Requests/Auth/SendOtpRequest.php` | Validates Saudi mobile (05XXXXXXXX) |
+| Created VerifyOtpRequest | `app/Http/Requests/Auth/VerifyOtpRequest.php` | Validates mobile + 4-digit OTP |
+| Created AdminLoginRequest | `app/Http/Requests/Auth/AdminLoginRequest.php` | Validates email + password (min 6) |
+| Created RegisterRequest | `app/Http/Requests/Auth/RegisterRequest.php` | Validates temp_token + full_name + city_id |
+| Created OtpService | `app/Services/OtpService.php` | sendOtp, verifyOtp, findByMobile, createPendingRegistration, consumePendingRegistration, createUser, createToken |
+| Created AuthController | `app/Http/Controllers/Auth/AuthController.php` | sendOtp, verifyOtp (new vs existing), register, adminLogin |
+| Wired auth routes | `routes/api.php` | otp/send, otp/verify, register (public), admin/login |
+| Made users.city_id nullable | `database/migrations/2026_08_22_195000_make_users_city_id_nullable.php` | Users register with phone first, set city in profile later |
+| Switched to cache-based registration | `app/Services/OtpService.php` | No skeleton users — temp token via Cache, one-time use, 30min expiry |
+| Added OTP brute-force protection | `app/Services/OtpService.php` | Max 5 attempts per mobile, locked 5 minutes via Cache |
+| Made OTP logging environment-aware | `app/Services/OtpService.php` | Only logs OTP in local env, never in production |
+| Added Cache::lock() to registration | `app/Services/OtpService.php` | Prevents race condition on temp token consumption |
+| Created cache + cache_locks tables | `database/migrations/2026_08_22_182024_create_cache_table.php` | Required for database cache driver + Cache::lock() |
