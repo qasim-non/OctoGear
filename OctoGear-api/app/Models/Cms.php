@@ -20,6 +20,7 @@ class Cms extends Model
     }
 
     protected $fillable = [
+        'type',
         'arabic_text',
         'english_text',
     ];

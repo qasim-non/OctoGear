@@ -60,18 +60,22 @@ class PlatformDataSeeder extends Seeder
 
         $pages = [
             [
+                'type' => 'welcome',
                 'english_text' => 'Welcome to YARDY — the car parts marketplace that connects you with trusted service providers. Find the right parts for your car at the best prices.',
                 'arabic_text' => 'مرحباً بكم في ياردي — سوق قطع الغيار الذي يربطكم بمزودي الخدمات الموثوقين. اعثر على القطع المناسبة لسيارتك بأفضل الأسعار.',
             ],
             [
+                'type' => 'about',
                 'english_text' => 'About Us: YARDY is a leading car parts marketplace in Saudi Arabia. We connect customers with verified service providers, ensuring quality parts and competitive prices.',
                 'arabic_text' => 'من نحن: ياردي هو السوق الرائد لقطع الغيار في المملكة العربية السعودية. نربط العملاء بمزودي الخدمات المعتمدين، لضمان قطع عالية الأسعار التنافسية.',
             ],
             [
+                'type' => 'terms',
                 'english_text' => 'Terms and Conditions: By using the YARDY platform, you agree to our terms of service. All transactions are subject to our policies.',
                 'arabic_text' => 'الشروط والأحكام: باستخدامك لمنصة ياردي، فإنك توافق على شروط الخدمة. جميع المعاملات خاضعة لسياساتنا.',
             ],
             [
+                'type' => 'privacy',
                 'english_text' => 'Privacy Policy: We value your privacy. Your personal information is protected and will never be shared with third parties without your consent.',
                 'arabic_text' => 'سياسة الخصوصية: نحن نقدر خصوصيتك. معلوماتك الشخصية محمية ولن تتم مشاركتها مع أطراف ثالثة بدون موافقتك.',
             ],

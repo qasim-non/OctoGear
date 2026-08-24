@@ -20,6 +20,7 @@ return [
         'success'           => 'Login successful.',
         'invalid'           => 'Invalid credentials.',
         'blocked'           => 'Your account has been blocked.',
+        'rate_limited'      => 'Too many login attempts. Please try again in :minutes minutes.',
     ],
 
     'register' => [
