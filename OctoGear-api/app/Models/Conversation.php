@@ -45,6 +45,11 @@ class Conversation extends Model
         return $this->hasMany(Message::class);
     }
 
+    public function unreadMessages(): HasMany
+    {
+        return $this->messages()->where('is_read', false);
+    }
+
     /**
      * Get the latest message in this conversation.
      * Useful for the conversation list: show last message preview.
@@ -63,5 +68,18 @@ class Conversation extends Model
             ->where('sender_id', '!=', $user->id)
             ->where('is_read', false)
             ->count();
+    }
+
+    public function scopeWithLatestMessage($query): void
+    {
+        $query->with(['latestMessage' => fn ($q) => $q->limit(1)]);
+    }
+
+    public function scopeWithUnreadCount($query, User $user): void
+    {
+        $query->withCount([
+            'unreadMessages' => fn ($q) => $q
+                ->where('sender_id', '!=', $user->id),
+        ]);
     }
 }

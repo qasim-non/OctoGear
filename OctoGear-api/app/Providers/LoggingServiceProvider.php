@@ -30,5 +30,5 @@ class LoggingServiceProvider extends ServiceProvider
                 }
             }
         });
-    }
+    }   
 }

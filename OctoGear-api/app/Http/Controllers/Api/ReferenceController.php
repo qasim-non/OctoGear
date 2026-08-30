@@ -72,7 +72,6 @@ class ReferenceController extends Controller
     {
         $sections = Cache::remember('ref:sections', now()->addDay(), fn () =>
             CarSection::select('id', 'name_en', 'name_ar')
-                ->withCount('components')
                 ->get()
         );
 

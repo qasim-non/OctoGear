@@ -72,6 +72,95 @@ return [
             'required'      => 'Password is required.',
             'min'           => 'Password must be at least :min characters.',
         ],
+        'car_name_id' => [
+            'required'      => 'Car name is required.',
+            'integer'       => 'Car name must be a valid ID.',
+            'exists'        => 'Selected car name does not exist.',
+        ],
+        'manufacturing_year' => [
+            'required'      => 'Manufacturing year is required.',
+            'integer'       => 'Manufacturing year must be a valid number.',
+            'min'           => 'Manufacturing year must be at least :min.',
+            'max'           => 'Manufacturing year must not exceed :max.',
+        ],
+        'vehicle_plat_number' => [
+            'required'      => 'Plate number is required.',
+            'max'           => 'Plate number must not exceed 50 characters.',
+        ],
+        'color_id' => [
+            'required'      => 'Color is required.',
+            'integer'       => 'Color must be a valid ID.',
+            'exists'        => 'Selected color does not exist.',
+        ],
+        'fuel_type' => [
+            'required'      => 'Fuel type is required.',
+            'integer'       => 'Fuel type must be a valid ID.',
+            'exists'        => 'Selected fuel type does not exist.',
+        ],
+        'pictures' => [
+            'array'         => 'Pictures must be an array.',
+            'max'           => 'Maximum :max pictures allowed.',
+        ],
+        'order_type' => [
+            'required'      => 'Order type is required.',
+            'in'            => 'Order type must be "general" or "specific".',
+        ],
+        'quantity' => [
+            'required'      => 'Quantity is required.',
+            'integer'       => 'Quantity must be a valid number.',
+            'min'           => 'Quantity must be at least :min.',
+        ],
+        'customer_image' => [
+            'string'        => 'Customer image must be a string.',
+            'max'           => 'Customer image must not exceed 255 characters.',
+        ],
+        'store_car_component_id' => [
+            'required'      => 'Car component is required for specific orders.',
+            'exists'        => 'Selected car component does not exist.',
+            'integer'       => 'Car component must be a valid ID.',
+        ],
+        'model_id' => [
+            'required'      => 'Car model is required for general orders.',
+            'exists'        => 'Selected car model does not exist.',
+            'integer'       => 'Car model must be a valid ID.',
+        ],
+        'offer_id' => [
+            'required'      => 'Offer ID is required.',
+            'integer'       => 'Offer ID must be a valid number.',
+            'exists'        => 'Offer not found.',
+        ],
+        'order' => [
+            'not_found'     => 'Order not found.',
+            'not_mine'      => 'This order does not belong to you.',
+            'cannot_cancel' => 'This order cannot be cancelled.',
+            'cannot_accept_offer' => 'Cannot accept offer for this order.',
+            'offer_not_for_order' => 'This offer does not belong to this order.',
+            'cannot_complete' => 'This order cannot be marked as received.',
+        ],
+        'payment' => [
+            'cannot_pay'   => 'This order cannot be paid right now.',
+            'already_paid' => 'This order has already been paid.',
+        ],
+        'rating' => [
+            'order_not_found'      => 'Order not found.',
+            'order_not_completed'  => 'You can only rate a completed order.',
+            'store_mismatch'       => 'The store does not match this order.',
+            'already_rated'        => 'This order has already been rated.',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Messages
+    |--------------------------------------------------------------------------
+    */
+
+    'notifications' => [
+        'new_order'       => 'New order #:id has been placed.',
+        'new_offer'       => 'A new offer has been submitted on your order.',
+        'order_paid'      => 'Your order #:id has been paid.',
+        'order_completed' => 'Order #:id has been confirmed as received.',
+        'new_message'     => 'You have a new message.',
     ],
 
     /*

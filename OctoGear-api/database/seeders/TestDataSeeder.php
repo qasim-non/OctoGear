@@ -200,6 +200,7 @@ class TestDataSeeder extends Seeder
             'store_car_component_id' => $storeCarComponents[1]->id ?? $storeCarComponents[0]->id,
             'model_id' => $modelIds[0],
             'status' => OrderStatus::Completed,
+            'accepted_store_id' => $storeCarComponents[1]->storeCar->store_id ?? $storeCarComponents[0]->storeCar->store_id,
         ]);
 
         // 1 cancelled order

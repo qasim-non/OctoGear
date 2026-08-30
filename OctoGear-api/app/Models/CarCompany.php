@@ -56,6 +56,6 @@ class CarCompany extends Model
 
     public function stores(): BelongsToMany
     {
-        return $this->belongsToMany(Store::class, 'store_companies');
+        return $this->belongsToMany(Store::class, 'store_companies', 'company_id', 'store_id');
     }
 }

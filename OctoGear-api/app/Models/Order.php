@@ -25,6 +25,7 @@ class Order extends Model
         'customer_id',
         'store_car_component_id',
         'model_id',
+        'accepted_store_id',
     ];
 
     protected $hidden = [
@@ -102,6 +103,11 @@ class Order extends Model
     public function offers(): HasMany
     {
         return $this->hasMany(OrderOffer::class);
+    }
+
+    public function acceptedStore(): BelongsTo
+    {
+        return $this->belongsTo(Store::class, 'accepted_store_id');
     }
 
     public function payment(): HasOne
