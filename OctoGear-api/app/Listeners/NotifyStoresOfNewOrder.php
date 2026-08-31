@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Enums\StoreStatus;
 use App\Events\OrderCreated;
 use App\Models\Store;
 use App\Notifications\NewOrderNotification;
@@ -19,7 +20,7 @@ class NotifyStoresOfNewOrder
 
         if ($order->isGeneral()) {
             $stores = Store::query()
-                ->where('status', \App\Enums\StoreStatus::Active)
+                ->where('status', StoreStatus::Active)
                 ->where('city_id', $order->customer?->city_id)
                 ->with('owner')
                 ->get();

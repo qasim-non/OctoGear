@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Customer;
 use App\Enums\OrderStatus;
 use App\Events\OrderCompleted;
 use App\Events\OrderCreated;
-use App\Events\OrderPaid;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\AcceptOfferRequest;
 use App\Http\Requests\Customer\PayOrderRequest;
@@ -13,7 +12,9 @@ use App\Http\Requests\Customer\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Services\PaymentService;
+use RuntimeException;
 
 class CustomerOrderController extends Controller
 {
@@ -89,30 +90,33 @@ class CustomerOrderController extends Controller
 
     public function pay(PayOrderRequest $request, Order $order, PaymentService $payments)
     {
-        $this->authorize('create', \App\Models\Payment::class);
+        $this->authorize('create', Payment::class);
         $this->authorize('update', $order);
 
-        if (!$order->status->canTransitionTo(OrderStatus::Paid)) {
-            return $this->error(__('auth.validation.payment.cannot_pay'));
+        $data = $request->validated();
+
+        try {
+            $payment = $payments->charge(
+                $order,
+                $data['payment_method'],
+                $data['card_token'] ?? null,
+            );
+        } catch (RuntimeException $e) {
+            $message = match ($e->getMessage()) {
+                'This order has already been paid.' => __('auth.validation.payment.already_paid'),
+                'This order cannot be paid right now.' => __('auth.validation.payment.cannot_pay'),
+                default => __('auth.validation.payment.gateway_error'),
+            };
+
+            return $this->error($message);
         }
 
-        if ($order->payment()->exists()) {
-            return $this->error(__('auth.validation.payment.already_paid'));
-        }
+        $order->refresh()->load(['carModel', 'storeCarComponent.storeCar.store', 'acceptedStore']);
 
-        $payment = $payments->charge(
-            $order,
-            $request->enum('payment_method', \App\Enums\PaymentMethod::class),
-            $request->input('card_token')
-        );
-
-        $order->update(['status' => OrderStatus::Paid]);
-
-        OrderPaid::dispatch($order->refresh());
-
-        $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
-
-        return $this->success($this->paymentPayload($payment, $order));
+        return $this->success([
+            'payment' => new PaymentResource($payment),
+            'order'   => new OrderResource($order),
+        ]);
     }
 
     public function received(Order $order)
@@ -130,13 +134,5 @@ class CustomerOrderController extends Controller
         $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
         return $this->success(new OrderResource($order));
-    }
-
-    private function paymentPayload($payment, Order $order): array
-    {
-        return [
-            'payment' => new PaymentResource($payment),
-            'order'   => new OrderResource($order),
-        ];
     }
 }

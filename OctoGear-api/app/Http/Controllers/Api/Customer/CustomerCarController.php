@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\StoreCustomerCarRequest;
+use App\Http\Requests\Customer\UpdateCustomerCarRequest;
 use App\Http\Resources\CustomerCarResource;
 use App\Models\CustomerCar;
 
@@ -20,6 +21,34 @@ class CustomerCarController extends Controller
             ->paginate(15);
 
         return $this->paginated($cars->through(fn ($car) => new CustomerCarResource($car)));
+    }
+
+    public function show(CustomerCar $customerCar)
+    {
+        $this->authorize('view', $customerCar);
+
+        $customerCar->load(['carName', 'color', 'fuelType', 'pictures']);
+
+        return $this->success(new CustomerCarResource($customerCar));
+    }
+
+    public function update(UpdateCustomerCarRequest $request, CustomerCar $customerCar)
+    {
+        $this->authorize('update', $customerCar);
+
+        $customerCar->update($request->validated());
+
+        if ($request->has('pictures')) {
+            $customerCar->pictures()->delete();
+
+            foreach ($request->validated('pictures') as $picture) {
+                $customerCar->pictures()->create(['picture' => $picture]);
+            }
+        }
+
+        $customerCar->load(['carName', 'color', 'fuelType', 'pictures']);
+
+        return $this->success(new CustomerCarResource($customerCar));
     }
 
     public function store(StoreCustomerCarRequest $request)

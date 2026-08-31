@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\MessageSent;
+use App\Models\User;
 use App\Notifications\NewMessageNotification;
 
 /**
@@ -24,7 +25,7 @@ class NotifyConversationParticipant
             ? $conversation->provider_id
             : $conversation->customer_id;
 
-        $recipient = \App\Models\User::find($recipientId);
+        $recipient = User::find($recipientId);
         $recipient?->notify(new NewMessageNotification($message));
     }
 }

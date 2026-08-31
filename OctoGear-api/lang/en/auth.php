@@ -138,8 +138,14 @@ return [
             'cannot_complete' => 'This order cannot be marked as received.',
         ],
         'payment' => [
-            'cannot_pay'   => 'This order cannot be paid right now.',
-            'already_paid' => 'This order has already been paid.',
+            'cannot_pay'    => 'This order cannot be paid right now.',
+            'already_paid'  => 'This order has already been paid.',
+            'gateway_error' => 'Payment could not be completed. Please try again.',
+        ],
+        'store_car_component' => [
+            'not_found'        => 'Selected car component does not exist.',
+            'out_of_stock'     => 'This component is currently out of stock.',
+            'insufficient_stock' => 'Only :stock unit(s) available for this component.',
         ],
         'rating' => [
             'order_not_found'      => 'Order not found.',
@@ -161,6 +167,7 @@ return [
         'order_paid'      => 'Your order #:id has been paid.',
         'order_completed' => 'Order #:id has been confirmed as received.',
         'new_message'     => 'You have a new message.',
+        'all_read'        => 'All notifications marked as read.',
     ],
 
     /*

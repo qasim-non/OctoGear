@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\StoreConversationRequest;
 use App\Http\Requests\Customer\StoreMessageRequest;
@@ -62,12 +63,14 @@ class CustomerConversationController extends Controller
         $this->authorize('view', $conversation);
 
         $message = $conversation->messages()->create([
-            'content'    => $request->content,
+            'content'    => $request->validated()['content'],
             'sender_id'  => auth()->id(),
             'is_read'    => false,
         ]);
 
         $message->load('sender');
+
+        MessageSent::dispatch($message);
 
         return $this->created(new MessageResource($message));
     }

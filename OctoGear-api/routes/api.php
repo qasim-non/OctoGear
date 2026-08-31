@@ -40,6 +40,8 @@ Route::middleware(['locale'])->group(function () {
 
         Route::get('/customer-cars', [CustomerCarController::class, 'index']);
         Route::post('/customer-cars', [CustomerCarController::class, 'store']);
+        Route::get('/customer-cars/{customerCar}', [CustomerCarController::class, 'show']);
+        Route::patch('/customer-cars/{customerCar}', [CustomerCarController::class, 'update']);
         Route::delete('/customer-cars/{customerCar}', [CustomerCarController::class, 'destroy']);
 
         Route::get('/orders', [CustomerOrderController::class, 'index']);
@@ -49,6 +51,8 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/orders/{order}/pay', [CustomerOrderController::class, 'pay']);
         Route::post('/orders/{order}/received', [CustomerOrderController::class, 'received']);
         Route::post('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel']);
+
+        Route::get('/component-cars', [CustomerStoreController::class, 'componentCars']);
 
         Route::get('/stores', [CustomerStoreController::class, 'index']);
         Route::get('/stores/{store}', [CustomerStoreController::class, 'show']);
@@ -64,6 +68,7 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/ratings', [CustomerRatingController::class, 'store']);
 
         Route::get('/notifications', [CustomerNotificationController::class, 'index']);
-        Route::put('/notifications/{notification}/read', [CustomerNotificationController::class, 'markAsRead']);
+        Route::patch('/notifications/read-all', [CustomerNotificationController::class, 'markAllAsRead']);
+        Route::patch('/notifications/{notification}/read', [CustomerNotificationController::class, 'markAsRead']);
     });
 });

@@ -17,7 +17,18 @@ class CustomerNotificationController extends Controller
             ->latest()
             ->paginate(15);
 
-        return $this->paginated($notifications->through(fn ($notification) => new NotificationResource($notification)));
+        return response()->json([
+            'success'      => true,
+            'message'      => __('auth.general.ok'),
+            'data'         => NotificationResource::collection($notifications->items()),
+            'meta'         => [
+                'current_page' => $notifications->currentPage(),
+                'last_page'    => $notifications->lastPage(),
+                'per_page'     => $notifications->perPage(),
+                'total'        => $notifications->total(),
+            ],
+            'unread_count' => auth()->user()->unreadNotifications()->count(),
+        ]);
     }
 
     public function markAsRead(DatabaseNotification $notification)
@@ -27,5 +38,14 @@ class CustomerNotificationController extends Controller
         $notification->markAsRead();
 
         return $this->success(new NotificationResource($notification));
+    }
+
+    public function markAllAsRead()
+    {
+        $this->authorize('viewAny', DatabaseNotification::class);
+
+        auth()->user()->unreadNotifications()->update(['read_at' => now()]);
+
+        return $this->success(__('auth.notifications.all_read'));
     }
 }
