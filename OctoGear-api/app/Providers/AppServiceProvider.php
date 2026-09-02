@@ -23,7 +23,10 @@ use App\Policies\RatingPolicy;
 use App\Policies\StorePolicy;
 use App\Policies\StoreCarComponentPolicy;
 use App\Policies\StoresCarPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Notifications\DatabaseNotification;
 
@@ -36,6 +39,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->configurePolicies();
+        $this->configureRateLimiting();
+    }
+
+    private function configurePolicies(): void
+    {
         Gate::policy(CustomerCar::class, CustomerCarPolicy::class);
         Gate::policy(Store::class, StorePolicy::class);
         Gate::policy(StoresCar::class, StoresCarPolicy::class);
@@ -47,5 +56,30 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Rating::class, RatingPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
+    }
+
+    private function configureRateLimiting(): void
+    {
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
+        RateLimiter::for('customerLogin', function (Request $request) {
+            $mobile = $request->input('mobile');
+
+            return [
+                Limit::perMinute(3)->by('mobile:'.$mobile),
+                Limit::perMinute(3)->by('ip:'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('adminLogin', function (Request $request) {
+            $email = $request->input('email');
+
+            return [
+                Limit::perMinute(5)->by('email:'.$email),
+                Limit::perMinute(5)->by('ip:'.$request->ip()),
+            ];
+        });
     }
 }

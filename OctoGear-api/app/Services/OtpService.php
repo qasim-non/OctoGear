@@ -9,12 +9,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class OtpService
 {
-    private const OTP_MAX_ATTEMPTS = 5;
     private const OTP_DECAY_MINUTES = 5;
 
     public function sendOtp(string $mobile)
@@ -38,24 +36,12 @@ class OtpService
 
     public function verifyOtp(string $mobile, string $otp): bool
     {
-        $key = "otp_verify:{$mobile}";
-
-        if (RateLimiter::tooManyAttempts($key, self::OTP_MAX_ATTEMPTS)) {
-            Log::warning('OTP rate limited', [
-                'mobile' => $mobile,
-            ]);
-
-            return false;
-        }
-
         $record = OtpCode::where('identifier', $mobile)
             ->where('expires_at', '>', now())
             ->latest()
             ->first();
 
         if (!$record || !Hash::check($otp, $record->hashed_otp)) {
-            RateLimiter::hit($key, self::OTP_DECAY_MINUTES);
-
             Log::warning('OTP verification failed', [
                 'mobile' => $mobile,
             ]);
@@ -64,7 +50,6 @@ class OtpService
         }
 
         $record->delete();
-        RateLimiter::clear($key);
 
         return true;
     }
@@ -85,24 +70,7 @@ class OtpService
 
     public function consumePendingRegistration(string $token): ?string
     {
-        $key = "pending_registration:{$token}";
-        $lockKey = "lock:{$key}";
-
-        $lock = Cache::lock($lockKey, 10);
-
-        try {
-            $mobile = Cache::get($key);
-
-            if (!$mobile) {
-                return null;
-            }
-
-            Cache::forget($key);
-
-            return $mobile;
-        } finally {
-            $lock->release();
-        }
+        return Cache::pull("pending_registration:{$token}");
     }
 
     public function createUser(string $mobile, string $fullName, int $cityId): User

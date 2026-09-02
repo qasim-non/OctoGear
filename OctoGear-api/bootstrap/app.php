@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer'     => \App\Http\Middleware\EnsureIsCustomer::class,
             'provider'     => \App\Http\Middleware\EnsureIsProvider::class,
         ]);
+
+        $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {

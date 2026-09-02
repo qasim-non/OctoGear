@@ -9,29 +9,34 @@ use App\Http\Controllers\Api\Customer\CustomerRatingController;
 use App\Http\Controllers\Api\Customer\CustomerStoreController;
 use App\Http\Controllers\Api\Customer\ProfileController;
 use App\Http\Controllers\Api\OrderOfferController;
-use App\Http\Controllers\Api\ReferenceController;
+use App\Http\Controllers\Api\Reference\CarNameController;
+use App\Http\Controllers\Api\Reference\CarSectionController;
+use App\Http\Controllers\Api\Reference\CityController;
+use App\Http\Controllers\Api\Reference\ColorController;
+use App\Http\Controllers\Api\Reference\CompanyController;
+use App\Http\Controllers\Api\Reference\FuelTypeController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['locale'])->group(function () {
 
     Route::prefix('auth')->group(function () {
-        Route::post('/otp/send', [AuthController::class, 'sendOtp']); // Done
-        Route::post('/otp/verify', [AuthController::class, 'verifyOtp']); // Done
+        Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:customerLogin');
+        Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:customerLogin');
         Route::post('/register', [AuthController::class, 'register']); // Done
-        Route::post('/admin/login', [AuthController::class, 'adminLogin']); // Done
+        Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:adminLogin');
     });
 
     // All done
     Route::prefix('reference')->group(function () {
-        Route::get('/cities', [ReferenceController::class, 'cities']);
-        Route::get('/companies', [ReferenceController::class, 'companies']);
-        Route::get('/companies/{company}/names', [ReferenceController::class, 'companyNames']);
-        Route::get('/names/{name}/models', [ReferenceController::class, 'nameModels']);
-        Route::get('/fuel-types', [ReferenceController::class, 'fuelTypes']);
-        Route::get('/colors', [ReferenceController::class, 'colors']);
-        Route::get('/sections', [ReferenceController::class, 'sections']);
-        Route::get('/sections/{section}/components', [ReferenceController::class, 'sectionComponents']);
+        Route::get('/cities', [CityController::class, 'index']);
+        Route::get('/companies', [CompanyController::class, 'index']);
+        Route::get('/companies/{company}/names', [CompanyController::class, 'names']);
+        Route::get('/names/{name}/models', [CarNameController::class, 'models']);
+        Route::get('/fuel-types', [FuelTypeController::class, 'index']);
+        Route::get('/colors', [ColorController::class, 'index']);
+        Route::get('/sections', [CarSectionController::class, 'index']);
+        Route::get('/sections/{section}/components', [CarSectionController::class, 'components']);
     });
 
 

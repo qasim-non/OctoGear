@@ -10,8 +10,6 @@ use App\Http\Requests\Auth\SendOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Models\Admin;
 use App\Services\OtpService;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -86,16 +84,9 @@ class AuthController extends Controller
     {
         $email = $request->validated('email');
 
-        $key = "admin_login:{$email}";
-
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            return $this->error(__('auth.login.rate_limited'), 429);
-        }
-
         $admin = Admin::where('email', $email)->first();
 
         if (!$admin || !Hash::check($request->validated('password'), $admin->password)) {
-            RateLimiter::hit($key, 300);
             Log::warning('Admin login failed', ['email' => $email]);
 
             return $this->error(__('auth.login.invalid'), 401);
@@ -109,8 +100,6 @@ class AuthController extends Controller
 
             return $this->error(__('auth.admin.blocked'), 403);
         }
-
-        RateLimiter::clear($key);
 
         $token = $admin->createToken('admin-token', ['admin'])->plainTextToken;
 
