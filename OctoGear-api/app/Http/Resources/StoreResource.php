@@ -21,6 +21,7 @@ class StoreResource extends JsonResource
             'commercial_registration_number' => $this->commercial_registration_number,
             'status'                       => $this->status->value,
             'average_rating'               => $this->ratings_avg_rating,
+            'sold_quantity'                => (int) ($this->sold_quantity ?? 0),
             'city' => $this->whenLoaded('city', fn () => [
                 'id'   => $this->city->id,
                 'name' => $locale === 'en' ? $this->city->name_en : $this->city->name_ar,

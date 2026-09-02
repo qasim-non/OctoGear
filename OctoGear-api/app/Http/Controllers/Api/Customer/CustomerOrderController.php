@@ -14,6 +14,7 @@ use App\Http\Resources\PaymentResource;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\PaymentService;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class CustomerOrderController extends Controller
@@ -83,7 +84,11 @@ class CustomerOrderController extends Controller
             return $this->error(__('auth.validation.order.cannot_cancel'));
         }
 
-        $order->update(['status' => OrderStatus::Cancelled]);
+        DB::transaction(function () use ($order) {
+            $order->update(['status' => OrderStatus::Cancelled]);
+
+            $order->offers()->delete();
+        });
 
         return $this->success(new OrderResource($order));
     }

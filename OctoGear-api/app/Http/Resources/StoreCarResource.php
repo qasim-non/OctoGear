@@ -27,6 +27,10 @@ class StoreCarResource extends JsonResource
                 'id'   => $this->fuelType->id,
                 'name' => $locale === 'en' ? $this->fuelType->type_en : $this->fuelType->type_ar,
             ]),
+            'store' => $this->whenLoaded('store', fn () => [
+                'id'   => $this->store->id,
+                'name' => $this->store->name,
+            ]),
             'components_count' => $this->whenCounted('components'),
             'pictures' => $this->whenLoaded('pictures', fn () =>
                 $this->pictures->pluck('picture')

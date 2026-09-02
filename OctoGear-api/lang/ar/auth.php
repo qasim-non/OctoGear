@@ -42,7 +42,7 @@ return [
     'validation' => [
         'mobile' => [
             'required'      => 'رقم الجوال مطلوب.',
-            'regex'         => 'يجب أن يكون الجوال رقم سعودي صالح (05XXXXXXXX).',
+            'regex'         => 'يجب أن يكون الجوال رقم سعودي صالح (05XXXXXXXX أو +9665XXXXXXXX).',
         ],
         'otp' => [
             'required'      => 'رمز التحقق مطلوب.',

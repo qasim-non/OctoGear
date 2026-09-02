@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Order;
+use App\Models\OrderOffer;
 use App\Models\Payment;
 use App\Models\Store;
 use App\Models\User;
@@ -72,6 +73,26 @@ class CustomerPaymentTest extends TestCase
             'id'     => $order->id,
             'status' => OrderStatus::Paid->value,
         ]);
+    }
+
+    public function test_paying_deletes_all_offers_for_the_order(): void
+    {
+        $customer = $this->authCustomer();
+        $store = $this->createStoreWithOwner();
+        $order = $this->negotiatingOrderFor($customer);
+
+        $other = OrderOffer::factory()->create([
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/customer/orders/{$order->id}/pay", [
+                'payment_method' => 'credit_card',
+                'card_token'     => 'tok_test_123',
+            ])->assertOk();
+
+        $this->assertSoftDeleted('order_offers', ['id' => $other->id]);
     }
 
     public function test_credit_card_is_required_for_card_payment(): void

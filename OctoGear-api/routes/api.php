@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Customer\CustomerOrderController;
 use App\Http\Controllers\Api\Customer\CustomerRatingController;
 use App\Http\Controllers\Api\Customer\CustomerStoreController;
 use App\Http\Controllers\Api\Customer\ProfileController;
+use App\Http\Controllers\Api\OrderOfferController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -15,12 +16,13 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['locale'])->group(function () {
 
     Route::prefix('auth')->group(function () {
-        Route::post('/otp/send', [AuthController::class, 'sendOtp']);
-        Route::post('/otp/verify', [AuthController::class, 'verifyOtp']);
-        Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/admin/login', [AuthController::class, 'adminLogin']);
+        Route::post('/otp/send', [AuthController::class, 'sendOtp']); // Done
+        Route::post('/otp/verify', [AuthController::class, 'verifyOtp']); // Done
+        Route::post('/register', [AuthController::class, 'register']); // Done
+        Route::post('/admin/login', [AuthController::class, 'adminLogin']); // Done
     });
 
+    // All done
     Route::prefix('reference')->group(function () {
         Route::get('/cities', [ReferenceController::class, 'cities']);
         Route::get('/companies', [ReferenceController::class, 'companies']);
@@ -32,7 +34,8 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/sections/{section}/components', [ReferenceController::class, 'sectionComponents']);
     });
 
-    Route::get('/cms/{type}', [CmsController::class, 'show']);
+
+    Route::get('/cms/{type}', [CmsController::class, 'show']); // Done
 
     Route::middleware(['auth:sanctum', 'user.active', 'customer'])->prefix('customer')->group(function () {
         Route::get('/profile', [ProfileController::class, 'show']);
@@ -45,19 +48,25 @@ Route::middleware(['locale'])->group(function () {
         Route::delete('/customer-cars/{customerCar}', [CustomerCarController::class, 'destroy']);
 
         Route::get('/orders', [CustomerOrderController::class, 'index']);
-        Route::post('/orders', [CustomerOrderController::class, 'store']);
+        Route::post('/orders', [CustomerOrderController::class, 'store']); // Done
         Route::get('/orders/{order}', [CustomerOrderController::class, 'show']);
         Route::post('/orders/{order}/accept-offer', [CustomerOrderController::class, 'acceptOffer']);
         Route::post('/orders/{order}/pay', [CustomerOrderController::class, 'pay']);
         Route::post('/orders/{order}/received', [CustomerOrderController::class, 'received']);
         Route::post('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel']);
 
-        Route::get('/component-cars', [CustomerStoreController::class, 'componentCars']);
+        Route::get('/orders/{order}/offers', [OrderOfferController::class, 'index']); // Done
+        Route::get('/orders/{order}/offers/{offer}', [OrderOfferController::class, 'show']); // Done
+        Route::post('/orders/{order}/offers/{offer}/reject', [OrderOfferController::class, 'reject']);
 
-        Route::get('/stores', [CustomerStoreController::class, 'index']);
-        Route::get('/stores/{store}', [CustomerStoreController::class, 'show']);
+        Route::get('/component-cars', [CustomerStoreController::class, 'componentCars']); // Done
+
+        Route::get('/stores', [CustomerStoreController::class, 'index']); // Done
+        Route::get('/stores/{store}', [CustomerStoreController::class, 'show']); // Done
         Route::get('/stores/{store}/cars', [CustomerStoreController::class, 'cars']);
+        Route::get('/stores/{store}/cars/{car}', [CustomerStoreController::class, 'showCar']);
         Route::get('/stores/{store}/cars/{car}/components', [CustomerStoreController::class, 'components']);
+        Route::get('/stores/{store}/cars/{car}/components/{component}', [CustomerStoreController::class, 'showComponent']);
 
         Route::get('/conversations', [CustomerConversationController::class, 'index']);
         Route::post('/conversations', [CustomerConversationController::class, 'store']);

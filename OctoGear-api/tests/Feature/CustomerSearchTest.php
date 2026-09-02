@@ -295,6 +295,94 @@ class CustomerSearchTest extends TestCase
 
         $this->assertSame(3, $component->fresh()->stock_quantity);
     }
+
+    public function test_store_index_counts_only_completed_sales_via_accepted_store(): void
+    {
+        $data = $this->makeCatalog();
+        $store = $this->makeStore(['name' => 'Store A']);
+        $customer = $this->authCustomer();
+
+        Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Completed,
+            'quantity' => 3,
+            'accepted_store_id' => $store->id,
+        ]);
+
+        Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Paid, // should NOT be counted
+            'quantity' => 5,
+            'accepted_store_id' => $store->id,
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/customer/stores');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.id', $store->id)
+            ->assertJsonPath('data.0.sold_quantity', 3);
+    }
+
+    public function test_store_index_counts_completed_sales_via_component_path(): void
+    {
+        $data = $this->makeCatalog();
+        $store = $this->makeStore(['name' => 'Store A', 'nick_name' => 'Store A']);
+        $car = $this->makeCar($store, $data['carName'], $data);
+        $component = $this->addComponentToCar($car, $data['component']->id, ['stock_quantity' => 10]);
+        $customer = $this->authCustomer();
+
+        // Specific order (no accepted_store_id) completed => counts via component path
+        Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Completed,
+            'quantity' => 4,
+            'store_car_component_id' => $component->id,
+        ]);
+
+        // Another completed order belonging to a DIFFERENT store => not counted
+        $other = $this->makeStore(['name' => 'Store B']);
+        $otherCar = $this->makeCar($other, $data['carName'], $data);
+        $otherComponent = $this->addComponentToCar($otherCar, $data['component']->id, ['stock_quantity' => 10]);
+        Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Completed,
+            'quantity' => 7,
+            'store_car_component_id' => $otherComponent->id,
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/customer/stores?query=Store A');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.id', $store->id)
+            ->assertJsonPath('data.0.sold_quantity', 4);
+    }
+
+    public function test_store_show_returns_sold_quantity(): void
+    {
+        $data = $this->makeCatalog();
+        $store = $this->makeStore(['name' => 'Store A']);
+        $customer = $this->authCustomer();
+
+        Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Completed,
+            'quantity' => 2,
+            'accepted_store_id' => $store->id,
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/customer/stores/{$store->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.sold_quantity', 2);
+    }
 }
 
 

@@ -42,7 +42,7 @@ return [
     'validation' => [
         'mobile' => [
             'required'      => 'Mobile number is required.',
-            'regex'         => 'Mobile must be a valid Saudi number (05XXXXXXXX).',
+            'regex'         => 'Mobile must be a valid Saudi number (05XXXXXXXX or +9665XXXXXXXX).',
         ],
         'otp' => [
             'required'      => 'OTP code is required.',

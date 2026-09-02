@@ -19,7 +19,7 @@ class OrderPolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->isCustomer() || $user->isProvider();
     }
 
     public function view(User $user, Order $order): bool

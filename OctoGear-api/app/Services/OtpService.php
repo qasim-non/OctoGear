@@ -17,7 +17,7 @@ class OtpService
     private const OTP_MAX_ATTEMPTS = 5;
     private const OTP_DECAY_MINUTES = 5;
 
-    public function sendOtp(string $mobile): string
+    public function sendOtp(string $mobile)
     {
         $otp = fake()->numerify('####');
 
@@ -34,8 +34,6 @@ class OtpService
         if (app()->environment('local')) {
             Log::info("OTP for {$mobile}: {$otp}");
         }
-
-        return $otp;
     }
 
     public function verifyOtp(string $mobile, string $otp): bool
@@ -118,7 +116,7 @@ class OtpService
         ]);
     }
 
-    public function createToken(User $user, array $abilities = ['*']): string
+    public function createToken(User $user, array $abilities = ['customer']): string
     {
         return $user->createToken('auth-token', $abilities)->plainTextToken;
     }

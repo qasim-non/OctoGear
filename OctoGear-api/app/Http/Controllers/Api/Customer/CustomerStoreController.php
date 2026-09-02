@@ -13,14 +13,17 @@ use App\Http\Resources\StoreResource;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
 use App\Models\StoresCar;
+use App\Services\SoldQuantityService;
 
 class CustomerStoreController extends Controller
 {
-    public function index(FilterStoresRequest $request)
+    public function index(FilterStoresRequest $request, SoldQuantityService $soldQuantity)
     {
         $filters = $request->validated();
 
         $stores = Store::query()
+            ->select('stores.*')
+            ->selectSub($soldQuantity->subquery(), 'sold_quantity')
             ->where('status', StoreStatus::Active)
             ->when(! empty($filters['query']), function ($q) use ($filters) {
                 $q->where('nick_name', 'like', "%{$filters['query']}%");
@@ -39,10 +42,11 @@ class CustomerStoreController extends Controller
         return $this->paginated($stores->through(fn ($store) => new StoreResource($store)));
     }
 
-    public function show(Store $store)
+    public function show(Store $store, SoldQuantityService $soldQuantity)
     {
         $store->load(['city', 'pictures', 'companies']);
         $store->loadAvg('ratings', 'rating');
+        $store->sold_quantity = $soldQuantity->forStore($store->id);
 
         return $this->success(new StoreResource($store));
     }
@@ -50,12 +54,24 @@ class CustomerStoreController extends Controller
     public function cars(Store $store)
     {
         $cars = $store->cars()
-            ->with(['carName', 'color', 'fuelType', 'pictures'])
+            ->with(['carName', 'color', 'fuelType', 'pictures', 'store'])
             ->withCount('components')
             ->latest()
             ->paginate(15);
 
         return $this->paginated($cars->through(fn ($car) => new StoreCarResource($car)));
+    }
+
+    public function showCar(Store $store, StoresCar $car)
+    {
+        if ($car->store_id !== $store->id) {
+            return $this->notFound(__('auth.general.not_found'));
+        }
+
+        $car->load(['carName.carCompany', 'color', 'fuelType', 'pictures', 'store']);
+        $car->loadCount('components');
+
+        return $this->success(new StoreCarResource($car));
     }
 
     public function components(Store $store, StoresCar $car)
@@ -66,9 +82,25 @@ class CustomerStoreController extends Controller
 
         $components = $car->components()
             ->with('component')
-            ->get();
+            ->latest()
+            ->paginate(15);
 
-        return $this->success(StoreCarComponentResource::collection($components));
+        return $this->paginated($components->through(fn ($comp) => new StoreCarComponentResource($comp)));
+    }
+
+    public function showComponent(Store $store, StoresCar $car, StoreCarComponent $component)
+    {
+        if ($car->store_id !== $store->id) {
+            return $this->notFound(__('auth.general.not_found'));
+        }
+
+        if ($component->store_car_id !== $car->id) {
+            return $this->notFound(__('auth.general.not_found'));
+        }
+
+        $component->load('component');
+
+        return $this->success(new StoreCarComponentResource($component));
     }
 
     public function componentCars(ComponentCarSearchRequest $request)
@@ -84,12 +116,6 @@ class CustomerStoreController extends Controller
             ->when(! empty($filters['car_name_id']), function ($q) use ($filters) {
                 $q->whereHas('storeCar', fn ($sc) => $sc->where('car_name_id', $filters['car_name_id']));
             })
-            ->when(
-                empty($filters['car_name_id']) && ! empty($filters['car_company_id']),
-                function ($q) use ($filters) {
-                    $q->whereHas('storeCar.carName', fn ($cn) => $cn->where('car_company_id', $filters['car_company_id']));
-                }
-            )
             ->with([
                 'component',
                 'storeCar.carName.carCompany',

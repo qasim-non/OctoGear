@@ -19,7 +19,7 @@ class RatingPolicy
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->isCustomer();
     }
 
     public function update(User $user, Rating $rating): bool

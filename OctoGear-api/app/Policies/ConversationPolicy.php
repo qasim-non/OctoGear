@@ -24,7 +24,7 @@ class ConversationPolicy
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->isCustomer() || $user->isProvider();
     }
 
     public function update(User $user, Conversation $conversation): bool

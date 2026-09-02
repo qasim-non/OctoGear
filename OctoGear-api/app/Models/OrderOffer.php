@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OfferStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,8 @@ class OrderOffer extends Model
         'store_id',
         'price',
         'notes',
+        'status',
+        'rejection_reason',
     ];
 
     protected $hidden = [
@@ -26,6 +29,7 @@ class OrderOffer extends Model
     {
         return [
             'price' => 'integer',
+            'status' => OfferStatus::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

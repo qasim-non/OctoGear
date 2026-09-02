@@ -158,6 +158,10 @@ class PaymentService
                 $order->update(['status' => OrderStatus::Paid]);
 
                 $this->commitStock($order);
+
+                // The order is settled: its offers are no longer relevant,
+                // so remove them from the system.
+                $order->offers()->delete();
             });
         } catch (\Throwable $e) {
             Log::critical('PAID-BUT-COMMIT-FAILED: reconcile order', [

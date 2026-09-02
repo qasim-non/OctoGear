@@ -23,9 +23,9 @@ class MessagePolicy
         return $this->isParticipant($user, $message);
     }
 
-    public function create(User $user, Message $message): bool
+    public function create(User $user): bool
     {
-        return $this->isParticipant($user, $message);
+        return $user->isCustomer() || $user->isProvider();
     }
 
     public function update(User $user, Message $message): bool
