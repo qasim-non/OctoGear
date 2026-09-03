@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Enums\StoreStatus;
+use App\Enums\SectionCondition;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\ComponentCarSearchRequest;
 use App\Http\Requests\Customer\FilterStoresRequest;
@@ -11,6 +12,7 @@ use App\Http\Resources\StoreCarComponentResource;
 use App\Http\Resources\StoreCarResource;
 use App\Http\Resources\StoreResource;
 use App\Models\Store;
+use App\Models\Component;
 use App\Models\StoreCarComponent;
 use App\Models\StoresCar;
 use App\Services\SoldQuantityService;
@@ -107,9 +109,16 @@ class CustomerStoreController extends Controller
     {
         $filters = $request->validated();
 
+        $sectionId = Component::find($filters['component_id'])?->section_id;
+
         $results = StoreCarComponent::query()
             ->where('component_id', $filters['component_id'])
             ->where('stock_quantity', '>=', 1)
+            ->when($sectionId, function ($q) use ($sectionId) {
+                $q->whereHas('storeCar.storeCarSections', fn ($section) => $section
+                    ->where('section_id', $sectionId)
+                    ->where('condition', SectionCondition::Okay));
+            })
             ->when(! empty($filters['city_id']), function ($q) use ($filters) {
                 $q->whereHas('storeCar.store', fn ($s) => $s->where('city_id', $filters['city_id']));
             })

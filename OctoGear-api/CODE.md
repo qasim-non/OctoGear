@@ -23,7 +23,8 @@ OctoGear-api/
 │   │   ├── StoreStatus.php             # active | inactive
 │   │   ├── AdminStatus.php             # active | inactive | blocked
 │   │   ├── AdminRole.php               # admin | manager | employee | hr | developer
-│   │   └── RequestStatus.php           # pending | accepted | rejected
+│   │   ├── RequestStatus.php           # pending | accepted | rejected
+│   │   └── SectionCondition.php        # okay | damaged
 │   │
 │   ├── Http/
 │   │   ├── Controllers/
@@ -63,7 +64,8 @@ OctoGear-api/
 │   │   │   ├── EnsureUserIsActive.php    # Blocks blocked users (customer/provider)
 │   │   │   ├── EnsureAdminIsActive.php   # Blocks blocked admins
 │   │   │   ├── EnsureIsCustomer.php      # Checks type === Customer
-│   │   │   └── EnsureIsProvider.php      # Checks type === ServiceProvider
+│   │   │   ├── EnsureIsProvider.php      # Checks type === ServiceProvider
+│   │   │   └── EnsureIsCustomerOrProvider.php  # Accepts both customer + provider
 │   │   │
 │   │   ├── Requests/                   # Form Request validation classes
 │   │   │   ├── Auth/
@@ -101,6 +103,7 @@ OctoGear-api/
 │   │   ├── StoreCompany.php
 │   │   ├── StoresCar.php
 │   │   ├── StoreCarPicture.php
+│   │   ├── StoreCarSection.php         # NEW - car section condition report (okay|damaged)
 │   │   ├── CarSection.php              # NEW - main sections (front, rear, engine...)
 │   │   ├── Component.php               # NEW - universal parts catalog
 │   │   ├── StoreCarComponent.php        # NEW - store-specific pricing
@@ -199,6 +202,7 @@ store_requests (id, user_id FK, store details, request_status[enum], timestamps,
 ```
 stores_cars (id, manufacturing_year, vehicle_plat_number, car_name_id FK, color_id FK, store_id FK, fuel_type FK, timestamps, soft_deletes)
 store_car_pictures (id, picture, car_id FK, timestamps, soft_deletes)
+store_car_sections (id, store_car_id FK, section_id FK, condition[enum: okay|damaged], timestamps)  # NEW - car section condition report
 store_car_components (id, store_car_id FK, component_id FK, part_number, description, price, stock_quantity, warranty_months, timestamps, soft_deletes)  # NEW - replaces old car_components
 ```
 
@@ -612,17 +616,21 @@ api.php
 │
 ├── Provider routes (auth:sanctum + user.active + provider)
 │   ├── GET/PUT /provider/profile
-│   ├── GET/POST/PUT /provider/store
-│   ├── POST/DELETE /provider/store/pictures, /provider/store/picture-car
-│   ├── GET/POST/DELETE /provider/store-cars
-│   ├── GET/POST /provider/store-cars/{storeCar}/components
-│   ├── PUT/DELETE /provider/store-cars/{storeCar}/components/{component}
-│   ├── GET /provider/orders, /provider/orders/{order}
+│   ├── GET/PUT /provider/store/{store}
+│   ├── GET/POST /provider/store/{store}/cars
+│   ├── GET/PUT/DELETE /provider/store/{store}/cars/{storeCar}
+│   ├── GET/POST /provider/store/{store}/cars/{storeCar}/components
+│   ├── GET/PUT/DELETE /provider/store/{store}/cars/{storeCar}/components/{component}
+│   ├── GET /provider/store-requests
+│   ├── POST /provider/store-requests/verify-mobile
+│   ├── POST /provider/store-requests/verify-code
+│   ├── POST /provider/store-requests
+│   ├── GET /provider/store-requests/{storeRequest}
+│   ├── GET /provider/orders
+│   ├── GET /provider/orders/{order}
 │   ├── POST /provider/orders/{order}/offer
 │   ├── PUT/DELETE /provider/orders/{order}/offer/{offer}
 │   ├── POST /provider/orders/{order}/reject
-│   ├── GET /provider/store-requests
-│   ├── POST /provider/store-requests/{request}/accept, /reject
 │   ├── GET /provider/conversations
 │   ├── GET/POST /provider/conversations/{conversation}/messages
 │   ├── GET /provider/ratings
@@ -645,6 +653,37 @@ api.php
     ├── GET /admin/ratings
     └── GET /admin/notifications
 ```
+
+### 25. Shared Routes (Customer + Provider)
+
+When **both customer and provider** access the **same data with the same logic** (e.g., subscriptions, notifications), use a **single shared controller** under a `customerOrProvider` route group.
+
+**Don't** duplicate controllers — one shared controller avoids code duplication.
+
+```php
+// WRONG — duplicates the same logic in two controllers
+Route::middleware(['auth:sanctum', 'user.active', 'customer'])->group(function () {
+    Route::get('/subscriptions', CustomerSubscriptionController::class);
+});
+Route::middleware(['auth:sanctum', 'user.active', 'provider'])->group(function () {
+    Route::get('/subscriptions', ProviderSubscriptionController::class);
+});
+
+// RIGHT — one shared controller under customerOrProvider middleware
+Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
+    Route::get('/subscriptions', SharedSubscriptionController::class);
+});
+```
+
+**When to use shared controller:**
+- Both roles see the same data (subscriptions, notifications, CMS, settings)
+- The controller logic is identical for both roles
+- No role-specific behavior is needed
+
+**When to use separate controllers:**
+- Different logic per role (provider accepts orders, customer creates orders)
+- Role-specific validation rules
+- Role-specific authorization (ownership checks differ)
 
 ---
 

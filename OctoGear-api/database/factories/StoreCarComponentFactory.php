@@ -2,7 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\Component;
 use App\Models\StoreCarComponent;
+use App\Models\StoresCar;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,8 +17,8 @@ class StoreCarComponentFactory extends Factory
     public function definition(): array
     {
         return [
-            'store_car_id' => null,
-            'component_id' => null,
+            'store_car_id' => StoresCar::factory(),
+            'component_id' => Component::factory(),
             'part_number' => strtoupper(fake()->bothify('??-####')),
             'description' => fake()->sentence(6),
             'price' => fake()->numberBetween(50, 5000),

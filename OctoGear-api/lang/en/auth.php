@@ -101,6 +101,19 @@ return [
             'array'         => 'Pictures must be an array.',
             'max'           => 'Maximum :max pictures allowed.',
         ],
+        'sections' => [
+            'required'           => 'At least one car section is required.',
+            'array'              => 'Sections must be an array.',
+            'section_id_required' => 'Each section must include a section ID.',
+            'section_id_exists'  => 'Selected section does not exist.',
+            'condition_required' => 'Each section must include a condition.',
+            'condition_enum'     => 'Section condition must be "okay" or "damaged".',
+        ],
+        'batch_components' => [
+            'required' => 'At least one component is required.',
+            'array'    => 'Components must be an array.',
+            'min'      => 'At least one component is required.',
+        ],
         'order_type' => [
             'required'      => 'Order type is required.',
             'in'            => 'Order type must be "general" or "specific".',
@@ -123,6 +136,35 @@ return [
             'required'      => 'Car model is required for general orders.',
             'exists'        => 'Selected car model does not exist.',
             'integer'       => 'Car model must be a valid ID.',
+        ],
+        'component_id' => [
+            'required'      => 'Component is required.',
+            'exists'        => 'Selected component does not exist.',
+            'integer'       => 'Component must be a valid ID.',
+        ],
+        'part_number' => [
+            'required'      => 'Part number is required.',
+            'string'        => 'Part number must be a string.',
+            'max'           => 'Part number must not exceed 100 characters.',
+        ],
+        'description' => [
+            'string'        => 'Description must be a string.',
+            'max'           => 'Description must not exceed 1000 characters.',
+        ],
+        'price' => [
+            'required'      => 'Price is required.',
+            'numeric'       => 'Price must be a valid number.',
+            'min'           => 'Price must be at least :min.',
+        ],
+        'stock_quantity' => [
+            'required'      => 'Stock quantity is required.',
+            'integer'       => 'Stock quantity must be a valid number.',
+            'min'           => 'Stock quantity must be at least :min.',
+        ],
+        'warranty_months' => [
+            'integer'       => 'Warranty months must be a valid number.',
+            'min'           => 'Warranty months must be at least :min.',
+            'max'           => 'Warranty months must not exceed :max.',
         ],
         'offer_id' => [
             'required'      => 'Offer ID is required.',
@@ -196,6 +238,52 @@ return [
         'not_found'         => 'Not found',
         'unauthorized'      => 'Unauthorized',
         'forbidden'         => 'Forbidden',
+        'conflict'          => 'Conflict',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store Messages
+    |--------------------------------------------------------------------------
+    */
+
+    'store' => [
+        'created'       => 'Store created successfully.',
+        'updated'       => 'Store updated successfully.',
+        'not_found'     => 'Store not found.',
+        'already_exists'=> 'You already have a store.',
+        'validation' => [
+            'name' => [
+                'required'  => 'Store name is required.',
+                'max'       => 'Store name must not exceed 100 characters.',
+            ],
+            'mobile' => [
+                'required'  => 'Store mobile number is required.',
+                'unique'    => 'This mobile number is already used by another store.',
+                'regex'     => 'Mobile must be a valid Saudi number (05XXXXXXXX or +9665XXXXXXXX).',
+                'max'       => 'Mobile must not exceed 15 characters.',
+            ],
+            'nick_name' => [
+                'required'  => 'Store nickname is required.',
+                'max'       => 'Store nickname must not exceed 100 characters.',
+            ],
+            'employee_name' => [
+                'required'  => 'Employee name is required.',
+                'max'       => 'Employee name must not exceed 100 characters.',
+            ],
+            'url_location' => [
+                'required'  => 'Location URL is required.',
+                'max'       => 'Location URL must not exceed 255 characters.',
+            ],
+            'commercial_registration_number' => [
+                'required'  => 'Commercial registration number is required.',
+                'max'       => 'Commercial registration number must not exceed 50 characters.',
+            ],
+            'commercial_registration_picture' => [
+                'required'  => 'Commercial registration picture is required.',
+                'max'       => 'Commercial registration picture must not exceed 255 characters.',
+            ],
+        ],
     ],
 
 ];

@@ -16,6 +16,9 @@ use App\Http\Controllers\Api\Reference\ColorController;
 use App\Http\Controllers\Api\Reference\CompanyController;
 use App\Http\Controllers\Api\Reference\FuelTypeController;
 use App\Http\Controllers\Api\Provider\ProviderProfileController;
+use App\Http\Controllers\Api\Provider\ProviderStoreCarComponentController;
+use App\Http\Controllers\Api\Provider\ProviderStoreCarController;
+use App\Http\Controllers\Api\Provider\ProviderStoreController;
 use App\Http\Controllers\Api\Provider\ProviderStoreRequestController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +50,22 @@ Route::middleware(['locale'])->group(function () {
     Route::middleware(['auth:sanctum', 'user.active', 'provider'])->prefix('provider')->group(function () {
         Route::get('/profile', [ProviderProfileController::class, 'show']);
         Route::put('/profile', [ProviderProfileController::class, 'update']);
+
+        Route::get('/store/{store}', [ProviderStoreController::class, 'show']);
+        Route::put('/store/{store}', [ProviderStoreController::class, 'update']);
+
+        Route::get('/store/{store}/cars', [ProviderStoreCarController::class, 'index'])->name('provider.store.cars.index');
+        Route::post('/store/{store}/cars', [ProviderStoreCarController::class, 'store'])->name('provider.store.cars.store');
+        Route::get('/store/{store}/cars/{storeCar}', [ProviderStoreCarController::class, 'show'])->name('provider.store.cars.show');
+        Route::put('/store/{store}/cars/{storeCar}', [ProviderStoreCarController::class, 'update'])->name('provider.store.cars.update');
+        Route::delete('/store/{store}/cars/{storeCar}', [ProviderStoreCarController::class, 'destroy'])->name('provider.store.cars.destroy');
+
+        Route::get('/store/{store}/cars/{storeCar}/components', [ProviderStoreCarComponentController::class, 'index'])->name('provider.store.cars.components.index');
+        Route::post('/store/{store}/cars/{storeCar}/components', [ProviderStoreCarComponentController::class, 'store'])->name('provider.store.cars.components.store');
+        Route::post('/store/{store}/cars/{storeCar}/components/batch', [ProviderStoreCarComponentController::class, 'batchStore'])->name('provider.store.cars.components.batch');
+        Route::get('/store/{store}/cars/{storeCar}/components/{component}', [ProviderStoreCarComponentController::class, 'show'])->name('provider.store.cars.components.show');
+        Route::put('/store/{store}/cars/{storeCar}/components/{component}', [ProviderStoreCarComponentController::class, 'update'])->name('provider.store.cars.components.update');
+        Route::delete('/store/{store}/cars/{storeCar}/components/{component}', [ProviderStoreCarComponentController::class, 'destroy'])->name('provider.store.cars.components.destroy');
 
         Route::get('/store-requests', [ProviderStoreRequestController::class, 'index']);
         Route::post('/store-requests/verify-mobile', [ProviderStoreRequestController::class, 'sendMobileOtp']);

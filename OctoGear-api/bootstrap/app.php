@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.active' => \App\Http\Middleware\EnsureAdminIsActive::class,
             'customer'     => \App\Http\Middleware\EnsureIsCustomer::class,
             'provider'     => \App\Http\Middleware\EnsureIsProvider::class,
+            'auth.provider' => \App\Http\Middleware\EnsureIsCustomerOrProvider::class,
         ]);
 
         $middleware->throttleApi();

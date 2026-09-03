@@ -32,6 +32,13 @@ class StoreCarResource extends JsonResource
                 'name' => $this->store->name,
             ]),
             'components_count' => $this->whenCounted('components'),
+            'sections' => $this->whenLoaded('storeCarSections', fn () =>
+                $this->storeCarSections->map(fn ($section) => [
+                    'section_id' => $section->section_id,
+                    'name'       => $locale === 'en' ? $section->section?->name_en : $section->section?->name_ar,
+                    'condition'  => $section->condition->value,
+                ])
+            ),
             'pictures' => $this->whenLoaded('pictures', fn () =>
                 $this->pictures->pluck('picture')
             ),

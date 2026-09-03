@@ -15,6 +15,7 @@ use App\Models\FuelType;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
+use App\Models\StoreCarSection;
 use App\Models\StoresCar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,12 +64,20 @@ class CustomerSearchTest extends TestCase
 
     private function makeCar(Store $store, CarName $carName, array $catalog): StoresCar
     {
-        return StoresCar::factory()->create([
+        $car = StoresCar::factory()->create([
             'store_id'    => $store->id,
             'car_name_id' => $carName->id,
             'color_id'    => $catalog['color']->id,
             'fuel_type'   => $catalog['fuel']->id,
         ]);
+
+        StoreCarSection::create([
+            'store_car_id' => $car->id,
+            'section_id'   => $catalog['section']->id,
+            'condition'    => 'okay',
+        ]);
+
+        return $car;
     }
 
     private function addComponentToCar(StoresCar $car, int $componentId, array $overrides = []): StoreCarComponent

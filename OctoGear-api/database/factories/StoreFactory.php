@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\StoreStatus;
 use App\Models\City;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -26,7 +27,7 @@ class StoreFactory extends Factory
             'commercial_registration_number' => fake()->numerify('###########'),
             'commercial_registration_picture' => fake()->imageUrl(400, 300, 'business'),
             'city_id' => City::factory(),
-            'user_id' => null,
+            'user_id' => User::factory()->provider(),
         ];
     }
 

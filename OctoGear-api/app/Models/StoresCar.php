@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\SectionCondition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -63,5 +64,19 @@ class StoresCar extends Model
     public function components(): HasMany
     {
         return $this->hasMany(StoreCarComponent::class, 'store_car_id');
+    }
+
+    public function storeCarSections(): HasMany
+    {
+        return $this->hasMany(StoreCarSection::class, 'store_car_id');
+    }
+
+    /**
+     * Whether this car reports the given section as in okay condition.
+     */
+    public function hasSectionOk(int $sectionId): bool
+    {
+        return $this->storeCarSections
+            ->contains(fn (StoreCarSection $s) => $s->section_id === $sectionId && $s->condition === SectionCondition::Okay);
     }
 }

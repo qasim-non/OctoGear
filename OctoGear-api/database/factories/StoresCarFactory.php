@@ -2,6 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\CarName;
+use App\Models\Color;
+use App\Models\FuelType;
+use App\Models\Store;
 use App\Models\StoresCar;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,10 +21,10 @@ class StoresCarFactory extends Factory
         return [
             'manufacturing_year' => fake()->numberBetween(2010, 2025),
             'vehicle_plat_number' => fake()->numerify('####-###'),
-            'car_name_id' => null,
-            'color_id' => null,
-            'store_id' => null,
-            'fuel_type' => null,
+            'car_name_id' => CarName::factory(),
+            'color_id' => Color::factory(),
+            'store_id' => Store::factory(),
+            'fuel_type' => FuelType::factory(),
         ];
     }
 }
