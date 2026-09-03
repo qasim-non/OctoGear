@@ -49,7 +49,7 @@ class AuthController extends Controller
             ], __('auth.login.success'));
         }
 
-        $tempToken = $this->otpService->createPendingRegistration($data['mobile']);
+        $tempToken = $this->otpService->createPendingToken('registration', $data['mobile']);
 
         return $this->success([
             'temp_token' => $tempToken,
@@ -61,7 +61,7 @@ class AuthController extends Controller
     {
         $data = $request->validated();
 
-        $mobile = $this->otpService->consumePendingRegistration($data['temp_token']);
+        $mobile = $this->otpService->consumePendingToken('registration', $data['temp_token']);
 
         if (!$mobile) {
             return $this->error(__('auth.register.token_invalid'), 422);

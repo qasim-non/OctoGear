@@ -29,6 +29,7 @@ class OtpService
             'expires_at' => now()->addMinutes(self::OTP_DECAY_MINUTES),
         ]);
 
+        // Conecction to Api
         if (app()->environment('local')) {
             Log::info("OTP for {$mobile}: {$otp}");
         }
@@ -59,18 +60,18 @@ class OtpService
         return User::where('mobile', $mobile)->first();
     }
 
-    public function createPendingRegistration(string $mobile): string
+    public function createPendingToken(string $intent, string $mobile): string
     {
         $token = Str::random(64);
 
-        Cache::put("pending_registration:{$token}", $mobile, now()->addMinutes(30));
+        Cache::put("pending:{$intent}:{$token}", $mobile, now()->addMinutes(30));
 
         return $token;
     }
 
-    public function consumePendingRegistration(string $token): ?string
+    public function consumePendingToken(string $intent, string $token): ?string
     {
-        return Cache::pull("pending_registration:{$token}");
+        return Cache::pull("pending:{$intent}:{$token}");
     }
 
     public function createUser(string $mobile, string $fullName, int $cityId): User

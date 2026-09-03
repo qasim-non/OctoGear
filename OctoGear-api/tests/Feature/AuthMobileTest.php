@@ -62,9 +62,9 @@ class AuthMobileTest extends TestCase
             ->once()
             ->with('+966555555555')
             ->andReturn(null);
-        $mock->shouldReceive('createPendingRegistration')
+        $mock->shouldReceive('createPendingToken')
             ->once()
-            ->with('+966555555555')
+            ->with('registration', '+966555555555')
             ->andReturn('temp-token');
 
         $this->app->instance(OtpService::class, $mock);
@@ -120,6 +120,6 @@ class AuthMobileTest extends TestCase
 
     private function pendingRegistrationToken(string $mobile): string
     {
-        return $this->app->make(OtpService::class)->createPendingRegistration($mobile);
+        return $this->app->make(OtpService::class)->createPendingToken('registration', $mobile);
     }
 }
