@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Reference\CityController;
 use App\Http\Controllers\Api\Reference\ColorController;
 use App\Http\Controllers\Api\Reference\CompanyController;
 use App\Http\Controllers\Api\Reference\FuelTypeController;
+use App\Http\Controllers\Api\Provider\ProviderOrderController;
 use App\Http\Controllers\Api\Provider\ProviderProfileController;
 use App\Http\Controllers\Api\Provider\ProviderStoreCarComponentController;
 use App\Http\Controllers\Api\Provider\ProviderStoreCarController;
@@ -51,6 +52,7 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/profile', [ProviderProfileController::class, 'show']);
         Route::put('/profile', [ProviderProfileController::class, 'update']);
 
+        Route::get('/stores', [ProviderStoreController::class, 'index']);
         Route::get('/store/{store}', [ProviderStoreController::class, 'show']);
         Route::put('/store/{store}', [ProviderStoreController::class, 'update']);
 
@@ -72,6 +74,16 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/store-requests/verify-code', [ProviderStoreRequestController::class, 'verifyMobileOtp']);
         Route::post('/store-requests', [ProviderStoreRequestController::class, 'store']);
         Route::get('/store-requests/{storeRequest}', [ProviderStoreRequestController::class, 'show']);
+
+        Route::get('/orders/general', [ProviderOrderController::class, 'general']);
+        Route::get('/orders/specific', [ProviderOrderController::class, 'specific']);
+        Route::get('/orders/offers', [ProviderOrderController::class, 'offers']);
+        Route::get('/orders/paid', [ProviderOrderController::class, 'paidOrders']);
+        Route::get('/orders/{order}', [ProviderOrderController::class, 'show']);
+        Route::post('/orders/{order}/offer', [ProviderOrderController::class, 'storeOffer']);
+        Route::put('/orders/{order}/offer/{offer}', [ProviderOrderController::class, 'updateOffer']);
+        Route::delete('/orders/{order}/offer/{offer}', [ProviderOrderController::class, 'destroyOffer']);
+        Route::post('/orders/{order}/reject', [ProviderOrderController::class, 'reject']);
     });
 
     Route::middleware(['auth:sanctum', 'user.active', 'customer'])->prefix('customer')->group(function () {

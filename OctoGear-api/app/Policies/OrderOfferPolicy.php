@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\User;
@@ -47,9 +48,17 @@ class OrderOfferPolicy
         return $this->isProvider($user, $offer) || $this->isOrderCustomer($user, $offer);
     }
 
-    public function create(User $user): bool
+    public function create(User $user, Order $order): bool
     {
-        return $user->isProvider();
+        if (! $user->isProvider()) {
+            return false;
+        }
+
+        if ($order->order_type->value !== 'general' || $order->status !== OrderStatus::Pending) {
+            return false;
+        }
+
+        return true;
     }
 
     public function update(User $user, OrderOffer $offer): bool

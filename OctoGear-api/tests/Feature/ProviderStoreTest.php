@@ -12,6 +12,18 @@ class ProviderStoreTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_provider_can_list_all_their_stores(): void
+    {
+        $provider = User::factory()->provider()->create();
+        Store::factory()->create(['user_id' => $provider->id, 'name' => 'Store A']);
+        Store::factory()->create(['user_id' => $provider->id, 'name' => 'Store B']);
+
+        $this->actingAs($provider, 'sanctum')
+            ->getJson('/api/provider/stores')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
     public function test_provider_can_view_their_store(): void
     {
         $provider = User::factory()->provider()->create();

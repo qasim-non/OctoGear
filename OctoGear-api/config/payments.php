@@ -20,6 +20,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform Commission
+    |--------------------------------------------------------------------------
+    |
+    | Percentage of each sale the platform keeps. The provider receives
+    | (100% - commission_rate) of the gross order amount.
+    |
+    */
+    'commission_rate' => (float) env('PAYMENT_COMMISSION_RATE', 5),
+
+    /*
+    |--------------------------------------------------------------------------
     | Gateway Secrets (placeholder — populate via .env)
     |--------------------------------------------------------------------------
     */

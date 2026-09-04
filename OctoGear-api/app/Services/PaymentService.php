@@ -44,6 +44,22 @@ class PaymentService
     }
 
     /**
+     * The platform commission on an order's gross amount.
+     */
+    public function commissionFor(Order $order): int
+    {
+        return (int) round($this->amountFor($order) * config('payments.commission_rate') / 100);
+    }
+
+    /**
+     * The net amount the provider earns after the platform commission.
+     */
+    public function netForProvider(Order $order): int
+    {
+        return $this->amountFor($order) - $this->commissionFor($order);
+    }
+
+    /**
      * Commit the sale: reduce the store's stock of the sold part by the ordered
      * quantity.
      *

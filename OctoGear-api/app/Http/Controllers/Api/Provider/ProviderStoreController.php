@@ -9,6 +9,16 @@ use App\Models\Store;
 
 class ProviderStoreController extends Controller
 {
+    public function index()
+    {
+        $stores = auth()->user()
+            ->stores()
+            ->with(['city', 'pictures'])
+            ->get();
+
+        return $this->success(StoreResource::collection($stores));
+    }
+
     public function show(Store $store)
     {
         $this->authorize('manage', $store);
