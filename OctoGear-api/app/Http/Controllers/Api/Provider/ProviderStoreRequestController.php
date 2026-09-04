@@ -2,24 +2,25 @@
 
 namespace App\Http\Controllers\Api\Provider;
 
-use App\Enums\RequestStatus;
+use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\SendOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Http\Requests\Provider\StoreStoreRequestDirectRequest;
 use App\Http\Requests\Provider\StoreStoreRequestRequest;
 use App\Http\Resources\StoreRequestResource;
 use App\Models\StoreRequest;
-use App\Services\OtpService;
+use App\Services\StoreRequestService;
 
 class ProviderStoreRequestController extends Controller
 {
-    public function __construct(
-        protected OtpService $otpService
-    ) {}
+    public function __construct(private StoreRequestService $storeRequests) {}
 
     public function sendMobileOtp(SendOtpRequest $request)
     {
-        $this->otpService->sendOtp($request->validated('mobile'));
+        $user = auth()->user();
+
+        $this->storeRequests->sendMobileOtp($request->validated('mobile'), $user);
 
         return $this->success(null, __('auth.otp.sent'));
     }
@@ -28,11 +29,7 @@ class ProviderStoreRequestController extends Controller
     {
         $data = $request->validated();
 
-        if (!$this->otpService->verifyOtp($data['mobile'], $data['otp'])) {
-            return $this->error(__('auth.otp.rate_limited', ['max' => 5]), 422);
-        }
-
-        $tempToken = $this->otpService->createPendingToken('store', $data['mobile']);
+        $tempToken = $this->storeRequests->verifyMobileOtp($data['mobile'], $data['otp']);
 
         return $this->success(['temp_token' => $tempToken], __('auth.otp.verified'));
     }
@@ -54,18 +51,21 @@ class ProviderStoreRequestController extends Controller
     {
         $this->authorize('create', StoreRequest::class);
 
-        $mobile = $this->otpService->consumePendingToken('store', $request->validated('temp_token'));
+        $storeRequest = $this->storeRequests->becomeProvider($request->user(), $request->validated());
 
-        if (!$mobile) {
-            return $this->error(__('auth.register.token_invalid'), 422);
-        }
+        $storeRequest->load('city');
 
-        $storeRequest = auth()->user()
-            ->storeRequests()
-            ->create(array_merge($request->safe()->except('temp_token'), [
-                'mobile'         => $mobile,
-                'request_status' => RequestStatus::Pending,
-            ]));
+        return $this->created([
+            'store_request' => new StoreRequestResource($storeRequest),
+            'type' => UserType::ServiceProvider->value,
+        ], __('auth.store.become_provider'));
+    }
+
+    public function storeDirect(StoreStoreRequestDirectRequest $request)
+    {
+        $this->authorize('create', StoreRequest::class);
+
+        $storeRequest = $this->storeRequests->createForProvider($request->user(), $request->validated());
 
         $storeRequest->load('city');
 

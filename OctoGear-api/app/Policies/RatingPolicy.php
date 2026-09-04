@@ -14,7 +14,13 @@ class RatingPolicy
 
     public function view(User $user, Rating $rating): bool
     {
-        return $user->id === $rating->customer_id;
+        if ($user->id === $rating->customer_id) {
+            return true;
+        }
+
+        return $user->isProvider()
+            && $rating->store
+            && $rating->store->user_id === $user->id;
     }
 
     public function create(User $user): bool

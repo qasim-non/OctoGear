@@ -19,7 +19,7 @@ class StoreRequestPolicy
 
     public function create(User $user): bool
     {
-        return $user->isProvider();
+        return $user->isCustomer() || $user->isProvider();
     }
 
     public function update(User $user, StoreRequest $storeRequest): bool

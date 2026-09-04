@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Customer;
+namespace App\Http\Controllers\Api\Shared;
 
 use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
@@ -9,9 +9,8 @@ use App\Http\Requests\Customer\StoreMessageRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
-use App\Models\Message;
 
-class CustomerConversationController extends Controller
+class ConversationController extends Controller
 {
     public function index()
     {
@@ -20,7 +19,7 @@ class CustomerConversationController extends Controller
         $user = auth()->user();
 
         $conversations = Conversation::query()
-            ->where('customer_id', $user->id)
+            ->where($user->isProvider() ? 'provider_id' : 'customer_id', $user->id)
             ->with(['provider', 'customer'])
             ->withLatestMessage()
             ->withUnreadCount($user)
@@ -36,10 +35,17 @@ class CustomerConversationController extends Controller
 
         $user = auth()->user();
 
-        $conversation = Conversation::firstOrCreate([
-            'customer_id' => $user->id,
-            'provider_id' => $request->provider_id,
-        ]);
+        if ($user->isProvider()) {
+            $conversation = Conversation::firstOrCreate([
+                'customer_id' => $request->validated('customer_id'),
+                'provider_id' => $user->id,
+            ]);
+        } else {
+            $conversation = Conversation::firstOrCreate([
+                'customer_id' => $user->id,
+                'provider_id' => $request->validated('provider_id'),
+            ]);
+        }
 
         $conversation->load(['provider', 'customer']);
 

@@ -1,21 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Api\Customer;
+namespace App\Http\Controllers\Api\Shared;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\NotificationResource;
 use Illuminate\Notifications\DatabaseNotification;
 
-class CustomerNotificationController extends Controller
+class NotificationController extends Controller
 {
     public function index()
     {
         $this->authorize('viewAny', DatabaseNotification::class);
 
-        $notifications = auth()->user()
-            ->notifications()
-            ->latest()
-            ->paginate(15);
+        $user = auth()->user();
+        $notifications = $user->notifications()->latest()->paginate(15);
 
         return response()->json([
             'success'      => true,
@@ -27,7 +25,7 @@ class CustomerNotificationController extends Controller
                 'per_page'     => $notifications->perPage(),
                 'total'        => $notifications->total(),
             ],
-            'unread_count' => auth()->user()->unreadNotifications()->count(),
+            'unread_count' => $user->unreadNotifications()->count(),
         ]);
     }
 

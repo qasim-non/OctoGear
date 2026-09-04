@@ -13,10 +13,17 @@ use App\Http\Resources\OrderResource;
 use App\Http\Resources\ProviderPaidOrderResource;
 use App\Models\Order;
 use App\Models\OrderOffer;
-use App\Models\Store;
+use App\Services\OrderOfferService;
+use App\Services\OrderService;
+use App\Services\PaymentService;
 
 class ProviderOrderController extends Controller
 {
+    public function __construct(
+        private OrderOfferService $offers,
+        private OrderService $orders,
+    ) {}
+
     public function general(ProviderGeneralOrdersRequest $request)
     {
         $user = auth()->user();
@@ -66,7 +73,7 @@ class ProviderOrderController extends Controller
         return $this->paginated($offers->through(fn ($offer) => new OrderOfferResource($offer)));
     }
 
-    public function paidOrders()
+    public function paidOrders(PaymentService $payments)
     {
         $user = auth()->user();
 
@@ -84,6 +91,14 @@ class ProviderOrderController extends Controller
             })
             ->latest()
             ->paginate(15);
+
+        $orders->getCollection()->transform(function (Order $order) use ($payments) {
+            $order->gross_amount = $payments->amountFor($order);
+            $order->commission = $payments->commissionFor($order);
+            $order->net_amount = $payments->netForProvider($order);
+
+            return $order;
+        });
 
         return $this->paginated(
             $orders->through(fn ($order) => new ProviderPaidOrderResource($order))
@@ -130,20 +145,7 @@ class ProviderOrderController extends Controller
 
         $this->authorize('create', [OrderOffer::class, $order]);
 
-        $storeId = (int) $request->validated('store_id');
-
-        $existingOffer = $order->offers()
-            ->where('store_id', $storeId)
-            ->exists();
-
-        if ($existingOffer) {
-            return $this->error(__('auth.validation.order.already_offered'));
-        }
-
-        $offer = $order->offers()->create([
-            ...$request->validated(),
-            'store_id' => $storeId,
-        ]);
+        $offer = $this->offers->create($order, $request->validated());
 
         $offer->load('store');
 
@@ -160,11 +162,7 @@ class ProviderOrderController extends Controller
             return $this->notFound(__('auth.general.not_found'));
         }
 
-        if ($offer->status->value !== 'pending') {
-            return $this->error(__('auth.validation.order.cannot_edit_offer'));
-        }
-
-        $offer->update($request->validated());
+        $offer = $this->offers->update($offer, $request->validated());
 
         $offer->load('store');
 
@@ -181,11 +179,7 @@ class ProviderOrderController extends Controller
             return $this->notFound(__('auth.general.not_found'));
         }
 
-        if ($offer->status->value !== 'pending') {
-            return $this->error(__('auth.validation.order.cannot_delete_offer'));
-        }
-
-        $offer->delete();
+        $this->offers->delete($offer);
 
         return $this->success(__('auth.general.ok'));
     }
@@ -194,17 +188,9 @@ class ProviderOrderController extends Controller
     {
         $user = auth()->user();
 
-        if ($order->order_type !== OrderType::Specific) {
-            return $this->error(__('auth.validation.order.cannot_reject_general'));
-        }
-
         $this->authorize('view', $order);
 
-        if ($order->status !== OrderStatus::Pending) {
-            return $this->error(__('auth.validation.order.cannot_reject_not_pending'));
-        }
-
-        $order->update(['status' => OrderStatus::Rejected]);
+        $order = $this->orders->reject($order);
 
         return $this->success(new OrderResource($order));
     }

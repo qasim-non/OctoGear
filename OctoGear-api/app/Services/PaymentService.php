@@ -80,6 +80,14 @@ class PaymentService
 
         $quantity = max(1, (int) $order->quantity);
 
+        $component = StoreCarComponent::query()
+            ->whereKey($sccId)
+            ->first();
+
+        if (! $component || $component->stock_quantity < $quantity) {
+            throw new RuntimeException('Insufficient stock for the requested quantity.');
+        }
+
         StoreCarComponent::query()
             ->whereKey($sccId)
             ->where('stock_quantity', '>=', $quantity)

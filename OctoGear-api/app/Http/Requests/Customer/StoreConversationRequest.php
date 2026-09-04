@@ -10,6 +10,18 @@ class StoreConversationRequest extends BaseRequest
 {
     public function rules(): array
     {
+        $user = $this->user();
+
+        if ($user->isProvider()) {
+            return [
+                'customer_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('users', 'id')->where('type', UserType::Customer->value),
+                ],
+            ];
+        }
+
         return [
             'provider_id' => [
                 'required',

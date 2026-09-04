@@ -7,9 +7,12 @@ use App\Http\Requests\Customer\StoreCustomerCarRequest;
 use App\Http\Requests\Customer\UpdateCustomerCarRequest;
 use App\Http\Resources\CustomerCarResource;
 use App\Models\CustomerCar;
+use App\Services\CustomerCarService;
 
 class CustomerCarController extends Controller
 {
+    public function __construct(private CustomerCarService $cars) {}
+
     public function index()
     {
         $this->authorize('viewAny', CustomerCar::class);
@@ -36,15 +39,7 @@ class CustomerCarController extends Controller
     {
         $this->authorize('update', $customerCar);
 
-        $customerCar->update($request->validated());
-
-        if ($request->has('pictures')) {
-            $customerCar->pictures()->delete();
-
-            foreach ($request->validated('pictures') as $picture) {
-                $customerCar->pictures()->create(['picture' => $picture]);
-            }
-        }
+        $customerCar = $this->cars->update($customerCar, $request->validated());
 
         $customerCar->load(['carName', 'color', 'fuelType', 'pictures']);
 
@@ -55,13 +50,7 @@ class CustomerCarController extends Controller
     {
         $this->authorize('create', CustomerCar::class);
 
-        $car = auth()->user()->customerCars()->create($request->validated());
-
-        if ($request->has('pictures')) {
-            foreach ($request->validated('pictures') as $picture) {
-                $car->pictures()->create(['picture' => $picture]);
-            }
-        }
+        $car = $this->cars->create($request->user(), $request->validated());
 
         $car->load(['carName', 'color', 'fuelType', 'pictures']);
 

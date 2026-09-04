@@ -1,10 +1,49 @@
 # OctoGear (YARDY) - API Code Guide
 
+> Status: reflects the CURRENT state of the project **after** the completed
+> service-layer refactor. Tests green: **175 passed / 470 assertions**.
+
 ## Project Overview
+
 - **Framework:** Laravel 12 (PHP 8.2+)
-- **Auth:** Laravel Sanctum (token-based)
-- **Database:** MySQL (production), SQLite (testing)
-- **Purpose:** Car parts marketplace connecting customers with service provider stores
+- **Auth:** Laravel Sanctum (token-based personal access tokens)
+- **Database:** MySQL (production), SQLite `:memory:` (testing)
+- **Purpose:** Car-parts marketplace connecting customers with service-provider stores.
+  Customers request parts, stores bid with offers, customer accepts an offer, pays,
+  and the store delivers. Conversations, ratings, notifications, and store requests
+  (store onboarding) round out the platform.
+- **Localization:** `ar` / `en` via the `Accept-Language` header (`app.locale` default).
+  All user-facing messages are localization keys (`auth.*`, `auth.validation.*`,
+  `auth.middleware.*`).
+- **Response envelope:** every JSON response uses `{ "success": bool, "message": ...,
+  "data": ..., "meta": ... }` via the `ApiResponse` trait.
+
+---
+
+## Architecture Rules (governing conventions)
+
+These rules steer all development in this codebase:
+
+1. **Never duplicate shared services.** Business logic lives in services; reuse them,
+   do not copy/paste logic into controllers or other services.
+2. **Design policy-first.** Use authorization policies for authorization — not service
+   layer checks and not ad-hoc controller `if`s. Policies are registered centrally in
+   `AppServiceProvider::configurePolicies()`.
+3. **Resources never resolve services via `app()`.** Resources are lightweight
+   transformers. (Pre-existing `app()->getLocale()` locale lookups in resources are the
+   accepted exception.)
+4. **Domain exceptions handled centrally.** Business rule violations throw
+   `BusinessRuleException`; `bootstrap/app.php` renders them with the success/message
+   envelope. No broad `try/catch` around business flows.
+5. **External payment calls are NOT DB-rollbackable.** `PaymentService` wraps only the
+   local payment record; a failed external gateway call does not roll back order state
+   (see Payments).
+6. **Repositories only with justification.** No generic repository layers; use Eloquent
+   directly. Only introduce one when there is a real reason.
+7. **Controllers stay thin.** Controllers authorize → validate (Form Request) → delegate
+   to a service → respond via `ApiResponse`. No business logic in controllers.
+8. **Enums everywhere, magic strings nowhere.** Every DB enum column maps to a backed
+   enum in `app/Enums`; statuses and types are compared using enum cases.
 
 ---
 
@@ -12,755 +51,519 @@
 
 ```
 OctoGear-api/
-├── app/
-│   ├── Enums/                          # PHP 8.2 enum classes (one per DB enum column)
-│   │   ├── UserType.php                # customer | service_provider
-│   │   ├── UserStatus.php              # blocked | unblocked
-│   │   ├── OrderType.php               # general | specific
-│   │   ├── OrderStatus.php             # pending | rejected | negotiating | paid | completed | cancelled
-│   │   ├── PaymentMethod.php           # cash | credit_card
-│   │   ├── PaymentStatus.php           # pending | paid | failed | refunded
-│   │   ├── StoreStatus.php             # active | inactive
-│   │   ├── AdminStatus.php             # active | inactive | blocked
-│   │   ├── AdminRole.php               # admin | manager | employee | hr | developer
-│   │   ├── RequestStatus.php           # pending | accepted | rejected
-│   │   └── SectionCondition.php        # okay | damaged
-│   │
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── Auth/                   # Authentication controllers
-│   │   │   │   ├── OtpController.php
-│   │   │   │   ├── RegisterController.php
-│   │   │   │   └── ProfileController.php
-│   │   │   ├── Customer/               # Customer-specific endpoints
-│   │   │   │   ├── CarController.php
-│   │   │   │   ├── OrderController.php
-│   │   │   │   └── SearchController.php
-│   │   │   ├── Provider/               # Service provider endpoints
-│   │   │   │   ├── StoreController.php
-│   │   │   │   ├── InventoryController.php
-│   │   │   │   ├── ComponentController.php
-│   │   │   │   └── OrderController.php
-│   │   │   ├── Chat/                   # Messaging
-│   │   │   │   └── ConversationController.php
-│   │   │   ├── Admin/                  # Admin panel endpoints
-│   │   │   │   ├── AuthController.php
-│   │   │   │   ├── DashboardController.php
-│   │   │   │   ├── CustomerController.php
-│   │   │   │   ├── ServiceProviderController.php
-│   │   │   │   ├── ServiceProviderRequestController.php
-│   │   │   │   ├── StoreRequestController.php
-│   │   │   │   ├── StoreController.php
-│   │   │   │   ├── OrderController.php
-│   │   │   │   ├── PaymentController.php
-│   │   │   │   ├── AdminUserController.php
-│   │   │   │   ├── ReferenceDataController.php
-│   │   │   │   └── CmsController.php
-│   │   │   └── Controller.php          # Base abstract controller
-│   │   │
-│   │   ├── Middleware/
-│   │   │   ├── Authenticate.php          # Overrides default auth — returns JSON 401 (no redirects)
-│   │   │   ├── SetLocale.php             # Accept-Language header → ar/en locale
-│   │   │   ├── EnsureUserIsActive.php    # Blocks blocked users (customer/provider)
-│   │   │   ├── EnsureAdminIsActive.php   # Blocks blocked admins
-│   │   │   ├── EnsureIsCustomer.php      # Checks type === Customer
-│   │   │   ├── EnsureIsProvider.php      # Checks type === ServiceProvider
-│   │   │   └── EnsureIsCustomerOrProvider.php  # Accepts both customer + provider
-│   │   │
-│   │   ├── Requests/                   # Form Request validation classes
-│   │   │   ├── Auth/
-│   │   │   ├── Customer/
-│   │   │   ├── Provider/
-│   │   │   └── Admin/
-│   │   │
-│   │   └── Resources/                  # API Resource transformers
-│   │       ├── UserResource.php
-│   │       ├── StoreResource.php
-│   │       ├── StoreCarResource.php
-│   │       ├── ComponentResource.php
-│   │       ├── SectionResource.php
-│   │       ├── OrderResource.php
-│   │       ├── OrderOfferResource.php
-│   │       ├── ConversationResource.php
-│   │       ├── MessageResource.php
-│   │       ├── PaymentResource.php
-│   │       ├── CustomerCarResource.php
-│   │       ├── CmsResource.php
-│   │       └── ReferenceDataResource.php
-│   │
-│   ├── Models/                         # Eloquent models (one per table)
-│   │   ├── User.php
-│   │   ├── Admin.php
-│   │   ├── Country.php
-│   │   ├── City.php
-│   │   ├── FuelType.php
-│   │   ├── CarCompany.php
-│   │   ├── CarName.php
-│   │   ├── CarModel.php
-│   │   ├── Color.php
-│   │   ├── Store.php
-│   │   ├── StorePicture.php
-│   │   ├── StoreCompany.php
-│   │   ├── StoresCar.php
-│   │   ├── StoreCarPicture.php
-│   │   ├── StoreCarSection.php         # NEW - car section condition report (okay|damaged)
-│   │   ├── CarSection.php              # NEW - main sections (front, rear, engine...)
-│   │   ├── Component.php               # NEW - universal parts catalog
-│   │   ├── StoreCarComponent.php        # NEW - store-specific pricing
-│   │   ├── CustomerCar.php
-│   │   ├── CustomerCarPicture.php
-│   │   ├── Order.php
-│   │   ├── OrderOffer.php
-│   │   ├── Payment.php
-│   │   ├── Conversation.php
-│   │   ├── Message.php
-│   │   ├── ServiceProviderRequest.php
-│   │   ├── StoreRequest.php            # NEW - store approval workflow
-│   │   ├── DeviceToken.php             # NEW - push notification tokens
-│   │   ├── OtpCode.php                 # NEW - OTP verification codes (hashed)
-│   │   ├── Rating.php                  # NEW - customer ratings
-│   │   ├── PlatformSetting.php         # NEW - platform config (fees etc)
-│   │   └── Cms.php
-│   │
-│   ├── Policies/                       # Authorization rules
-│   │   ├── CustomerCarPolicy.php
-│   │   ├── StorePolicy.php
-│   │   ├── StoresCarPolicy.php
-│   │   ├── StoreCarComponentPolicy.php
-│   │   ├── OrderPolicy.php
-│   │   ├── ConversationPolicy.php
-│   │   └── MessagePolicy.php
-│   │
-│   ├── Services/                       # Business logic layer
-│   │   ├── OtpService.php
-│   │   ├── OrderService.php
-│   │   ├── PaymentService.php
-│   │   ├── ChatService.php
-│   │   ├── RegistrationService.php
-│   │   └── ImageService.php
-│   │
-│   └── Providers/
-│       └── AppServiceProvider.php
+├─ app/
+│  ├─ Enums/                    # PHP 8.2 backed enums (one per DB enum column)
+│  │  ├─ UserType.php           # customer | service provider
+│  │  ├─ UserStatus.php         # unblocked | blocked
+│  │  ├─ OrderType.php          # general | specific
+│  │  ├─ OrderStatus.php        # pending | rejected | negotiating | paid | completed | cancelled
+│  │  ├─ PaymentMethod.php      # cash | credit_card
+│  │  ├─ PaymentStatus.php      # pending | paid | failed | refunded
+│  │  ├─ StoreStatus.php        # active | inactive
+│  │  ├─ AdminStatus.php        # active | inactive | blocked
+│  │  ├─ AdminRole.php          # admin | manager | employee | hr | developer
+│  │  ├─ RequestStatus.php      # pending | accepted | rejected
+│  │  ├─ SectionCondition.php   # okay | damaged
+│  │  └─ DevicePlatform.php     # ios | android
+│  │
+│  ├─ Exceptions/
+│  │  └─ BusinessRuleException.php   # domain rule violations (default status 400)
+│  │
+│  ├─ Http/
+│  │  ├─ Controllers/
+│  │  │  ├─ Controller.php                 # base; uses ApiResponse trait
+│  │  │  ├─ Auth/AuthController.php        # thin; delegates to AuthService (sendOtp/verifyOtp/register/adminLogin)
+│  │  │  ├─ Api/
+│  │  │  │  ├─ CmsController.php           # /cms/{type}
+│  │  │  │  ├─ OrderOfferController.php    # customer view/reject offers
+│  │  │  │  ├─ Customer/
+│  │  │  │  │  ├─ CustomerCarController.php        # customer's saved cars CRUD
+│  │  │  │  │  ├─ CustomerOrderController.php      # order lifecycle (store/accept/pay/etc.)
+│  │  │  │  │  ├─ CustomerStoreController.php      # browse stores/cars/components
+│  │  │  │  │  └─ ProfileController.php            # customer profile show/update
+│  │  │  │  ├─ Provider/
+│  │  │  │  │  ├─ ProviderOrderController.php      # general/specific/offers/paid + CRUD/offer/reject
+│  │  │  │  │  ├─ ProviderProfileController.php    # provider profile show/update
+│  │  │  │  │  ├─ ProviderStoreController.php      # provider store index/show/update
+│  │  │  │  │  ├─ ProviderStoreCarController.php   # provider store cars CRUD (StoreCarService)
+│  │  │  │  │  ├─ ProviderStoreCarComponentController.php  # components CRUD + batch
+│  │  │  │  │  └─ ProviderStoreRequestController.php       # store requests + mobile OTP
+│  │  │  │  ├─ Shared/
+│  │  │  │  │  ├─ ConversationController.php
+│  │  │  │  │  ├─ NotificationController.php
+│  │  │  │  │  └─ RatingController.php
+│  │  │  │  └─ Reference/
+│  │  │  │     ├─ CarNameController.php
+│  │  │  │     ├─ CarSectionController.php
+│  │  │  │     ├─ CityController.php
+│  │  │  │     ├─ ColorController.php
+│  │  │  │     ├─ CompanyController.php
+│  │  │  │     └─ FuelTypeController.php
+│  │  │  │
+│  │  │  ├─ Middleware/
+│  │  │  │  ├─ Authenticate.php             # JSON 401 (no redirect) — alias `auth`
+│  │  │  │  ├─ SetLocale.php                # `locale` — Accept-Language → ar/en
+│  │  │  │  ├─ EnsureUserIsActive.php       # `user.active` — blocks blocked users (403)
+│  │  │  │  ├─ EnsureAdminIsActive.php      # `admin.active` — blocks blocked admins
+│  │  │  │  ├─ EnsureIsCustomer.php         # `customer` — type === Customer
+│  │  │  │  ├─ EnsureIsProvider.php         # `provider` — type === ServiceProvider
+│  │  │  │  └─ EnsureIsCustomerOrProvider.php # `auth.provider` — customer or provider
+│  │  │  │
+│  │  │  ├─ Requests/                       # Form Request validation (extends BaseRequest)
+│  │  │  │  ├─ BaseRequest.php              # authorize()=true; failedValidation → 422 envelope
+│  │  │  │  ├─ Auth/ (SendOtpRequest, VerifyOtpRequest, RegisterRequest, AdminLoginRequest)
+│  │  │  │  ├─ Api/OrderOffer/ (RejectOfferRequest)
+│  │  │  │  ├─ Customer/  Provider/  Shared/
+│  │  │  │  └─ ...
+│  │  │  │
+│  │  │  └─ Resources/                      # API Resource transformers
+│  │  │     ├─ CmsResource  ComponentCarResource  ConversationResource
+│  │  │     ├─ CustomerCarResource  MessageResource  NotificationResource
+│  │  │     ├─ OrderOfferResource  OrderResource  PaymentResource
+│  │  │     ├─ ProviderPaidOrderResource  RatingResource  ReferenceResource
+│  │  │     ├─ StoreCarComponentResource  StoreCarResource  StoreRequestResource
+│  │  │     └─ StoreResource  UserResource
+│  │  │
+│  │  └─ Traits/
+│  │     └─ ApiResponse.php                 # success/created/error/notFound/forbidden/unauthorized/paginated
+│  │
+│  ├─ Models/                  # Eloquent models (relationships/fillable/casts/soft deletes)
+│  │  ├─ User  Store  StoresCar  StoreCarComponent
+│  │  ├─ StoreSection  StoreRequest
+│  │  ├─ Car  CarName  CarModel  CarCompany
+│  │  ├─ Order  OrderOffer  Payment
+│  │  ├─ CustomerCar  Conversation  Message  Rating
+│  │  ├─ Admin  Cms  DeviceToken
+│  │  └─ ...
+│  │
+│  ├─ Notifications/
+│  │  ├─ NewMessageNotification  NewOfferNotification  NewOrderNotification
+│  │  ├─ OrderCompletedNotification  OrderPaidNotification
+│  │  └─ (device/push + database rows)
+│  │
+│  ├─ Policies/                # 12 authorization policies (see AppServiceProvider)
+│  │  ├─ OrderPolicy  OrderOfferPolicy  PaymentPolicy
+│  │  ├─ StorePolicy  StoresCarPolicy  StoreCarComponentPolicy  StoreRequestPolicy
+│  │  ├─ CustomerCarPolicy  RatingPolicy  ConversationPolicy  MessagePolicy
+│  │  └─ NotificationPolicy
+│  │
+│  ├─ Providers/
+│  │  ├─ AppServiceProvider.php    # policies + rate limiters (api/customerLogin/adminLogin)
+│  │  ├─ EventServiceProvider.php  # event → listener mappings (all sync)
+│  │  └─ LoggingServiceProvider.php
+│  │
+│  ├─ Services/
+│  │  ├─ AuthService.php           # OTP verification/registration choices + admin login
+│  │  ├─ OrderService.php          # order lifecycle business rules
+│  │  ├─ OrderOfferService.php     # offer CRUD + rejection rules
+│  │  ├─ PaymentService.php        # amount/commission/gateway
+│  │  ├─ CustomerCarService.php    # customer car ownership logic
+│  │  ├─ StoreCarService.php       # provider store-car logic
+│  │  ├─ StoreRequestService.php   # store onboarding + mobile OTP
+│  │  ├─ OtpService.php            # simple OTP send/verify (no rate limit in service)
+│  │  └─ SoldQuantityService.php   # sold-quantity tracking on components
+│  │
+│  ├─ Support/
+│  │  └─ MobileNumber.php          # Saudi mobile → E.164 normalization (+9665XXXXXXXX)
+│  │
+│  ├─ Events/                  # all sync, non-broadcast, do NOT implement ShouldBroadcast
+│  │  ├─ MessageSent  OfferCreated  OrderCompleted  OrderCreated  OrderPaid
+│  │  └─ ...
+│  │
+│  └─ Listeners/               # all sync, do NOT implement ShouldQueue
+│     ├─ NotifyConversationParticipant  NotifyCustomerOfOffer
+│     ├─ NotifyProviderOfCompletion  NotifyProviderOfPayment  NotifyStoresOfNewOrder
+│     └─ ...
 │
-├── config/
-│   ├── auth.php
-│   ├── database.php
-│   ├── filesystems.php
-│   └── sanctum.php                     # Published Sanctum config
-│
-├── database/
-│   ├── migrations/                     # Database schema
-│   ├── factories/                      # Model factories for testing
-│   └── seeders/                        # Database seeders
-│
-├── routes/
-│   ├── api.php                         # All API routes
-│   ├── web.php
-│   └── console.php
-│
-└── tests/
-    ├── Feature/                        # HTTP endpoint tests
-    └── Unit/                           # Service/model unit tests
+├─ bootstrap/
+│  └─ app.php                  # middleware aliases, throttleApi, central exception renderers
+├─ config/
+│  └─ payments.php             # driver (default "stub") + commission_rate (5%)
+├─ database/
+│  ├─ migrations/              # ordered schema (see DB Rules)
+│  ├─ factories/  seeders/     # DeveloperSeeder, CmsSeeder, reference seeders, etc.
+├─ routes/
+│  ├─ api.php                  # the API surface (no admin routes beyond admin login)
+│  ├─ web.php  console.php
+├─ tests/
+│  ├─ Feature/                 # endpoint-level tests
+│  ├─ Unit/                    # incl. OrderServiceTest (9 tests)
+│  └─ TestCase.php             # RefreshDatabase, SQLite :memory:
+└─ composer.json  phpunit.xml  README.md  CODE.md
 ```
 
 ---
 
-## Database Schema
+## Response & Exception Conventions
 
-### Car Hierarchy (Reference Data - Admin Managed)
-```
-countries (id, name_en, name_ar)
-  └── cities (id, name_en, name_ar, country_id FK)
-  └── cars_companies (id, name_en, name_ar, country_id FK)
-      └── cars_names (id, name_en, name_ar, car_company_id FK)
-          └── models (id, name_en, name_ar, car_name_id FK)
+### ApiResponse trait (`app/Http/Traits/ApiResponse.php`)
 
-fuel_types (id, type_en, type_ar)
-colors (id, name_en, name_ar)
-car_sections (id, name_en, name_ar)               # NEW - front, rear, engine, interior...
-  └── components (id, name_en, name_ar, section_id FK)  # NEW - universal parts catalog
-```
+Every controller delegates its response to these helpers:
 
-### Users & Auth
-```
-users (id, full_name, mobile[unique], type[enum], city_id FK, status[enum], timestamps, soft_deletes)
-admin (employee_id PK, name, assigned_role[enum], mobile, email[unique], password, status[enum], timestamps, soft_deletes)
-otp_codes (id, hashed_otp, identifier, expires_at, timestamps, soft_deletes)
-personal_access_tokens (Sanctum)
-device_tokens (id, user_id FK, token[unique], platform, timestamps)  # NEW
-```
+| Method        | HTTP | Notes                                                |
+| ------------- | ---- | ---------------------------------------------------- |
+| `success`     | 200  | `{ success: true, message/, data }`                  |
+| `created`     | 201  | Resource created                                     |
+| `error`       | 400  | **default** error status (message + errors)          |
+| `notFound`    | 404  |                                                      |
+| `forbidden`   | 403  |                                                      |
+| `unauthorized`| 401  |                                                      |
+| `paginated`   | 200  | builds `data` + `meta` (pagination)                  |
 
-### Stores
-```
-stores (id, name, mobile[unique], nick_name, employee_name, url_location, status[enum], commercial_registration_number, commercial_registration_picture, city_id FK, user_id FK, timestamps, soft_deletes)
-store_pictures (id, picture, store_id FK, timestamps, soft_deletes)
-store_companies (id, store_id FK, company_id FK, timestamps, soft_deletes)  # M:N pivot
-store_requests (id, user_id FK, store details, request_status[enum], timestamps, soft_deletes)  # NEW
-```
+### BaseRequest (`app/Http/Requests/BaseRequest.php`)
 
-### Inventory
-```
-stores_cars (id, manufacturing_year, vehicle_plat_number, car_name_id FK, color_id FK, store_id FK, fuel_type FK, timestamps, soft_deletes)
-store_car_pictures (id, picture, car_id FK, timestamps, soft_deletes)
-store_car_sections (id, store_car_id FK, section_id FK, condition[enum: okay|damaged], timestamps)  # NEW - car section condition report
-store_car_components (id, store_car_id FK, component_id FK, part_number, description, price, stock_quantity, warranty_months, timestamps, soft_deletes)  # NEW - replaces old car_components
-```
+- `authorize()` always returns `true` (authorization delegated to policies via
+  `$this->authorize()` in controllers).
+- `failedValidation` throws an HTTP 422 with:
+  `{ success: false, message: auth.general.validation_failed, errors: {...} }`.
 
-### Customer Cars
-```
-customer_cars (id, manufacturing_year, vehicle_plat_number, car_name_id FK, color_id FK, customer_id FK, fuel_type FK, timestamps, soft_deletes)
-customer_car_pictures (id, picture, car_id FK, timestamps, soft_deletes)
-```
+### BusinessRuleException (`app/Exceptions/BusinessRuleException.php`)
 
-### Orders & Payments
+- **Default `statusCode` is 400** (aligned with `ApiResponse::error()`, which defaults
+  to 400).
+- Carries: `message`, `messageKey`, `messageParams`, `statusCode`.
+- Renderer set per-status where the rule needs a non-400 code (e.g. `StoreRequestService`
+  throws OTP/register errors with explicit **422**).
+
+### Central renderers (`bootstrap/app.php`)
+
+- `AuthenticationException` → 401 `{ success: false, message: auth.general.unauthenticated }`.
+- `BusinessRuleException` → `statusCode()` with `{ success: false, message }`, where the
+  message is `__($messageKey, $params)` when a key is present, else the raw message.
+
+### Middleware aliases (`bootstrap/app.php`)
+
 ```
-orders (id, order_type[enum], quantity, customer_image, status[enum], offered_price, notes, customer_id FK, store_car_component_id FK(nullable), model_id FK(nullable), timestamps, soft_deletes)
-order_offers (id, order_id FK, store_id FK, price, notes, timestamps, soft_deletes)
-payments (id, order_id FK, amount, payment_method[enum], payment_status[enum], timestamps, soft_deletes)
+'auth'          => Authenticate::class          (JSON 401)
+'locale'        => SetLocale::class             (Accept-Language → ar/en)
+'user.active'   => EnsureUserIsActive::class    (blocked users → 403)
+'admin.active'  => EnsureAdminIsActive::class
+'customer'      => EnsureIsCustomer::class
+'provider'      => EnsureIsProvider::class
+'auth.provider' => EnsureIsCustomerOrProvider::class
 ```
 
-### Communication
-```
-conversations (id, customer_id FK, provider_id FK, timestamps, soft_deletes)
-messages (id, content, is_read[boolean], conversation_id FK, sender_id FK, timestamps, soft_deletes)
-notifications (uuid PK, type, notifiable_type, notifiable_id, data[text], read_at[nullable], timestamps)  # Laravel built-in
-```
+`$middleware->throttleApi()` applies the global `api` limiter (30/min per IP).
 
-### Other
-```
-service_provider_requests (id, request_time, request_status[enum], user_id FK, store_id FK, timestamps, soft_deletes)
-ratings (id, customer_id FK, store_id FK, order_id FK, rating[tinyint], comment, timestamps, soft_deletes)  # NEW
-platform_settings (id, key[unique], value, timestamps)  # NEW
-cms (id, arabic_text, english_text, timestamps, soft_deletes)
-```
+### Rate limiters (`AppServiceProvider::configureRateLimiting()`)
+
+- `api`: 30 req/min by IP.
+- `customerLogin`: 3 req/min per `mobile` AND 3 req/min per IP (applied to OTP send/verify).
+- `adminLogin`: 5 req/min per `email` AND 5 req/min per IP.
 
 ---
 
-## Coding Conventions
+## Services (business logic)
 
-### Response Format
-Every endpoint returns this envelope:
-```json
-// Success
-{
-    "success": true,
-    "message": "Store created.",
-    "data": { "id": 1, "name": "AlFaris" }
-}
+All services are constructor-injected into controllers. They encapsulate domain rules
+and throw `BusinessRuleException` with localization keys under `auth.validation.order.*`
+(or `auth.*`).
 
-// Success with pagination
-{
-    "success": true,
-    "message": "OK",
-    "data": [...],
-    "meta": { "current_page": 1, "last_page": 5, "per_page": 20, "total": 95 }
-}
+### AuthService
+OTP-based login/registration and admin login decisions. `verifyOtp` distinguishes
+existing users (returns `token`, `is_new: false`, and the user's **`type`**
+`customer`/`service provider` so the frontend picks the right interface) from new
+mobiles (returns `temp_token`, `is_new: true`, `type: null`). `register` consumes the
+pending registration token and creates the user via its own `createUser`
+(full_name/mobile/city/type/status aggregation — a user-domain concern, not an OTP
+concern); `adminLogin` checks credentials and blocked status and issues a scoped
+`['admin']` token. Failures throw `BusinessRuleException`:
+`auth.otp.rate_limited` (422), `auth.register.token_invalid` (422),
+`auth.login.invalid` (401), `auth.admin.blocked` (403). `AuthController` delegates
+without business logic.
 
-// Error
-{
-    "success": false,
-    "message": "Validation failed",
-    "errors": { "name": ["The name field is required."] }
-}
-```
+### OrderService
+Order lifecycle transitions and payment/delegation logic. Throws localized rule errors:
+`cannot_accept_offer`, `cannot_cancel`, `cannot_complete`, `cannot_reject_general`,
+`cannot_reject_not_pending`, `already_offered`, `cannot_edit_offer`, `cannot_delete_offer`,
+etc.
 
-### Base Classes
-- **`Controller`** — Uses `ApiResponse` trait. Every controller extends this.
-  - `$this->success($data, $message, $code)` — 200
-  - `$this->created($data, $message)` — 201
-  - `$this->error($message, $code, $errors)` — 400
-  - `$this->notFound($message)` — 404
-  - `$this->forbidden($message)` — 403
-  - `$this->unauthorized($message)` — 401
-  - `$this->paginated($paginator, $message)` — 200 with meta
-- **`BaseRequest`** — Every Form Request extends this. Overrides failedValidation to return JSON 422 (no redirects).
+### OrderOfferService
+Offer creation, update, deletion and rejection with state-machine guards
+(`reject`, `cannot_*` keys listed above).
 
-### Models
-- Use `$fillable` for mass-assignable fields (NEVER `*`)
-- Use `$hidden` for sensitive/internal fields (deleted_at, etc.)
-- Use `casts()` method with PHP Enums for enum columns
-- Always type-hint relationships: `BelongsTo`, `HasMany`, `MorphToMany`, etc.
-- Table name = plural snake_case (Laravel convention)
-- Foreign key = `singular_id` (e.g., `city_id`, `user_id`)
-- One model file per class (PascalCase filename)
+### PaymentService
+- `amountFor(order)` = `offered_price` × `quantity`.
+- `commissionFor(amount)` = 5% commission (`config/payments.commission_rate`).
+- Gateway driver: `config/payments.driver` defaults to **"stub"**
+  (`PAYMENT_DRIVER` env). Provides a `charge()` that is **not** DB-rollbackable.
+- A failed gateway charge records a `PaymentStatus::Failed` audit row; **order state is
+  unchanged** (no rollback of order status) — see Rules #5.
 
-### Enums (PHP 8.2)
-- One enum class per database enum column
-- Always backed by string values matching DB enum values
-- Named PascalCase, values are snake_case
-- Use in Form Requests for validation: `Rule::enum(OrderStatus::class)`
-- Use in Model `$casts` for automatic casting
+### StoreRequestService
+Provider onboarding workflow. Two creation variants:
+- `becomeProvider(...)` — verified flow: requires a `temp_token` (one-time), creates a
+  `RequestStatus::Pending` store request, **promotes the user to
+  `ServiceProvider`** (`users.type`) inside a transaction; the promotion is immediate,
+  so the response carries the new `type` so clients switch interface.
+- `createForProvider(...)` — direct flow: no temp token, `mobile` taken from the
+  payload; for an already-onboarded provider adding another store.
+- Both reject a store `mobile` that equals the user's own account mobile
+  (`auth.store.validation.mobile.same_as_account`, **422**).
+- `sendMobileOtp` / `verifyMobileOtp`: verify failure throws `auth.otp.rate_limited`
+  with `['max' => 5]`, **422**; invalid token throws `auth.register.token_invalid`, **422**.
 
-### Controllers
-- Organized by feature domain (Auth/, Customer/, Provider/, Admin/, Chat/)
-- Thin controllers — delegate business logic to Services
-- Use Form Request classes for validation (NOT inline rules)
-- Use API Resources for responses (NOT raw model/array)
-- Use `$this->authorize()` or Policy for authorization
-- Always return JSON with consistent envelope
+### CustomerCarService
+Customer-car ownership & validation logic used by the customer car CRUD.
 
-### Form Requests
-- One class per operation (CreateXxxRequest, UpdateXxxRequest)
-- Place in `Http/Requests/{Domain}/` matching the controller domain
-- Define `rules()` and `authorize()` methods
-- Use PHP Enums in validation rules: `Rule::enum(OrderStatus::class)`
+### StoreCarService
+Provider store-car create/update/destroy logic, delegating to policies for access.
 
-### API Resources
-- One Resource class per model
-- Return `{ "data": { ... } }` for single items
-- Return `{ "data": [...], "meta": { "current_page": 1, "last_page": 5, "per_page": 15 } }` for collections
-- Use `$this->whenLoaded('relation')` for conditional nested data
-- Use `$this->whenCounted('relation')` for counts
+### SoldQuantityService
+Tracks sold quantity on `store_car_components` as offers are accepted/completed.
 
-### Policies
-- One Policy per model that needs authorization
-- Register in AppServiceProvider::boot() or use auto-discovery
-- Methods: viewAny, view, create, update, delete, restore, forceDelete
-- Check ownership: `$model->user_id === $user->id`
-- Use `$this->authorize()` in controllers
+### OtpService (SIMPLE — current behavior)
+- **No rate limiting and no `Cache::lock()`** — the current implementation is minimal.
+- `sendOtp`: stores a hashed 4-digit OTP, deletes any prior, expiry 5 minutes; logs the
+  OTP in local env for debugging.
+- `verifyOtp(mobile, code)`: boolean.
+- `findByMobile`, `createPendingToken`, `consumePendingToken`, `createToken`.
+- Shared low-level OTP/token utility — reused by `StoreRequestService` (store-request
+  mobile verification) and `AuthService`. It does **not** own user creation; user
+  aggregation lives in `AuthService::createUser`.
 
-### Services
-- Only create when business logic is complex (multi-step, validation across models)
-- No Service for simple CRUD (use Eloquent directly in controller)
-- Inject via constructor or use `app()` helper
-- Services: OtpService, OrderService, PaymentService, ChatService, RegistrationService, ImageService
-
-### Migrations
-- Filename format: `YYYY_MM_DD_HHMMSS_create_{table}_table.php`
-- Always use `$table->id()` as primary key
-- Always add `$table->timestamps()` and `$table->softDeletes()` unless intentional
-- Foreign keys: `$table->foreignId('x_id')->constrained('x_table')->onDelete('cascade')`
-- Spell everything correctly in column names
-
-### Testing
-- Feature tests in `tests/Feature/{Domain}/`
-- Unit tests in `tests/Unit/Services/`
-- Use `actingAs()` for authenticated tests
-- Use factories for all test data
-- Test both success and failure paths
-- Test authorization (unauthorized access returns 403)
+> Note: rate limiting for OTP routes is enforced by the HTTP middleware
+> (`throttle:customerLogin`), not inside `OtpService`.
 
 ---
 
-## Production Best Practices
+## State Machines
 
-These are the rules applied to every endpoint in this project. Review before building any feature.
+### OrderStatus (`App\Enums\OrderStatus`)
+`pending | rejected | negotiating | paid | completed | cancelled`
 
-### 1. Validation
-Always validate every request. Never trust the frontend.
-- Required fields, email format, password length, unique values
-- Use Form Request classes (NOT inline `$request->validate()` in controllers)
-```php
-// WRONG — inline validation clutters the controller
-$request->validate(['name' => 'required|string|max:255']);
+Transitions enforced in `OrderService`/`OrderOfferService`:
+- **pending** — awaiting offers (customer may cancel if no accepted offer; provider may
+  reject with a reason).
+- **negotiating** — an offer was accepted but not yet paid; customer may cancel here.
+- **paid** — payment recorded (`OrderPaid` event → `NotifyProviderOfPayment`).
+- **completed** — customer confirms received (`OrderCompleted` event →
+  `NotifyProviderOfCompletion` + `SoldQuantityService` update).
+- **cancelled / rejected** — terminal states.
 
-// RIGHT — dedicated Form Request class
-class CreateStoreRequest extends FormRequest {
-    public function rules(): array {
-        return ['name' => 'required|string|max:255'];
-    }
-}
-```
-
-### 2. Authorization
-Never trust the frontend. Check:
-- Is the user logged in?
-- Does the user own this resource?
-- Does the user have permission?
-- Use Policies + `$this->authorize()` in controllers
-
-### 3. Transactions
-Use `DB::transaction()` when multiple queries must all succeed:
-```php
-DB::transaction(function () use ($data) {
-    $order = Order::create($data);
-    StoreCarComponent::where('id', $data['component_id'])
-        ->decrement('stock_quantity', $data['quantity']);
-    Payment::create(['order_id' => $order->id, ...]);
-});
-// If anything fails → automatic rollback
-```
-Use for: Orders, Payments, Wallets, Stock updates
-
-### 4. Logging
-Log unexpected events. Don't log everything.
-- Good: Payment failed, external API error, unexpected exception
-- Bad: Passwords, tokens, routine operations
-```php
-Log::error('Payment failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-```
-
-### 5. Caching
-Use cache for data that changes rarely: settings, countries, categories.
-```php
-Cache::remember('countries', 3600, fn() => Country::all());
-```
-Don't cache frequently changing data unless needed.
-
-### 6. Pagination
-Never return thousands of rows.
-```php
-// WRONG — loads entire table into memory
-User::all();
-
-// RIGHT — returns 20 per page
-User::paginate(20);
-```
-
-### 7. API Resources
-Never return raw models. Always use API Resource transformers.
-```php
-// WRONG
-return User::find(1);
-
-// RIGHT
-return new UserResource($user);
-```
-
-### 8. Consistent API Response
-Every endpoint must return the same format:
-```json
-{
-    "success": true,
-    "message": "Store created.",
-    "data": { "id": 1, "name": "AlFaris" }
-}
-```
-
-### 9. Exception Handling
-Don't wrap everything in try/catch. Use Laravel's global exception handler. Only catch when you need to transform the error message or take recovery action.
-
-### 10. Service Layer
-For complex business logic, use Services:
-```
-Controller → Service → Model
-```
-Controller stays thin. No Services for simple CRUD.
-
-### 11. Dependency Injection
-```php
-// WRONG
-$userService = new UserService();
-
-// RIGHT
-public function __construct(UserService $service) {
-    $this->service = $service;
-}
-```
-
-### 12. Eager Loading (Avoid N+1)
-```php
-// WRONG — N+1 query problem (1 query for orders + N queries for each customer)
-$orders = Order::all();
-foreach ($orders as $order) {
-    echo $order->customer->full_name; // triggers a query each time!
-}
-
-// RIGHT — eager loads all customers in one query
-$orders = Order::with('customer')->get();
-```
-
-### 13. Database Indexes
-Index columns used in: WHERE, JOIN, ORDER BY, search queries.
-
-### 14. Soft Deletes
-Use `SoftDeletes` when data shouldn't disappear permanently. Allows recovery and audit trails.
-
-### 15. Queue Jobs
-For slow tasks (Send email, Send SMS, Generate PDF, Upload image), use Queues instead of making the user wait.
-
-### 16. Events & Listeners
-Break side effects into separate listeners:
-```
-User registered → CreateProfile listener
-                → SendWelcomeEmail listener
-                → GiveBonus listener
-```
-
-### 17. Rate Limiting
-Protect APIs from abuse:
-```php
-Route::middleware('throttle:60,1')->group(function () {
-    // 60 requests per minute
-});
-```
-
-### 18. Secure Passwords
-Never store plain passwords. Always use `Hash::make()`. Model casts `'password' => 'hashed'` handles this automatically.
-
-### 19. Environment Variables
-Never hardcode API keys, passwords, or database credentials. Always use `.env`.
-
-### 20. File Storage
-Never store uploads inside `public/`. Use Laravel's `Storage` facade (S3, local disk, etc.).
-
-### 21. Database Seeders
-Use seeders for: Countries, Roles, Permissions, Default settings, Reference data.
-
-### 22. Factories
-Generate fake data for testing. One factory per model.
-
-### 23. Database Constraints
-Use foreign keys, unique constraints, cascade rules. Don't rely only on validation — the database is the last line of defense.
-
-### 24. Logging
-Structured, purposeful logging. Never log sensitive data (passwords, tokens, OTPs, full card numbers).
-
-**Channels:**
-- `daily` (default) — Application errors, exceptions, debug info. Auto-rotated, 14-day retention.
-- `operations` — Third-party API calls, payment transactions, SMS delivery status. 30-day retention. Use via `Log::channel('operations')`.
-
-**When to log:**
-| Log Level | When | Example |
-|---|---|---|
-| `error` | Unhandled exceptions, system failures | Payment gateway timeout, DB connection lost |
-| `warning` | Recoverable issues, degraded state | Cache miss, retry succeeded, rate limit hit |
-| `info` | Business events, audit trail | Order created, user registered, OTP sent (production-safe) |
-| `debug` | Development debugging only | Variable dumps, query logs (NEVER in production) |
-
-**Production rules:**
-- Default stack is `daily` (auto-rotated, 14-day retention)
-- All logs are **JSON-formatted** via `LoggingServiceProvider` (structured, parseable by log aggregators)
-- `LOG_LEVEL=info` in production (no debug noise)
-- OTP codes are **NEVER** logged in production (`Log::info` only in `local` environment)
-- Use `Log::channel('operations')` for financial/transactional logs
-
-**Code examples:**
-```php
-// Application error — always log with context
-Log::error('Payment failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-
-// Business event — use info level
-Log::info('Order created', ['order_id' => $order->id, 'customer_id' => $user->id]);
-
-// Third-party API / financial — use operations channel
-Log::channel('operations')->info('SMS sent', ['mobile' => $mobile, 'provider' => 'unifonic', 'status' => 'delivered']);
-Log::channel('operations')->info('Payment processed', ['order_id' => $order->id, 'amount' => $amount, 'method' => 'credit_card']);
-
-// NEVER do this
-Log::info("OTP for {$mobile}: {$otp}");           // leaks secrets
-Log::debug($user->toArray());                      // debug in production
-Log::info($request->all());                        // may contain passwords
-```
-
-**Log file structure:**
-```
-storage/logs/
-├── laravel-YYYY-MM-DD.log    # daily channel (14 days retention)
-├── operations-YYYY-MM-DD.log # operations channel (30 days retention)
-└── laravel.log               # emergency fallback
-```
+### OfferStatus (`App\Enums\OfferStatus`)
+Guards in `OrderOfferService` prevent editing/deleting offers once an order is accepted
+or the offer is in a locked state (`already_offered`, `cannot_edit_offer`,
+`cannot_delete_offer`).
 
 ---
 
-## Professional Request Flow
+## Database Rules
 
-Every request in this API follows this flow:
-
-```
-Request
-  ↓
-Middleware (auth, block check, rate limit)
-  ↓
-Form Request Validation
-  ↓
-Policy Authorization
-  ↓
-Controller (thin — delegates to Service)
-  ↓
-Service (business logic)
-  ↓
-DB::transaction (if multi-step)
-  ↓
-Model (Eloquent)
-  ↓
-Cache (read/write if needed)
-  ↓
-Event / Queue (if async work needed)
-  ↓
-API Resource (transform to JSON)
-  ↓
-JSON Response (consistent format)
-```
+- **Tests run on SQLite `:memory:`**; production is MySQL. Migrations must be compatible
+  with both.
+- **Unique constraints already in place:**
+  - `order_offers(order_id, store_id)` — added by migration
+    `2026_09_04_155756_add_unique_constraint_to_order_offers_table.php`
+    (down: drops the index). One offer per store per order.
+  - The `payments(order_id)` unique constraint was **intentionally omitted** — payment
+    retries legitimately create multiple rows (a "failed" audit row per attempt).
+- `request_status` (RequestStatus enum) drives store-request lifecycle.
+- `users.type` = UserType; `users.status` = UserStatus; `stores.status` = StoreStatus;
+  `payments.status` = PaymentStatus; `payments.payment_method` = PaymentMethod;
+  `store_car_sections.condition` = SectionCondition; `device_tokens.platform` =
+  DevicePlatform; `admin.status` = AdminStatus; `admin.assigned_role` = AdminRole.
 
 ---
 
-## API Route Groups
+## Transactions
 
-All routes use `locale` middleware globally (Accept-Language header → ar/en).
-
-```
-api.php
-├── Public routes (no auth)
-│   ├── GET /test
-│   ├── POST /auth/otp/send
-│   ├── POST /auth/otp/verify
-│   ├── POST /auth/admin/login
-│   ├── GET /countries, /cities, /fuel-types, /colors
-│   ├── GET /car-companies, /car-names, /car-models
-│   ├── GET /car-sections, /components
-│   └── GET /cms
-│
-├── Customer routes (auth:sanctum + user.active + customer)
-│   ├── GET/PUT /customer/profile
-│   ├── GET/POST/DELETE /customer/customer-cars
-│   ├── POST /customer/orders
-│   ├── GET /customer/orders, /customer/orders/{order}
-│   ├── POST /customer/orders/{order}/accept-offer, /cancel
-│   ├── GET /customer/stores, /customer/stores/{store}
-│   ├── GET /customer/stores/{store}/components
-│   ├── GET/POST /customer/conversations
-│   ├── GET/POST /customer/conversations/{conversation}/messages
-│   ├── POST /customer/ratings
-│   └── GET /customer/notifications, PUT .../read
-│
-├── Provider routes (auth:sanctum + user.active + provider)
-│   ├── GET/PUT /provider/profile
-│   ├── GET/PUT /provider/store/{store}
-│   ├── GET/POST /provider/store/{store}/cars
-│   ├── GET/PUT/DELETE /provider/store/{store}/cars/{storeCar}
-│   ├── GET/POST /provider/store/{store}/cars/{storeCar}/components
-│   ├── GET/PUT/DELETE /provider/store/{store}/cars/{storeCar}/components/{component}
-│   ├── GET /provider/store-requests
-│   ├── POST /provider/store-requests/verify-mobile
-│   ├── POST /provider/store-requests/verify-code
-│   ├── POST /provider/store-requests
-│   ├── GET /provider/store-requests/{storeRequest}
-│   ├── GET /provider/orders
-│   ├── GET /provider/orders/{order}
-│   ├── POST /provider/orders/{order}/offer
-│   ├── PUT/DELETE /provider/orders/{order}/offer/{offer}
-│   ├── POST /provider/orders/{order}/reject
-│   ├── GET /provider/conversations
-│   ├── GET/POST /provider/conversations/{conversation}/messages
-│   ├── GET /provider/ratings
-│   └── GET /provider/notifications, PUT .../read
-│
-└── Admin routes (auth:admin + admin.active)
-    ├── GET/PUT /admin/profile
-    ├── GET /admin/dashboard
-    ├── GET /admin/users, /admin/users/{user}
-    ├── PUT /admin/users/{user}/block, /unblock
-    ├── GET /admin/stores, /admin/stores/{store}
-    ├── PUT /admin/stores/{store}/activate, /deactivate
-    ├── GET/POST /admin/admins
-    ├── PUT/DELETE /admin/admins/{admin}
-    ├── GET /admin/service-provider-requests
-    ├── PUT /admin/service-provider-requests/{request}/approve, /reject
-    ├── GET /admin/orders, /admin/orders/{order}
-    ├── GET/PUT /admin/cms, /admin/cms/{cms}
-    ├── GET/PUT /admin/platform-settings, /admin/platform-settings/{setting}
-    ├── GET /admin/ratings
-    └── GET /admin/notifications
-```
-
-### 25. Shared Routes (Customer + Provider)
-
-When **both customer and provider** access the **same data with the same logic** (e.g., subscriptions, notifications), use a **single shared controller** under a `customerOrProvider` route group.
-
-**Don't** duplicate controllers — one shared controller avoids code duplication.
-
-```php
-// WRONG — duplicates the same logic in two controllers
-Route::middleware(['auth:sanctum', 'user.active', 'customer'])->group(function () {
-    Route::get('/subscriptions', CustomerSubscriptionController::class);
-});
-Route::middleware(['auth:sanctum', 'user.active', 'provider'])->group(function () {
-    Route::get('/subscriptions', ProviderSubscriptionController::class);
-});
-
-// RIGHT — one shared controller under customerOrProvider middleware
-Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
-    Route::get('/subscriptions', SharedSubscriptionController::class);
-});
-```
-
-**When to use shared controller:**
-- Both roles see the same data (subscriptions, notifications, CMS, settings)
-- The controller logic is identical for both roles
-- No role-specific behavior is needed
-
-**When to use separate controllers:**
-- Different logic per role (provider accepts orders, customer creates orders)
-- Role-specific validation rules
-- Role-specific authorization (ownership checks differ)
+- Service methods that mutate multiple aggregate rows use Eloquent transactions
+  (`DB::transaction`) where the operation is local and atomic.
+- Payments are the declared exception: the external gateway call is **not** wrapped in a
+  DB transaction with order state (see Rules #5). The local payment record is persisted
+  separately; failures are audited as `PaymentStatus::Failed`.
 
 ---
 
-## Changes Made (Changelog)
+## Events / Listeners / Notifications
 
-### Date: 2026-08-18
-| Change | File | Reason |
-|---|---|---|
-| Installed `laravel/sanctum` v4.3.3 | `composer.json`, `composer.lock` | Token-based auth for mobile API |
-| Fixed User model | `app/Models/User.php` | Added HasApiTokens, type in fillable, casts, missing relationships, helper methods |
-| Deleted dead model | `app/Models/users.php` | Unused duplicate of User model |
-| Added `password` to admin migration | `2026_05_21_084201_create_admin_table.php` | Admin needs email+password login |
-| Fixed spelling in stores migration | `2026_05_19_025132_create_stores_table.php` | emploee_name→employee_name, commerical→commercial (2 cols) |
-| Fixed spelling in stores_cars migration | `2026_05_19_030316_create_stores_cars_table.php` | manufuctionary_year→manufacturing_year |
-| Fixed spelling in customer_cars migration | `2026_05_19_031119_create_customer_cars_table.php` | manufuctionary_year→manufacturing_year |
-| Deleted car_components migration | (removed) | Replaced by 3-level hierarchy (car_sections→components→store_car_components) |
-| Updated orders migration | `2026_08_18_073600_create_orders_table.php` | Replaced component_id FK with store_car_component_id FK |
-| Moved order_offers migration | `2026_08_18_073650_create_order_offers_table.php` | FK dependency: must run after orders |
-| Moved payments migration | `2026_08_18_073800_create_payments_table.php` | FK dependency: must run after orders |
-| Moved ratings migration | `2026_08_18_073900_create_ratings_table.php` | FK dependency: must run after orders |
-| Created car_sections migration | `2026_08_18_073134_create_car_sections_table.php` | New: main sections (front, rear, engine...) |
-| Created components migration | `2026_08_18_073254_create_components_table.php` | New: universal parts catalog |
-| Created store_car_components migration | `2026_08_18_073340_create_store_car_components_table.php` | New: store-specific pricing + stock + warranty |
-| Created store_requests migration | `2026_08_18_073432_create_store_requests_table.php` | New: store approval workflow |
-| Created device_tokens migration | `2026_08_18_073540_create_device_tokens_table.php` | New: push notification tokens |
-| Created platform_settings migration | `2026_08_18_073756_create_platform_settings_table.php` | New: platform config (fees, etc.) |
-| Created ratings migration | `2026_08_18_073900_create_ratings_table.php` | New: customer ratings for stores |
-| Created notifications migration | `2026_08_18_075055_create_notifications_table.php` | Laravel built-in: in-app notification storage (polymorphic, read_at tracking) |
-| Created 11 PHP 8.2 Enums | `app/Enums/*.php` | Type safety for all enum DB columns (UserType, UserStatus, StoreStatus, AdminStatus, AdminRole, OrderType, OrderStatus, PaymentMethod, PaymentStatus, RequestStatus, DevicePlatform) |
-| Created 31 Eloquent Models | `app/Models/*.php` | All models with $fillable, $hidden, casts(), typed relationships, SoftDeletes, helper methods. Admin extends Authenticatable with employee_id PK. |
-| Removed store_car_id from orders | `2026_08_18_073600_create_orders_table.php` | Redundant — store reachable via store_car_component → storeCar → store |
-| Updated Order model | `app/Models/Order.php` | Removed store_car_id from $fillable, removed storeCar() relationship, added getStoreAttribute() convenience accessor |
-| Removed broken orders() from StoresCar | `app/Models/StoresCar.php` | FK store_car_id no longer exists on orders table |
-| Removed broken orders() from Store | `app/Models/Store.php` | Store→Order was wrong (no store_id FK on orders). Indirect access via storeCarComponent |
-| Added getTable() to CarName | `app/Models/CarName.php` | Table is `cars_names` but Laravel guesses `car_names` — would crash on every query |
-| Added getTable() to CarCompany | `app/Models/CarCompany.php` | Table is `cars_companies` but Laravel guesses `car_companies` — would crash on every query |
-| Added getStoreAttribute() to StoreCarComponent | `app/Models/StoreCarComponent.php` | Convenience accessor: chain through storeCar → store |
-| Added Production Best Practices | `CODE.md` | 30 best practices + professional request flow for reference during development |
-| Added getTable() to Admin | `app/Models/Admin.php` | Table is `admin` (singular) but Laravel guesses `admins` — would crash every query |
-| Removed remember_token from Admin $hidden | `app/Models/Admin.php` | Migration has no remember_token column — misleading |
-| Added deleted_at cast to User | `app/Models/User.php` | Missing datetime cast for soft delete timestamp — inconsistent with all other models |
-| Fixed Store $hidden doc comment | `app/Models/Store.php` | Comment said status should be hidden but it wasn't in array — corrected comment |
-| Removed redundant getTable() from PlatformSetting | `app/Models/PlatformSetting.php` | Laravel already guesses platform_settings correctly — no override needed |
-| Made country_id nullable on cars_companies | `2026_05_18_162656_create_cars_companies_table.php` | Not every brand maps to a single country |
-| Fixed UserFactory | `database/factories/UserFactory.php` | Was using wrong fields (name, email) — fixed to match User model (full_name, mobile, type) |
-| Created 12 model factories | `database/factories/*.php` | Admin, Store, StoresCar, StoreCarComponent, CustomerCar, Order, OrderOffer, Payment, Rating, Conversation, Message, (User fixed) |
-| Created ReferenceDataSeeder | `database/seeders/ReferenceDataSeeder.php` | 92 countries (EN/AR), 46 Saudi cities, 250+ international cities, 5 fuel types, 12 colors |
-| Created CarDataSeeder | `database/seeders/CarDataSeeder.php` | 54 car companies, 276 car names, 2005 car models (year variants) |
-| Created ComponentSeeder | `database/seeders/ComponentSeeder.php` | 7 car sections, 130 car components (all major parts) |
-| Created PlatformDataSeeder | `database/seeders/PlatformDataSeeder.php` | 12 platform settings, 4 CMS pages, default admin account |
-| Updated DatabaseSeeder | `database/seeders/DatabaseSeeder.php` | Calls all seeders in dependency order |
-| Optimized all 4 seeders to bulk inserts | `database/seeders/*.php` | ~2,650 queries → ~13 queries (15x faster) |
-| Added seed_test_data config | `config/database.php` | Controls TestDataSeeder execution via env var |
-| Created Authenticate middleware | `app/Http/Middleware/Authenticate.php` | Overrides default auth — returns JSON 401 instead of redirect |
-| Created SetLocale middleware | `app/Http/Middleware/SetLocale.php` | Accept-Language header → ar/en locale (defaults to ar) |
-| Created EnsureUserIsActive middleware | `app/Http/Middleware/EnsureUserIsActive.php` | Blocks blocked customers/providers with 403 |
-| Created EnsureAdminIsActive middleware | `app/Http/Middleware/EnsureAdminIsActive.php` | Blocks blocked admins with 403 |
-| Created EnsureIsCustomer middleware | `app/Http/Middleware/EnsureIsCustomer.php` | Checks user type === Customer, 403 if not |
-| Created EnsureIsProvider middleware | `app/Http/Middleware/EnsureIsProvider.php` | Checks user type === ServiceProvider, 403 if not |
-| Added admin guard to auth config | `config/auth.php` | Separate guard for admin table (email+password, employee_id PK) |
-| Registered all middleware aliases | `bootstrap/app.php` | auth, locale, user.active, admin.active, customer, provider |
-| Handled unauthenticated JSON responses | `bootstrap/app.php` | AuthenticationException → JSON 401 (no redirect attempts) |
-| Created full route skeleton | `routes/api.php` | 91 routes across 4 groups (public, customer, provider, admin) |
-| Created ApiResponse trait | `app/Http/Traits/ApiResponse.php` | Consistent JSON envelope: success, message, data, meta, errors |
-| Updated Base Controller | `app/Http/Controllers/Controller.php` | Uses ApiResponse trait — all controllers inherit response helpers |
-| Created BaseRequest | `app/Http/Requests/BaseRequest.php` | JSON 422 on validation failure (no redirect) |
-| Cleaned api.php | `routes/api.php` | Removed closure routes — clean slate for controller-based routing |
-| Created SendOtpRequest | `app/Http/Requests/Auth/SendOtpRequest.php` | Validates Saudi mobile (05XXXXXXXX) |
-| Created VerifyOtpRequest | `app/Http/Requests/Auth/VerifyOtpRequest.php` | Validates mobile + 4-digit OTP |
-| Created AdminLoginRequest | `app/Http/Requests/Auth/AdminLoginRequest.php` | Validates email + password (min 6) |
-| Created RegisterRequest | `app/Http/Requests/Auth/RegisterRequest.php` | Validates temp_token + full_name + city_id |
-| Created OtpService | `app/Services/OtpService.php` | sendOtp, verifyOtp, findByMobile, createPendingRegistration, consumePendingRegistration, createUser, createToken |
-| Created AuthController | `app/Http/Controllers/Auth/AuthController.php` | sendOtp, verifyOtp (new vs existing), register, adminLogin |
-| Wired auth routes | `routes/api.php` | otp/send, otp/verify, register (public), admin/login |
-| Made users.city_id nullable | `database/migrations/2026_08_22_195000_make_users_city_id_nullable.php` | Users register with phone first, set city in profile later |
-| Switched to cache-based registration | `app/Services/OtpService.php` | No skeleton users — temp token via Cache, one-time use, 30min expiry |
-| Added OTP brute-force protection | `app/Services/OtpService.php` | Max 5 attempts per mobile, locked 5 minutes via Cache |
-| Made OTP logging environment-aware | `app/Services/OtpService.php` | Only logs OTP in local env, never in production |
-| Added Cache::lock() to registration | `app/Services/OtpService.php` | Prevents race condition on temp token consumption |
-| Created cache + cache_locks tables | `database/migrations/2026_08_22_182024_create_cache_table.php` | Required for database cache driver + Cache::lock() |
+All events and listeners run **synchronously**:
+
+- **Events** do NOT implement `ShouldBroadcast`; all carry `Dispatchable` +
+  `SerializesModels` and dispatch inline.
+- **Listeners** do NOT implement `ShouldQueue`.
+
+| Event              | Listener(s)                          | Purpose                          |
+| ------------------ | ------------------------------------ | -------------------------------- |
+| `MessageSent`      | `NotifyConversationParticipant`      | notify conversation participant  |
+| `OfferCreated`     | `NotifyCustomerOfOffer`              | notify customer of new offer     |
+| `OrderCreated`     | `NotifyStoresOfNewOrder`             | notify stores of new order       |
+| `OrderPaid`        | `NotifyProviderOfPayment`            | notify provider of payment       |
+| `OrderCompleted`   | `NotifyProviderOfCompletion`         | notify provider of completion    |
+
+Notifications (`NewOrderNotification`, `NewOfferNotification`, `NewMessageNotification`,
+`OrderPaidNotification`, `OrderCompletedNotification`) persist database rows
+(`notifications`) and may target device tokens for push.
+
+---
+
+## Query Philosophy
+
+- Controllers use eager loading (`with`/`whenLoaded`) and rely on resource
+  `whenLoaded(...)` guards so no N+1 leaks from serialization.
+- Listing endpoints use `paginate` and the `paginated` response helper.
+- Resources use `whenLoaded` for nullable relations (`acceptedStore`,
+  `storeCarComponent`, `offers`, `carModel`, etc.).
+- Locale-aware fields (e.g. `name_en`/`name_ar`) are selected per `Accept-Language`
+  inside resources using `$request->header('Accept-Language', app()->getLocale())`.
+
+---
+
+## Dependencies & Instrumentation
+
+- **Laravel Sanctum** — API tokens.
+- Rate limiting via Laravel's `RateLimiter` facades in `AppServiceProvider`.
+- Payments via a driver abstraction (`config/payments.php`: `driver` default `"stub"`,
+  `commission_rate` = 5%).
+- Logging via `LoggingServiceProvider` (structured channel logs; key business events /
+  blocked-user attempts logged).
+- No caching layer used by CmsController beyond what exists; no Redis cache dependence in
+  tests (`CACHE_STORE=array`).
+
+---
+
+## API Contract (routes/api.php)
+
+### Auth (public, `throttle:customerLogin` on OTP routes)
+```
+POST /auth/otp/send
+POST /auth/otp/verify
+POST /auth/register
+POST /auth/admin/login          (throttle:adminLogin)
+```
+
+### Reference (public)
+```
+GET  /reference/cities
+GET  /reference/companies
+GET  /reference/companies/{company}/names
+GET  /reference/names/{name}/models
+GET  /reference/fuel-types
+GET  /reference/colors
+GET  /reference/sections
+GET  /reference/sections/{section}/components
+```
+
+### CMS (public)
+```
+GET  /cms/{type}               (route-model-bound to Cms by `type`)
+```
+
+### Provider (`auth:sanctum`, `user.active`)
+```
+# Onboarding (customers only) — becoming a provider
+POST    /provider/store-requests/verify-mobile       (customer)
+POST    /provider/store-requests/verify-code         (customer)
+POST    /provider/store-requests                     (customer; requires temp_token,
+                                                       promotes user to service provider,
+                                                       response includes new type;
+                                                       closed to providers once onboarded)
+
+# Provider-only
+GET/PUT /provider/profile
+GET     /provider/stores          /provider/store/{store}          GET/PUT
+GET/POST/PUT/DELETE /provider/store/{store}/cars[/{storeCar}]
+GET/POST/PUT/DELETE /provider/store/{store}/cars/{storeCar}/components[/{component}]
+                        POST .../components/batch                  (batch store)
+GET  /provider/store-requests[/{storeRequest}]
+POST /provider/store-requests/direct                 (no temp_token; direct store request)
+GET  /provider/orders/general
+GET  /provider/orders/specific
+GET  /provider/orders/offers         (provider's own offers listing — unaffected by viewAny change)
+GET  /provider/orders/paid
+GET  /provider/orders/{order}
+POST /provider/orders/{order}/offer          PUT/DELETE /offer/{offer}
+POST /provider/orders/{order}/reject
+```
+
+### Customer (`auth:sanctum`, `user.active`, `customer`)
+```
+GET/PATCH /customer/profile
+GET/POST/PATCH/DELETE /customer/customer-cars[/{customerCar}]
+GET/POST /customer/orders   /orders/{order}
+POST /customer/orders/{order}/accept-offer
+POST /customer/orders/{order}/pay
+POST /customer/orders/{order}/received
+POST /customer/orders/{order}/cancel
+GET /customer/orders/{order}/offers[/{offer}]        (OrderOfferController)
+POST /customer/orders/{order}/offers/{offer}/reject
+GET /customer/component-cars
+GET /customer/stores[/{store}]
+GET /customer/stores/{store}/cars[/{car}][/components[/{component}]]
+```
+
+### Shared (customer or provider: `auth.sanctum`, `user.active`, `auth.provider`)
+```
+GET/POST /conversations
+GET/POST /conversations/{conversation}/messages
+GET/POST /ratings
+GET /notifications
+PATCH /notifications/read-all
+PATCH /notifications/{notification}/read
+```
+
+> **Note:** The `OrderOfferPolicy::viewAny` restricts the offer listing
+> (`/customer/orders/{order}/offers`) to the **order's customer** (plus `offersAreVisible`).
+> The provider's separate `/provider/orders/offers` route is unaffected.
+
+---
+
+## Security
+
+- Sanctum tokens; all non-public routes require `auth:sanctum`.
+- Role gating via `customer` / `provider` / `auth.provider` middleware.
+- Blocked users (`UserStatus::Blocked`) rejected with 403 by `EnsureUserIsActive`.
+- Object-level authorization via policies (order/offer/payment/store/car/rating/
+  conversation/message/notification ownership).
+- Mobile numbers normalized to E.164 (`+9665XXXXXXXX`) by `Support\MobileNumber` and
+  validated with a strict regex.
+- Rate limiting on auth endpoints (OTP + admin login) plus the global API throttle.
+- `PaymentMethod::CreditCard` flows only through the gateway driver; intended for
+  integration with a real PSP in production.
+
+---
+
+## Testing
+
+- **Framework:** PHPUnit via `phpunit.xml` (tests use SQLite `:memory:`,
+  `CACHE_STORE=array`, `QUEUE_CONNECTION=sync`, `RefreshDatabase`).
+- **Suite:** `tests/Unit` + `tests/Feature`.
+- **Notable test file (refactor-specific):**
+  - `tests/Unit/OrderServiceTest.php` — **9 tests** using a real `City::factory()`, a
+    real `StoreCarComponent` (not the id `1` stub) for FK integrity, and an explicit full
+    `store_requests` payload.
+  - `tests/Feature/CustomerOrderCancelTest.php` — `pendingOrderWithOffers` creates
+    **2 offers on two different stores** (the former `count(2)` on the same store would
+    violate the new `order_offers(order_id, store_id)` unique constraint).
+- Run the suite with: `php vendor/bin/phpunit` (or `php artisan test`).
+- Current status: **175 passed / 470 assertions**.
+
+---
+
+## Known Concerns / Future Considerations
+
+- `payments` has no `order_id` unique constraint by design (payment retries create
+  multiple rows). If the business ever wants a single authoritative payment per order,
+  add a derived column (e.g. `is_successful`) rather than a naive unique on `order_id`.
+- `OtpService` performs no in-service rate limiting or locking — currently handled at the
+  HTTP throttle layer only. A cache-lock/attempt counter may be desired for production
+  hardening.
+- The payment gateway `"stub"` driver is a placeholder; wire a real PSP and keep
+  external-charge semantics (no DB rollback of order state) in mind.
+- `CmsController` route-model-binds `Cms` by a `{type}` parameter; confirm the model's
+  route key is `type` (not the default `id`) to avoid 404s on named slugs.
+- No broadcast/queue workers are configured; events/notifications run synchronously
+  (acceptable at current scale).
+- Resources rely on `whenLoaded`; ensure list endpoints eager-load the nested relations
+  they serialize to avoid N+1 queries.
+
+---
+
+## Future AI Engineering Rules
+
+When working in this repository, follow the Architecture Rules at the top of this file,
+preserve the response envelope and exception conventions, keep business logic in services
+behind policies, and keep the test suite green (run `php artisan test` after changes).
+Do not add redundant comment blocks; match the existing code style (backed enums,
+Service-injected controllers, `ApiResponse` responses, localized rule keys).

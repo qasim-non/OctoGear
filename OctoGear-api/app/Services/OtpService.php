@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\UserStatus;
-use App\Enums\UserType;
 use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -74,18 +72,7 @@ class OtpService
         return Cache::pull("pending:{$intent}:{$token}");
     }
 
-    public function createUser(string $mobile, string $fullName, int $cityId): User
-    {
-        return User::create([
-            'full_name' => $fullName,
-            'mobile'    => $mobile,
-            'type'      => UserType::Customer,
-            'city_id'   => $cityId,
-            'status'    => UserStatus::Unblocked,
-        ]);
-    }
-
-    public function createToken(User $user, array $abilities = ['customer']): string
+    public function createToken(User $user, array $abilities = ['*']): string
     {
         return $user->createToken('auth-token', $abilities)->plainTextToken;
     }

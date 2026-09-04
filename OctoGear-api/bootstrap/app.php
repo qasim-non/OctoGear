@@ -1,8 +1,18 @@
 <?php
 
+use App\Exceptions\BusinessRuleException;
+use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\EnsureAdminIsActive;
+use App\Http\Middleware\EnsureIsCustomer;
+use App\Http\Middleware\EnsureIsCustomerOrProvider;
+use App\Http\Middleware\EnsureIsProvider;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\SetLocale;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,22 +23,33 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth'         => \App\Http\Middleware\Authenticate::class,
-            'locale'       => \App\Http\Middleware\SetLocale::class,
-            'user.active'  => \App\Http\Middleware\EnsureUserIsActive::class,
-            'admin.active' => \App\Http\Middleware\EnsureAdminIsActive::class,
-            'customer'     => \App\Http\Middleware\EnsureIsCustomer::class,
-            'provider'     => \App\Http\Middleware\EnsureIsProvider::class,
-            'auth.provider' => \App\Http\Middleware\EnsureIsCustomerOrProvider::class,
+            'auth' => Authenticate::class,
+            'locale' => SetLocale::class,
+            'user.active' => EnsureUserIsActive::class,
+            'admin.active' => EnsureAdminIsActive::class,
+            'customer' => EnsureIsCustomer::class,
+            'provider' => EnsureIsProvider::class,
+            'auth.provider' => EnsureIsCustomerOrProvider::class,
         ]);
 
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+        $exceptions->renderable(function (AuthenticationException $e, Request $request) {
             return response()->json([
                 'success' => false,
                 'message' => __('auth.general.unauthenticated'),
             ], 401);
+        });
+
+        $exceptions->renderable(function (BusinessRuleException $e) {
+            $message = $e->messageKey()
+                ? __($e->messageKey(), $e->messageParams())
+                : $e->getMessage();
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $e->statusCode());
         });
     })->create();

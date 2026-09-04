@@ -1,23 +1,34 @@
 <?php
 
-namespace App\Http\Controllers\Api\Customer;
+namespace App\Http\Controllers\Api\Shared;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\StoreRatingRequest;
 use App\Http\Resources\RatingResource;
 use App\Models\Rating;
 
-class CustomerRatingController extends Controller
+class RatingController extends Controller
 {
     public function index()
     {
         $this->authorize('viewAny', Rating::class);
 
-        $ratings = auth()->user()
-            ->ratings()
-            ->with('store')
-            ->latest()
-            ->paginate(15);
+        $user = auth()->user();
+
+        if ($user->isProvider()) {
+            $storeIds = $user->stores()->pluck('id');
+
+            $ratings = Rating::query()
+                ->whereIn('store_id', $storeIds)
+                ->with('store')
+                ->latest()
+                ->paginate(15);
+        } else {
+            $ratings = $user->ratings()
+                ->with('store')
+                ->latest()
+                ->paginate(15);
+        }
 
         return $this->paginated($ratings->through(fn ($rating) => new RatingResource($rating)));
     }

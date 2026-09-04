@@ -30,16 +30,22 @@ class CustomerOrderCancelTest extends TestCase
     private function pendingOrderWithOffers(User $customer): Order
     {
         $store = $this->makeStore();
+        $anotherStore = $this->makeStore();
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
-        OrderOffer::factory()->count(2)->create([
+        OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $store->id,
+        ]);
+
+        OrderOffer::factory()->create([
+            'order_id' => $order->id,
+            'store_id' => $anotherStore->id,
         ]);
 
         return $order;
@@ -56,7 +62,7 @@ class CustomerOrderCancelTest extends TestCase
             ->assertJsonPath('data.status', OrderStatus::Cancelled->value);
 
         $this->assertDatabaseMissing('order_offers', [
-            'order_id'   => $order->id,
+            'order_id' => $order->id,
             'deleted_at' => null,
         ]);
     }
@@ -67,10 +73,10 @@ class CustomerOrderCancelTest extends TestCase
         $store = $this->makeStore();
 
         $order = Order::factory()->create([
-            'customer_id'      => $customer->id,
-            'order_type'       => OrderType::General,
-            'status'           => OrderStatus::Negotiating,
-            'offered_price'    => 700,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Negotiating,
+            'offered_price' => 700,
             'accepted_store_id' => $store->id,
         ]);
 
@@ -84,7 +90,7 @@ class CustomerOrderCancelTest extends TestCase
             ->assertOk();
 
         $this->assertDatabaseMissing('order_offers', [
-            'order_id'   => $order->id,
+            'order_id' => $order->id,
             'deleted_at' => null,
         ]);
     }
@@ -95,10 +101,10 @@ class CustomerOrderCancelTest extends TestCase
         $store = $this->makeStore();
 
         $order = Order::factory()->create([
-            'customer_id'      => $customer->id,
-            'order_type'       => OrderType::Specific,
-            'status'           => OrderStatus::Paid,
-            'offered_price'    => 450,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Paid,
+            'offered_price' => 450,
             'accepted_store_id' => $store->id,
         ]);
 
@@ -113,7 +119,7 @@ class CustomerOrderCancelTest extends TestCase
             ->assertJsonPath('success', false);
 
         $this->assertDatabaseHas('order_offers', [
-            'id'         => $offer->id,
+            'id' => $offer->id,
             'deleted_at' => null,
         ]);
     }

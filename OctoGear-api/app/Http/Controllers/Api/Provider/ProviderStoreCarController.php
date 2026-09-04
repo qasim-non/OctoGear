@@ -8,9 +8,12 @@ use App\Http\Requests\Provider\UpdateProviderStoreCarRequest;
 use App\Http\Resources\StoreCarResource;
 use App\Models\Store;
 use App\Models\StoresCar;
+use App\Services\StoreCarService;
 
 class ProviderStoreCarController extends Controller
 {
+    public function __construct(private StoreCarService $cars) {}
+
     public function index(Store $store)
     {
         $cars = $store->cars()
@@ -26,15 +29,7 @@ class ProviderStoreCarController extends Controller
     {
         $this->authorize('manage', $store);
 
-        $car = $store->cars()->create($request->safe()->except(['pictures', 'sections']));
-
-        $this->syncSections($car, $request->validated('sections'));
-
-        if ($request->has('pictures')) {
-            $car->pictures()->createMany(
-                collect($request->validated('pictures'))->map(fn ($picture) => ['picture' => $picture])->all()
-            );
-        }
+        $car = $this->cars->create($store, $request->validated());
 
         $car->load(['carName', 'color', 'fuelType', 'pictures', 'storeCarSections.section']);
         $car->loadCount('components');
@@ -62,39 +57,12 @@ class ProviderStoreCarController extends Controller
 
         $this->authorize('manage', $store);
 
-        $storeCar->update($request->safe()->except(['pictures', 'sections']));
-
-        if ($request->has('sections')) {
-            $this->syncSections($storeCar, $request->validated('sections'));
-        }
-
-        if ($request->has('pictures')) {
-            $storeCar->pictures()->delete();
-
-            $storeCar->pictures()->createMany(
-                collect($request->validated('pictures'))->map(fn ($picture) => ['picture' => $picture])->all()
-            );
-        }
+        $storeCar = $this->cars->update($storeCar, $request->validated());
 
         $storeCar->load(['carName', 'color', 'fuelType', 'pictures', 'storeCarSections.section']);
         $storeCar->loadCount('components');
 
         return $this->success(new StoreCarResource($storeCar));
-    }
-
-    /**
-     * Replace the car's section-condition report with the given sections.
-     */
-    private function syncSections(StoresCar $car, array $sections): void
-    {
-        $car->storeCarSections()->delete();
-
-        $car->storeCarSections()->createMany(
-            collect($sections)->map(fn ($section) => [
-                'section_id' => $section['section_id'],
-                'condition'  => $section['condition'],
-            ])->all()
-        );
     }
 
     public function destroy(Store $store, StoresCar $storeCar)

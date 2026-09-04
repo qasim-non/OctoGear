@@ -36,7 +36,12 @@ class OrderOfferPolicy
 
     public function viewAny(User $user, Order $order): bool
     {
-        return $this->offersAreVisible($order);
+        if (! $this->offersAreVisible($order)) {
+            return false;
+        }
+
+        // Only the order's customer may list the offer set.
+        return $user->id === $order->customer_id;
     }
 
     public function view(User $user, OrderOffer $offer): bool
@@ -54,7 +59,7 @@ class OrderOfferPolicy
             return false;
         }
 
-        if ($order->order_type->value !== 'general' || $order->status !== OrderStatus::Pending) {
+        if ($order->order_type !== OrderType::General || $order->status !== OrderStatus::Pending) {
             return false;
         }
 

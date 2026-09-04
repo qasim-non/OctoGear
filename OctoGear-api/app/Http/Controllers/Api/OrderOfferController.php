@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\OfferStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\OrderOffer\IndexOrderOffersRequest;
 use App\Http\Requests\Api\OrderOffer\RejectOfferRequest;
-use App\Http\Requests\Api\OrderOffer\ShowOrderOfferRequest;
 use App\Http\Resources\OrderOfferResource;
 use App\Models\Order;
 use App\Models\OrderOffer;
+use App\Services\OrderOfferService;
 use Illuminate\Http\Request;
 
 class OrderOfferController extends Controller
 {
+    public function __construct(private OrderOfferService $offers) {}
+
     public function index(Request $request, Order $order)
     {
         $this->authorize('viewAny', [OrderOffer::class, $order]);
@@ -45,10 +45,7 @@ class OrderOfferController extends Controller
             return $this->notFound(__('auth.general.not_found'));
         }
 
-        $offer->update([
-            'status'           => OfferStatus::Rejected,
-            'rejection_reason' => $request->validated('rejection_reason'),
-        ]);
+        $offer = $this->offers->reject($offer, $request->validated('rejection_reason'));
 
         return $this->success(new OrderOfferResource($offer));
     }

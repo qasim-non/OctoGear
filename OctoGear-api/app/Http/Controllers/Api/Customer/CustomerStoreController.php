@@ -137,11 +137,22 @@ class CustomerStoreController extends Controller
             ->latest('store_car_id')
             ->paginate(15);
 
-        $results->each(function ($item) {
-            if ($item->storeCar && $item->storeCar->relationLoaded('store')) {
-                $item->storeCar->store->loadAvg('ratings', 'rating');
-            }
-        });
+        $storeIds = $results->pluck('storeCar.store.id')->filter()->unique()->values()->all();
+
+        if ($storeIds !== []) {
+            $storeRatings = Store::query()
+                ->whereIn('id', $storeIds)
+                ->withAvg('ratings', 'rating')
+                ->get()
+                ->keyBy('id');
+
+            $results->each(function ($item) use ($storeRatings) {
+                $storeId = $item->storeCar?->store?->id;
+                if ($storeId && $storeRatings->has($storeId)) {
+                    $item->storeCar->store->ratings_avg_rating = $storeRatings[$storeId]->ratings_avg_rating;
+                }
+            });
+        }
 
         return $this->paginated($results->through(fn ($item) => new ComponentCarResource($item)));
     }

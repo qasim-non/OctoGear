@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
-use App\Enums\OrderStatus;
-use App\Events\OrderCompleted;
-use App\Events\OrderCreated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\AcceptOfferRequest;
 use App\Http\Requests\Customer\PayOrderRequest;
@@ -13,12 +10,14 @@ use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\OrderService;
 use App\Services\PaymentService;
-use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class CustomerOrderController extends Controller
 {
+    public function __construct(private OrderService $orders) {}
+
     public function index()
     {
         $this->authorize('viewAny', Order::class);
@@ -36,12 +35,7 @@ class CustomerOrderController extends Controller
     {
         $this->authorize('create', Order::class);
 
-        $order = auth()->user()->orders()->create([
-            ...$request->validated(),
-            'status' => OrderStatus::Pending,
-        ]);
-
-        OrderCreated::dispatch($order);
+        $order = $this->orders->createForCustomer($request->user(), $request->validated());
 
         return $this->created(new OrderResource($order));
     }
@@ -59,17 +53,9 @@ class CustomerOrderController extends Controller
     {
         $this->authorize('update', $order);
 
-        if (!$order->status->canTransitionTo(OrderStatus::Negotiating)) {
-            return $this->error(__('auth.validation.order.cannot_accept_offer'));
-        }
-
         $offer = $order->offers()->findOrFail($request->offer_id);
 
-        $order->update([
-            'status'             => OrderStatus::Negotiating,
-            'offered_price'      => $offer->price,
-            'accepted_store_id'  => $offer->store_id,
-        ]);
+        $order = $this->orders->acceptOffer($order, $offer);
 
         $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
@@ -80,15 +66,9 @@ class CustomerOrderController extends Controller
     {
         $this->authorize('update', $order);
 
-        if (!$order->status->canTransitionTo(OrderStatus::Cancelled)) {
-            return $this->error(__('auth.validation.order.cannot_cancel'));
-        }
+        $order = $this->orders->cancel($order);
 
-        DB::transaction(function () use ($order) {
-            $order->update(['status' => OrderStatus::Cancelled]);
-
-            $order->offers()->delete();
-        });
+        $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
         return $this->success(new OrderResource($order));
     }
@@ -120,7 +100,7 @@ class CustomerOrderController extends Controller
 
         return $this->success([
             'payment' => new PaymentResource($payment),
-            'order'   => new OrderResource($order),
+            'order' => new OrderResource($order),
         ]);
     }
 
@@ -128,13 +108,7 @@ class CustomerOrderController extends Controller
     {
         $this->authorize('update', $order);
 
-        if (!$order->status->canTransitionTo(OrderStatus::Completed)) {
-            return $this->error(__('auth.validation.order.cannot_complete'));
-        }
-
-        $order->update(['status' => OrderStatus::Completed]);
-
-        OrderCompleted::dispatch($order);
+        $order = $this->orders->complete($order);
 
         $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
