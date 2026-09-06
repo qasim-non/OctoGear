@@ -10,7 +10,6 @@ use App\Models\CarSection;
 use App\Models\City;
 use App\Models\Color;
 use App\Models\Component;
-use App\Models\Country;
 use App\Models\FuelType;
 use App\Models\Order;
 use App\Models\Store;
@@ -65,16 +64,16 @@ class CustomerSearchTest extends TestCase
     private function makeCar(Store $store, CarName $carName, array $catalog): StoresCar
     {
         $car = StoresCar::factory()->create([
-            'store_id'    => $store->id,
+            'store_id' => $store->id,
             'car_name_id' => $carName->id,
-            'color_id'    => $catalog['color']->id,
-            'fuel_type'   => $catalog['fuel']->id,
+            'color_id' => $catalog['color']->id,
+            'fuel_type' => $catalog['fuel']->id,
         ]);
 
         StoreCarSection::create([
             'store_car_id' => $car->id,
-            'section_id'   => $catalog['section']->id,
-            'condition'    => 'okay',
+            'section_id' => $catalog['section']->id,
+            'condition' => 'okay',
         ]);
 
         return $car;
@@ -83,11 +82,11 @@ class CustomerSearchTest extends TestCase
     private function addComponentToCar(StoresCar $car, int $componentId, array $overrides = []): StoreCarComponent
     {
         return StoreCarComponent::create(array_merge([
-            'store_car_id'   => $car->id,
-            'component_id'   => $componentId,
-            'part_number'    => 'ALT-100',
-            'description'    => 'Test alternator part',
-            'price'          => 1200,
+            'store_car_id' => $car->id,
+            'component_id' => $componentId,
+            'part_number' => 'ALT-100',
+            'description' => 'Test alternator part',
+            'price' => 1200,
             'stock_quantity' => 5,
         ], $overrides));
     }
@@ -98,7 +97,7 @@ class CustomerSearchTest extends TestCase
         $this->makeStore(['name' => 'Another Garage', 'nick_name' => 'Other']);
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson('/api/customer/stores?query=AlFaris');
+            ->getJson('/api/stores?query=AlFaris');
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 1)
@@ -113,7 +112,7 @@ class CustomerSearchTest extends TestCase
         $this->makeStore(['name' => 'Riyadh Store', 'city_id' => $riyadh->id]);
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson("/api/customer/stores?city_id={$jeddah->id}");
+            ->getJson("/api/stores?city_id={$jeddah->id}");
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 1)
@@ -128,7 +127,7 @@ class CustomerSearchTest extends TestCase
         $this->makeStore(['name' => 'No Brand Store']);
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson("/api/customer/stores?company_id={$toyota->id}");
+            ->getJson("/api/stores?company_id={$toyota->id}");
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 1)
@@ -145,7 +144,7 @@ class CustomerSearchTest extends TestCase
         $this->addComponentToCar($car, $data['component']->id);
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson("/api/customer/component-cars?component_id={$data['component']->id}");
+            ->getJson("/api/component-cars?component_id={$data['component']->id}");
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 1);
@@ -164,7 +163,7 @@ class CustomerSearchTest extends TestCase
         $this->addComponentToCar($car, $data['component']->id, ['stock_quantity' => 0]);
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson("/api/customer/component-cars?component_id={$data['component']->id}");
+            ->getJson("/api/component-cars?component_id={$data['component']->id}");
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 0);
@@ -189,7 +188,7 @@ class CustomerSearchTest extends TestCase
         );
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson("/api/customer/component-cars?component_id={$data['component']->id}&city_id={$jeddah->id}");
+            ->getJson("/api/component-cars?component_id={$data['component']->id}&city_id={$jeddah->id}");
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 1)
@@ -218,7 +217,7 @@ class CustomerSearchTest extends TestCase
         );
 
         $response = $this->actingAs($this->authCustomer(), 'sanctum')
-            ->getJson("/api/customer/component-cars?component_id={$data['component']->id}&car_name_id={$data['carName']->id}");
+            ->getJson("/api/component-cars?component_id={$data['component']->id}&car_name_id={$data['carName']->id}");
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 1)
@@ -287,19 +286,19 @@ class CustomerSearchTest extends TestCase
 
         $customer = $this->authCustomer();
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Negotiating,
-            'offered_price'           => 450,
-            'quantity'                => 2,
-            'store_car_component_id'  => $component->id,
-            'accepted_store_id'       => $store->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Negotiating,
+            'offered_price' => 450,
+            'quantity' => 2,
+            'store_car_component_id' => $component->id,
+            'accepted_store_id' => $store->id,
         ]);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_1',
+                'card_token' => 'tok_test_1',
             ])->assertOk();
 
         $this->assertSame(3, $component->fresh()->stock_quantity);
@@ -328,7 +327,7 @@ class CustomerSearchTest extends TestCase
         ]);
 
         $response = $this->actingAs($customer, 'sanctum')
-            ->getJson('/api/customer/stores');
+            ->getJson('/api/stores');
 
         $response->assertOk()
             ->assertJsonPath('data.0.id', $store->id)
@@ -365,7 +364,7 @@ class CustomerSearchTest extends TestCase
         ]);
 
         $response = $this->actingAs($customer, 'sanctum')
-            ->getJson('/api/customer/stores?query=Store A');
+            ->getJson('/api/stores?query=Store A');
 
         $response->assertOk()
             ->assertJsonPath('data.0.id', $store->id)
@@ -387,11 +386,9 @@ class CustomerSearchTest extends TestCase
         ]);
 
         $response = $this->actingAs($customer, 'sanctum')
-            ->getJson("/api/customer/stores/{$store->id}");
+            ->getJson("/api/stores/{$store->id}");
 
         $response->assertOk()
             ->assertJsonPath('data.sold_quantity', 2);
     }
 }
-
-

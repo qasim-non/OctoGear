@@ -5,6 +5,7 @@ namespace App\Http\Requests\Customer;
 use App\Enums\OrderStatus;
 use App\Http\Requests\BaseRequest;
 use App\Models\Order;
+use App\Models\Rating;
 use Illuminate\Support\Facades\Auth;
 
 class StoreRatingRequest extends BaseRequest
@@ -14,8 +15,8 @@ class StoreRatingRequest extends BaseRequest
         return [
             'order_id' => ['required', 'integer', 'exists:orders,id'],
             'store_id' => ['required', 'integer', 'exists:stores,id'],
-            'rating'   => ['required', 'integer', 'between:1,5'],
-            'comment'  => ['nullable', 'string', 'max:1000'],
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -26,23 +27,28 @@ class StoreRatingRequest extends BaseRequest
                 ->where('customer_id', Auth::id())
                 ->first();
 
-            if (!$order) {
+            if (! $order) {
                 $validator->errors()->add('order_id', __('auth.validation.rating.order_not_found'));
+
                 return;
             }
 
             if ($order->status !== OrderStatus::Completed) {
                 $validator->errors()->add('order_id', __('auth.validation.rating.order_not_completed'));
+
                 return;
             }
 
             if ((int) $this->store_id !== $order->accepted_store_id) {
                 $validator->errors()->add('store_id', __('auth.validation.rating.store_mismatch'));
+
                 return;
             }
 
-            if ($order->rating()->withTrashed()->exists()) {
-                $validator->errors()->add('order_id', __('auth.validation.rating.already_rated'));
+            if (Rating::where('customer_id', Auth::id())
+                ->where('store_id', $this->store_id)
+                ->exists()) {
+                $validator->errors()->add('store_id', __('auth.validation.rating.already_rated'));
             }
         });
     }

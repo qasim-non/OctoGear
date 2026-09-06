@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OrderStatus;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Order;
@@ -21,18 +22,76 @@ class SharedFeaturesTest extends TestCase
     public function test_customer_can_list_their_submitted_ratings(): void
     {
         $customer = User::factory()->customer()->create();
-        $store = Store::factory()->create();
+        $storeA = Store::factory()->create();
+        $storeB = Store::factory()->create();
 
-        Rating::factory()->create(['customer_id' => $customer->id, 'store_id' => $store->id, 'order_id' => Order::factory()->create(['customer_id' => $customer->id])->id, 'rating' => 5]);
-        Rating::factory()->create(['customer_id' => $customer->id, 'store_id' => $store->id, 'order_id' => Order::factory()->create(['customer_id' => $customer->id])->id, 'rating' => 3]);
+        Rating::factory()->create(['customer_id' => $customer->id, 'store_id' => $storeA->id, 'order_id' => Order::factory()->create(['customer_id' => $customer->id])->id, 'rating' => 5]);
+        Rating::factory()->create(['customer_id' => $customer->id, 'store_id' => $storeB->id, 'order_id' => Order::factory()->create(['customer_id' => $customer->id])->id, 'rating' => 3]);
 
         $otherCustomer = User::factory()->customer()->create();
-        Rating::factory()->create(['customer_id' => $otherCustomer->id, 'store_id' => $store->id, 'order_id' => Order::factory()->create(['customer_id' => $otherCustomer->id])->id]);
+        Rating::factory()->create(['customer_id' => $otherCustomer->id, 'store_id' => $storeA->id, 'order_id' => Order::factory()->create(['customer_id' => $otherCustomer->id])->id]);
 
         $this->actingAs($customer, 'sanctum')
             ->getJson('/api/ratings')
             ->assertOk()
             ->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_customer_can_rate_a_completed_order_store(): void
+    {
+        $customer = User::factory()->customer()->create();
+        $store = Store::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::Completed,
+            'accepted_store_id' => $store->id,
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/ratings', [
+                'order_id' => $order->id,
+                'store_id' => $store->id,
+                'rating' => 5,
+                'comment' => 'Great work.',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('data.store.id', $store->id)
+            ->assertJsonPath('data.rating', 5);
+
+        $this->assertDatabaseHas('ratings', ['customer_id' => $customer->id, 'store_id' => $store->id]);
+    }
+
+    public function test_customer_cannot_rate_same_store_twice(): void
+    {
+        $customer = User::factory()->customer()->create();
+        $store = Store::factory()->create();
+        $firstOrder = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::Completed,
+            'accepted_store_id' => $store->id,
+        ]);
+        $secondOrder = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::Completed,
+            'accepted_store_id' => $store->id,
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/ratings', [
+                'order_id' => $firstOrder->id,
+                'store_id' => $store->id,
+                'rating' => 5,
+            ])
+            ->assertStatus(201);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/ratings', [
+                'order_id' => $secondOrder->id,
+                'store_id' => $store->id,
+                'rating' => 4,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('store_id');
     }
 
     public function test_provider_can_list_ratings_on_their_stores(): void

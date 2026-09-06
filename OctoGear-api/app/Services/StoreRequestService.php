@@ -76,6 +76,7 @@ class StoreRequestService
             );
         }
 
+        $this->ensureMobileDiffersFromAccount($user, $verifiedMobile);
 
         return DB::transaction(function () use ($user, $data, $verifiedMobile) {
             $user->update(['type' => UserType::ServiceProvider]);

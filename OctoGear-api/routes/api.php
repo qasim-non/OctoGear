@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\CmsController;
 use App\Http\Controllers\Api\Customer\CustomerCarController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
-use App\Http\Controllers\Api\Customer\CustomerStoreController;
 use App\Http\Controllers\Api\Customer\ProfileController;
 use App\Http\Controllers\Api\OrderOfferController;
 use App\Http\Controllers\Api\Provider\ProviderOrderController;
@@ -21,6 +20,7 @@ use App\Http\Controllers\Api\Reference\FuelTypeController;
 use App\Http\Controllers\Api\Shared\ConversationController;
 use App\Http\Controllers\Api\Shared\NotificationController;
 use App\Http\Controllers\Api\Shared\RatingController;
+use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +47,20 @@ Route::middleware(['locale'])->group(function () {
 
     Route::get('/cms/{cms}', [CmsController::class, 'show']); // Done
 
+    // Marketplace browsing — shared between customers and providers (read-only).
+    // The `can_manage` flag in the resources tells the frontend whether the
+    // current user owns the store (edit/delete affordances vs. plain browse).
+    Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
+        Route::get('/component-cars', [StoreController::class, 'componentCars']); // Done
+
+        Route::get('/stores', [StoreController::class, 'index']); // Done
+        Route::get('/stores/{store}', [StoreController::class, 'show']); // Done
+        Route::get('/stores/{store}/cars', [StoreController::class, 'cars']);
+        Route::get('/stores/{store}/cars/{car}', [StoreController::class, 'showCar']);
+        Route::get('/stores/{store}/cars/{car}/components', [StoreController::class, 'components']);
+        Route::get('/stores/{store}/cars/{car}/components/{component}', [StoreController::class, 'showComponent']);
+    });
+
     Route::middleware(['auth:sanctum', 'user.active'])->prefix('provider')->group(function () {
 
         // Provider onboarding — only for customers (becoming a provider)
@@ -61,19 +75,14 @@ Route::middleware(['locale'])->group(function () {
             Route::put('/profile', [ProviderProfileController::class, 'update']);
 
             Route::get('/stores', [ProviderStoreController::class, 'index']);
-            Route::get('/store/{store}', [ProviderStoreController::class, 'show']);
             Route::put('/store/{store}', [ProviderStoreController::class, 'update']);
 
-            Route::get('/store/{store}/cars', [ProviderStoreCarController::class, 'index'])->name('provider.store.cars.index');
             Route::post('/store/{store}/cars', [ProviderStoreCarController::class, 'store'])->name('provider.store.cars.store');
-            Route::get('/store/{store}/cars/{storeCar}', [ProviderStoreCarController::class, 'show'])->name('provider.store.cars.show');
             Route::put('/store/{store}/cars/{storeCar}', [ProviderStoreCarController::class, 'update'])->name('provider.store.cars.update');
             Route::delete('/store/{store}/cars/{storeCar}', [ProviderStoreCarController::class, 'destroy'])->name('provider.store.cars.destroy');
 
-            Route::get('/store/{store}/cars/{storeCar}/components', [ProviderStoreCarComponentController::class, 'index'])->name('provider.store.cars.components.index');
             Route::post('/store/{store}/cars/{storeCar}/components', [ProviderStoreCarComponentController::class, 'store'])->name('provider.store.cars.components.store');
             Route::post('/store/{store}/cars/{storeCar}/components/batch', [ProviderStoreCarComponentController::class, 'batchStore'])->name('provider.store.cars.components.batch');
-            Route::get('/store/{store}/cars/{storeCar}/components/{component}', [ProviderStoreCarComponentController::class, 'show'])->name('provider.store.cars.components.show');
             Route::put('/store/{store}/cars/{storeCar}/components/{component}', [ProviderStoreCarComponentController::class, 'update'])->name('provider.store.cars.components.update');
             Route::delete('/store/{store}/cars/{storeCar}/components/{component}', [ProviderStoreCarComponentController::class, 'destroy'])->name('provider.store.cars.components.destroy');
 
@@ -114,15 +123,6 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/orders/{order}/offers', [OrderOfferController::class, 'index']); // Done
         Route::get('/orders/{order}/offers/{offer}', [OrderOfferController::class, 'show']); // Done
         Route::post('/orders/{order}/offers/{offer}/reject', [OrderOfferController::class, 'reject']);
-
-        Route::get('/component-cars', [CustomerStoreController::class, 'componentCars']); // Done
-
-        Route::get('/stores', [CustomerStoreController::class, 'index']); // Done
-        Route::get('/stores/{store}', [CustomerStoreController::class, 'show']); // Done
-        Route::get('/stores/{store}/cars', [CustomerStoreController::class, 'cars']);
-        Route::get('/stores/{store}/cars/{car}', [CustomerStoreController::class, 'showCar']);
-        Route::get('/stores/{store}/cars/{car}/components', [CustomerStoreController::class, 'components']);
-        Route::get('/stores/{store}/cars/{car}/components/{component}', [CustomerStoreController::class, 'showComponent']);
     });
 
     Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {

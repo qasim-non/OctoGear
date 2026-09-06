@@ -31,21 +31,24 @@ class ProviderStoreTest extends TestCase
         $store = Store::factory()->create(['user_id' => $provider->id, 'name' => 'My Store', 'city_id' => $city->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}")
+            ->getJson("/api/stores/{$store->id}")
             ->assertOk()
             ->assertJsonPath('data.name', 'My Store')
             ->assertJsonPath('data.id', $store->id)
-            ->assertJsonPath('data.city.id', $city->id);
+            ->assertJsonPath('data.city.id', $city->id)
+            ->assertJsonPath('data.can_manage', true);
     }
 
-    public function test_provider_cannot_view_another_providers_store(): void
+    public function test_provider_can_browse_another_providers_store(): void
     {
         $provider = User::factory()->provider()->create();
         $other = Store::factory()->create(['user_id' => User::factory()->provider()]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$other->id}")
-            ->assertStatus(403);
+            ->getJson("/api/stores/{$other->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $other->id)
+            ->assertJsonPath('data.can_manage', false);
     }
 
     public function test_provider_can_update_one_of_their_stores(): void
@@ -113,18 +116,19 @@ class ProviderStoreTest extends TestCase
         $provider = User::factory()->provider()->create();
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson('/api/provider/store/999999')
+            ->getJson('/api/stores/999999')
             ->assertStatus(404);
     }
 
-    public function test_customer_cannot_manage_provider_store(): void
+    public function test_customer_can_browse_but_not_manage_provider_store(): void
     {
         $customer = User::factory()->customer()->create();
         $store = Store::factory()->create();
 
         $this->actingAs($customer, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}")
-            ->assertStatus(403);
+            ->getJson("/api/stores/{$store->id}")
+            ->assertOk()
+            ->assertJsonPath('data.can_manage', false);
 
         $this->actingAs($customer, 'sanctum')
             ->putJson("/api/provider/store/{$store->id}", ['name' => 'X'])

@@ -36,8 +36,6 @@ class ProviderStoreRequestController extends Controller
 
     public function index()
     {
-        $this->authorize('viewAny', StoreRequest::class);
-
         $requests = auth()->user()
             ->storeRequests()
             ->with('city')
@@ -49,8 +47,6 @@ class ProviderStoreRequestController extends Controller
 
     public function store(StoreStoreRequestRequest $request)
     {
-        $this->authorize('create', StoreRequest::class);
-
         $storeRequest = $this->storeRequests->becomeProvider($request->user(), $request->validated());
 
         $storeRequest->load('city');
@@ -63,8 +59,6 @@ class ProviderStoreRequestController extends Controller
 
     public function storeDirect(StoreStoreRequestDirectRequest $request)
     {
-        $this->authorize('create', StoreRequest::class);
-
         $storeRequest = $this->storeRequests->createForProvider($request->user(), $request->validated());
 
         $storeRequest->load('city');

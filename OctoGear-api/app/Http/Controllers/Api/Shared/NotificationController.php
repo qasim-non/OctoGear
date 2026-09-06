@@ -10,23 +10,14 @@ class NotificationController extends Controller
 {
     public function index()
     {
-        $this->authorize('viewAny', DatabaseNotification::class);
-
         $user = auth()->user();
         $notifications = $user->notifications()->latest()->paginate(15);
 
-        return response()->json([
-            'success'      => true,
-            'message'      => __('auth.general.ok'),
-            'data'         => NotificationResource::collection($notifications->items()),
-            'meta'         => [
-                'current_page' => $notifications->currentPage(),
-                'last_page'    => $notifications->lastPage(),
-                'per_page'     => $notifications->perPage(),
-                'total'        => $notifications->total(),
-            ],
-            'unread_count' => $user->unreadNotifications()->count(),
-        ]);
+        return $this->paginated(
+            $notifications->through(fn ($notification) => new NotificationResource($notification)),
+            null,
+            ['unread_count' => $user->unreadNotifications()->count()],
+        );
     }
 
     public function markAsRead(DatabaseNotification $notification)
@@ -40,8 +31,6 @@ class NotificationController extends Controller
 
     public function markAllAsRead()
     {
-        $this->authorize('viewAny', DatabaseNotification::class);
-
         auth()->user()->unreadNotifications()->update(['read_at' => now()]);
 
         return $this->success(__('auth.notifications.all_read'));

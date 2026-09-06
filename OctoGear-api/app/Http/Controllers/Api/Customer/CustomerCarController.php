@@ -15,15 +15,13 @@ class CustomerCarController extends Controller
 
     public function index()
     {
-        $this->authorize('viewAny', CustomerCar::class);
-
         $cars = auth()->user()
             ->customerCars()
             ->with(['carName', 'color', 'fuelType', 'pictures'])
             ->latest()
-            ->paginate(15);
+            ->get();
 
-        return $this->paginated($cars->through(fn ($car) => new CustomerCarResource($car)));
+        return $this->success(CustomerCarResource::collection($cars));
     }
 
     public function show(CustomerCar $customerCar)

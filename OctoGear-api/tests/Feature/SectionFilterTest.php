@@ -29,8 +29,8 @@ class SectionFilterTest extends TestCase
         $carA = StoresCar::factory()->create(['store_id' => $store->id]);
         StoreCarSection::factory()->create([
             'store_car_id' => $carA->id,
-            'section_id'   => $section->id,
-            'condition'    => 'okay',
+            'section_id' => $section->id,
+            'condition' => 'okay',
         ]);
         StoreCarComponent::factory()->create([
             'store_car_id' => $carA->id,
@@ -42,8 +42,8 @@ class SectionFilterTest extends TestCase
         $carB = StoresCar::factory()->create(['store_id' => $store->id]);
         StoreCarSection::factory()->create([
             'store_car_id' => $carB->id,
-            'section_id'   => $section->id,
-            'condition'    => 'damaged',
+            'section_id' => $section->id,
+            'condition' => 'damaged',
         ]);
         StoreCarComponent::factory()->create([
             'store_car_id' => $carB->id,
@@ -60,7 +60,7 @@ class SectionFilterTest extends TestCase
         ]);
 
         $this->actingAs($customer, 'sanctum')
-            ->getJson('/api/customer/component-cars?component_id=' . $component->id)
+            ->getJson('/api/component-cars?component_id='.$component->id)
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.car.id', $carA->id);

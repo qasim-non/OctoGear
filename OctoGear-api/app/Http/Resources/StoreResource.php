@@ -12,23 +12,23 @@ class StoreResource extends JsonResource
         $locale = $request->header('Accept-Language', app()->getLocale());
 
         return [
-            'id'                           => $this->id,
-            'name'                         => $this->name,
-            'nick_name'                    => $this->nick_name,
-            'mobile'                       => $this->mobile,
-            'employee_name'                => $this->employee_name,
-            'url_location'                 => $this->url_location,
+            'id' => $this->id,
+            'name' => $this->name,
+            'nick_name' => $this->nick_name,
+            'mobile' => $this->mobile,
+            'employee_name' => $this->employee_name,
+            'url_location' => $this->url_location,
             'commercial_registration_number' => $this->commercial_registration_number,
-            'status'                       => $this->status->value,
-            'average_rating'               => $this->ratings_avg_rating,
-            'sold_quantity'                => (int) ($this->sold_quantity ?? 0),
+            'status' => $this->status->value,
+            'average_rating' => $this->ratings_avg_rating,
+            'sold_quantity' => (int) ($this->sold_quantity ?? 0),
             'city' => $this->whenLoaded('city', fn () => [
-                'id'   => $this->city->id,
+                'id' => $this->city->id,
                 'name' => $locale === 'en' ? $this->city->name_en : $this->city->name_ar,
             ]),
-            'pictures' => $this->whenLoaded('pictures', fn () =>
-                $this->pictures->pluck('picture')
+            'pictures' => $this->whenLoaded('pictures', fn () => $this->pictures->pluck('picture')
             ),
+            'can_manage' => (bool) ($request->user()?->can('manage', $this->resource) ?? false),
             'created_at' => $this->created_at,
         ];
     }

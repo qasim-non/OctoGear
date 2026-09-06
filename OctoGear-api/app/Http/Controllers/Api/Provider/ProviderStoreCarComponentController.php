@@ -23,20 +23,6 @@ class ProviderStoreCarComponentController extends Controller
         return $component->store_car_id === $storeCar->id;
     }
 
-    public function index(Store $store, StoresCar $storeCar)
-    {
-        if (! $this->carInStore($store, $storeCar)) {
-            return $this->notFound(__('auth.general.not_found'));
-        }
-
-        $components = $storeCar->components()
-            ->with('component')
-            ->latest()
-            ->get();
-
-        return $this->success(StoreCarComponentResource::collection($components));
-    }
-
     public function store(CreateProviderStoreCarComponentRequest $request, Store $store, StoresCar $storeCar)
     {
         if (! $this->carInStore($store, $storeCar)) {
@@ -72,17 +58,6 @@ class ProviderStoreCarComponentController extends Controller
             ->get();
 
         return $this->success(StoreCarComponentResource::collection($components));
-    }
-
-    public function show(Store $store, StoresCar $storeCar, StoreCarComponent $component)
-    {
-        if (! $this->carInStore($store, $storeCar) || ! $this->componentInCar($storeCar, $component)) {
-            return $this->notFound(__('auth.general.not_found'));
-        }
-
-        $component->load('component');
-
-        return $this->success(new StoreCarComponentResource($component));
     }
 
     public function update(UpdateProviderStoreCarComponentRequest $request, Store $store, StoresCar $storeCar, StoreCarComponent $component)

@@ -201,7 +201,7 @@ return [
             'order_not_found' => 'Order not found.',
             'order_not_completed' => 'You can only rate a completed order.',
             'store_mismatch' => 'The store does not match this order.',
-            'already_rated' => 'This order has already been rated.',
+            'already_rated' => 'You have already rated this store.',
         ],
     ],
 

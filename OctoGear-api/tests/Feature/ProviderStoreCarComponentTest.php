@@ -30,7 +30,7 @@ class ProviderStoreCarComponentTest extends TestCase
         StoreCarComponent::factory()->create(['store_car_id' => $car->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}/cars/{$car->id}/components")
+            ->getJson("/api/stores/{$store->id}/cars/{$car->id}/components")
             ->assertOk()
             ->assertJsonCount(2, 'data');
     }
@@ -43,7 +43,7 @@ class ProviderStoreCarComponentTest extends TestCase
         $car = StoresCar::factory()->create(['store_id' => $otherStore->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}/cars/{$car->id}/components")
+            ->getJson("/api/stores/{$store->id}/cars/{$car->id}/components")
             ->assertStatus(404);
     }
 
@@ -53,11 +53,11 @@ class ProviderStoreCarComponentTest extends TestCase
         $component = Component::factory()->create();
 
         $payload = [
-            'component_id'    => $component->id,
-            'part_number'     => 'BRK-001',
-            'description'     => 'Front brake pads',
-            'price'           => 150,
-            'stock_quantity'  => 20,
+            'component_id' => $component->id,
+            'part_number' => 'BRK-001',
+            'description' => 'Front brake pads',
+            'price' => 150,
+            'stock_quantity' => 20,
             'warranty_months' => 12,
         ];
 
@@ -69,9 +69,9 @@ class ProviderStoreCarComponentTest extends TestCase
             ->assertJsonPath('data.stock_quantity', 20);
 
         $this->assertDatabaseHas('store_car_components', [
-            'store_car_id'   => $car->id,
-            'component_id'   => $component->id,
-            'part_number'    => 'BRK-001',
+            'store_car_id' => $car->id,
+            'component_id' => $component->id,
+            'part_number' => 'BRK-001',
         ]);
     }
 
@@ -85,10 +85,10 @@ class ProviderStoreCarComponentTest extends TestCase
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/store/{$store->id}/cars/{$car->id}/components", [
-                'component_id'    => $component->id,
-                'part_number'     => 'BRK-001',
-                'price'           => 150,
-                'stock_quantity'  => 20,
+                'component_id' => $component->id,
+                'part_number' => 'BRK-001',
+                'price' => 150,
+                'stock_quantity' => 20,
             ])
             ->assertStatus(404);
     }
@@ -109,7 +109,7 @@ class ProviderStoreCarComponentTest extends TestCase
         $component = StoreCarComponent::factory()->create(['store_car_id' => $car->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}/cars/{$car->id}/components/{$component->id}")
+            ->getJson("/api/stores/{$store->id}/cars/{$car->id}/components/{$component->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $component->id);
     }
@@ -121,7 +121,7 @@ class ProviderStoreCarComponentTest extends TestCase
 
         $this->actingAs($provider, 'sanctum')
             ->putJson("/api/provider/store/{$store->id}/cars/{$car->id}/components/{$component->id}", [
-                'price'          => 250,
+                'price' => 250,
                 'stock_quantity' => 5,
             ])
             ->assertOk()
@@ -152,17 +152,17 @@ class ProviderStoreCarComponentTest extends TestCase
         $payload = [
             'components' => [
                 [
-                    'component_id'    => $compA->id,
-                    'part_number'     => 'BRK-001',
-                    'price'           => 100,
-                    'stock_quantity'  => 10,
+                    'component_id' => $compA->id,
+                    'part_number' => 'BRK-001',
+                    'price' => 100,
+                    'stock_quantity' => 10,
                 ],
                 [
-                    'component_id'    => $compB->id,
-                    'part_number'     => 'OIL-002',
-                    'description'     => 'Oil filter',
-                    'price'           => 50,
-                    'stock_quantity'  => 25,
+                    'component_id' => $compB->id,
+                    'part_number' => 'OIL-002',
+                    'description' => 'Oil filter',
+                    'price' => 50,
+                    'stock_quantity' => 25,
                     'warranty_months' => 6,
                 ],
             ],
@@ -174,14 +174,14 @@ class ProviderStoreCarComponentTest extends TestCase
             ->assertJsonCount(2, 'data');
 
         $this->assertDatabaseHas('store_car_components', [
-            'store_car_id'  => $car->id,
-            'component_id'  => $compA->id,
-            'part_number'   => 'BRK-001',
+            'store_car_id' => $car->id,
+            'component_id' => $compA->id,
+            'part_number' => 'BRK-001',
         ]);
         $this->assertDatabaseHas('store_car_components', [
-            'store_car_id'  => $car->id,
-            'component_id'  => $compB->id,
-            'part_number'   => 'OIL-002',
+            'store_car_id' => $car->id,
+            'component_id' => $compB->id,
+            'part_number' => 'OIL-002',
         ]);
     }
 
@@ -228,10 +228,10 @@ class ProviderStoreCarComponentTest extends TestCase
             ->postJson("/api/provider/store/{$store->id}/cars/{$car->id}/components/batch", [
                 'components' => [
                     [
-                        'component_id'    => $component->id,
-                        'part_number'     => 'X-001',
-                        'price'           => 100,
-                        'stock_quantity'  => 1,
+                        'component_id' => $component->id,
+                        'part_number' => 'X-001',
+                        'price' => 100,
+                        'stock_quantity' => 1,
                     ],
                 ],
             ])

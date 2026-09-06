@@ -14,17 +14,6 @@ class ProviderStoreCarController extends Controller
 {
     public function __construct(private StoreCarService $cars) {}
 
-    public function index(Store $store)
-    {
-        $cars = $store->cars()
-            ->with(['carName', 'color', 'fuelType', 'pictures'])
-            ->withCount('components')
-            ->latest()
-            ->get();
-
-        return $this->success(StoreCarResource::collection($cars));
-    }
-
     public function store(CreateProviderStoreCarRequest $request, Store $store)
     {
         $this->authorize('manage', $store);
@@ -35,18 +24,6 @@ class ProviderStoreCarController extends Controller
         $car->loadCount('components');
 
         return $this->created(new StoreCarResource($car));
-    }
-
-    public function show(Store $store, StoresCar $storeCar)
-    {
-        if ($storeCar->store_id !== $store->id) {
-            return $this->notFound(__('auth.general.not_found'));
-        }
-
-        $storeCar->load(['carName', 'color', 'fuelType', 'pictures']);
-        $storeCar->loadCount('components');
-
-        return $this->success(new StoreCarResource($storeCar));
     }
 
     public function update(UpdateProviderStoreCarRequest $request, Store $store, StoresCar $storeCar)

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CarName;
+use App\Models\CarSection;
 use App\Models\Color;
 use App\Models\FuelType;
 use App\Models\Store;
@@ -24,19 +25,19 @@ class ProviderStoreCarTest extends TestCase
         StoresCar::factory()->create(['store_id' => $store->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}/cars")
+            ->getJson("/api/stores/{$store->id}/cars")
             ->assertOk()
             ->assertJsonCount(2, 'data');
     }
 
-    public function test_provider_can_list_cars_of_any_store(): void
+    public function test_provider_can_browse_cars_of_another_providers_store(): void
     {
         $provider = User::factory()->provider()->create();
         $otherStore = Store::factory()->create(['user_id' => User::factory()->provider()->create()->id]);
         StoresCar::factory()->create(['store_id' => $otherStore->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$otherStore->id}/cars")
+            ->getJson("/api/stores/{$otherStore->id}/cars")
             ->assertOk()
             ->assertJsonCount(1, 'data');
     }
@@ -48,16 +49,16 @@ class ProviderStoreCarTest extends TestCase
         $carName = CarName::factory()->create();
         $color = Color::factory()->create();
         $fuel = FuelType::factory()->create();
-        $section = \App\Models\CarSection::factory()->create();
+        $section = CarSection::factory()->create();
 
         $payload = [
-            'car_name_id'         => $carName->id,
-            'manufacturing_year'  => 2020,
+            'car_name_id' => $carName->id,
+            'manufacturing_year' => 2020,
             'vehicle_plat_number' => '1234-567',
-            'color_id'            => $color->id,
-            'fuel_type'           => $fuel->id,
-            'pictures'            => ['a.jpg', 'b.jpg'],
-            'sections'            => [
+            'color_id' => $color->id,
+            'fuel_type' => $fuel->id,
+            'pictures' => ['a.jpg', 'b.jpg'],
+            'sections' => [
                 ['section_id' => $section->id, 'condition' => 'okay'],
             ],
         ];
@@ -77,8 +78,8 @@ class ProviderStoreCarTest extends TestCase
         $carId = StoresCar::where('store_id', $store->id)->first()->id;
         $this->assertDatabaseHas('store_car_sections', [
             'store_car_id' => $carId,
-            'section_id'   => $section->id,
-            'condition'    => 'okay',
+            'section_id' => $section->id,
+            'condition' => 'okay',
         ]);
     }
 
@@ -89,16 +90,16 @@ class ProviderStoreCarTest extends TestCase
         $carName = CarName::factory()->create();
         $color = Color::factory()->create();
         $fuel = FuelType::factory()->create();
-        $section = \App\Models\CarSection::factory()->create();
+        $section = CarSection::factory()->create();
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/store/{$otherStore->id}/cars", [
-                'car_name_id'         => $carName->id,
-                'manufacturing_year'  => 2020,
+                'car_name_id' => $carName->id,
+                'manufacturing_year' => 2020,
                 'vehicle_plat_number' => '1234-567',
-                'color_id'            => $color->id,
-                'fuel_type'           => $fuel->id,
-                'sections'            => [
+                'color_id' => $color->id,
+                'fuel_type' => $fuel->id,
+                'sections' => [
                     ['section_id' => $section->id, 'condition' => 'okay'],
                 ],
             ])
@@ -115,11 +116,11 @@ class ProviderStoreCarTest extends TestCase
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/store/{$store->id}/cars", [
-                'car_name_id'         => $carName->id,
-                'manufacturing_year'  => 2020,
+                'car_name_id' => $carName->id,
+                'manufacturing_year' => 2020,
                 'vehicle_plat_number' => '1234-567',
-                'color_id'            => $color->id,
-                'fuel_type'           => $fuel->id,
+                'color_id' => $color->id,
+                'fuel_type' => $fuel->id,
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('sections');
@@ -132,16 +133,16 @@ class ProviderStoreCarTest extends TestCase
         $carName = CarName::factory()->create();
         $color = Color::factory()->create();
         $fuel = FuelType::factory()->create();
-        $section = \App\Models\CarSection::factory()->create();
+        $section = CarSection::factory()->create();
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/store/{$store->id}/cars", [
-                'car_name_id'         => $carName->id,
-                'manufacturing_year'  => 2020,
+                'car_name_id' => $carName->id,
+                'manufacturing_year' => 2020,
                 'vehicle_plat_number' => '1234-567',
-                'color_id'            => $color->id,
-                'fuel_type'           => $fuel->id,
-                'sections'            => [
+                'color_id' => $color->id,
+                'fuel_type' => $fuel->id,
+                'sections' => [
                     ['section_id' => $section->id, 'condition' => 'broken'],
                 ],
             ])
@@ -167,7 +168,7 @@ class ProviderStoreCarTest extends TestCase
         $car = StoresCar::factory()->create(['store_id' => $store->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}/cars/{$car->id}")
+            ->getJson("/api/stores/{$store->id}/cars/{$car->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $car->id);
     }
@@ -180,7 +181,7 @@ class ProviderStoreCarTest extends TestCase
         $car = StoresCar::factory()->create(['store_id' => $otherStore->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->getJson("/api/provider/store/{$store->id}/cars/{$car->id}")
+            ->getJson("/api/stores/{$store->id}/cars/{$car->id}")
             ->assertStatus(404);
     }
 

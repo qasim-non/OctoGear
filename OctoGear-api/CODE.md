@@ -1,7 +1,7 @@
 # OctoGear (YARDY) - API Code Guide
 
 > Status: reflects the CURRENT state of the project **after** the completed
-> service-layer refactor. Tests green: **175 passed / 470 assertions**.
+> service-layer refactor. Tests green: **199 passed / 548 assertions**.
 
 ## Project Overview
 
@@ -79,14 +79,14 @@ OctoGear-api/
 │  │  │  │  ├─ Customer/
 │  │  │  │  │  ├─ CustomerCarController.php        # customer's saved cars CRUD
 │  │  │  │  │  ├─ CustomerOrderController.php      # order lifecycle (store/accept/pay/etc.)
-│  │  │  │  │  ├─ CustomerStoreController.php      # browse stores/cars/components
 │  │  │  │  │  └─ ProfileController.php            # customer profile show/update
+│  │  │  │  ├─ StoreController.php                 # shared marketplace browse — thin wiring over StorefrontQueryService
 │  │  │  │  ├─ Provider/
 │  │  │  │  │  ├─ ProviderOrderController.php      # general/specific/offers/paid + CRUD/offer/reject
 │  │  │  │  │  ├─ ProviderProfileController.php    # provider profile show/update
-│  │  │  │  │  ├─ ProviderStoreController.php      # provider store index/show/update
-│  │  │  │  │  ├─ ProviderStoreCarController.php   # provider store cars CRUD (StoreCarService)
-│  │  │  │  │  ├─ ProviderStoreCarComponentController.php  # components CRUD + batch
+│  │  │  │  │  ├─ ProviderStoreController.php      # provider store index (my stores) + update
+│  │  │  │  │  ├─ ProviderStoreCarController.php   # provider cars create/update/destroy (StoreCarService)
+│  │  │  │  │  ├─ ProviderStoreCarComponentController.php  # components create (incl. batch)/update/destroy
 │  │  │  │  │  └─ ProviderStoreRequestController.php       # store requests + mobile OTP
 │  │  │  │  ├─ Shared/
 │  │  │  │  │  ├─ ConversationController.php
@@ -161,7 +161,8 @@ OctoGear-api/
 │  │  ├─ StoreCarService.php       # provider store-car logic
 │  │  ├─ StoreRequestService.php   # store onboarding + mobile OTP
 │  │  ├─ OtpService.php            # simple OTP send/verify (no rate limit in service)
-│  │  └─ SoldQuantityService.php   # sold-quantity tracking on components
+│  │  ├─ SoldQuantityService.php   # sold-quantity tracking on components
+│  │  └─ StorefrontQueryService.php # all marketplace reads (stores/cars/components/search)
 │  │
 │  ├─ Support/
 │  │  └─ MobileNumber.php          # Saudi mobile → E.164 normalization (+9665XXXXXXXX)
@@ -311,6 +312,13 @@ Provider store-car create/update/destroy logic, delegating to policies for acces
 
 ### SoldQuantityService
 Tracks sold quantity on `store_car_components` as offers are accepted/completed.
+
+### StorefrontQueryService
+All marketplace reads shared by customers and providers: `activeStores`, `storeDetail`,
+`carList`, `carDetail`, `componentList`, `componentDetail`, `componentCarSearch`. It
+enforces the "car belongs to this store" invariant (`BusinessRuleException` 404
+`auth.general.not_found`) and enriches results (ratings/sold quantity). `StoreController`
+is thin wiring only — it maps the returned models/cursors onto `*Resource` classes.
 
 ### OtpService (SIMPLE — current behavior)
 - **No rate limiting and no `Cache::lock()`** — the current implementation is minimal.
@@ -462,10 +470,12 @@ POST    /provider/store-requests                     (customer; requires temp_to
 
 # Provider-only
 GET/PUT /provider/profile
-GET     /provider/stores          /provider/store/{store}          GET/PUT
-GET/POST/PUT/DELETE /provider/store/{store}/cars[/{storeCar}]
-GET/POST/PUT/DELETE /provider/store/{store}/cars/{storeCar}/components[/{component}]
-                        POST .../components/batch                  (batch store)
+GET     /provider/stores                    (my stores incl. inactive; personal list)
+PUT     /provider/store/{store}             (update only — shows/browse are shared, see Marketplace)
+POST    /provider/store/{store}/cars
+PUT/DELETE /provider/store/{store}/cars/{storeCar}
+POST    /provider/store/{store}/cars/{storeCar}/components   (+/batch)
+PUT/DELETE /provider/store/{store}/cars/{storeCar}/components/{component}
 GET  /provider/store-requests[/{storeRequest}]
 POST /provider/store-requests/direct                 (no temp_token; direct store request)
 GET  /provider/orders/general
@@ -488,10 +498,21 @@ POST /customer/orders/{order}/received
 POST /customer/orders/{order}/cancel
 GET /customer/orders/{order}/offers[/{offer}]        (OrderOfferController)
 POST /customer/orders/{order}/offers/{offer}/reject
-GET /customer/component-cars
-GET /customer/stores[/{store}]
-GET /customer/stores/{store}/cars[/{car}][/components[/{component}]]
 ```
+
+### Marketplace — shared read-only browsing (`auth:sanctum`, `user.active`, `auth.provider`)
+```
+GET /component-cars
+GET /stores[/{store}]           (active stores only, paginated)
+GET /stores/{store}/cars[/{car}]
+GET /stores/{store}/cars/{car}/components[/{component}]
+```
+Same storefront for both roles. Resources carry `can_manage` (ownership check via the
+`manage` policy — `user_id === store.user_id`), so the frontend shows edit/delete
+affordances (calling the `/provider` endpoints) only for the user's own stores. The
+providers' write CRUD stays under `/provider/store/...` (see Provider section). Provider
+frontends read stores/cars/components through these same browse routes — there is no
+separate provider read route for them.
 
 ### Shared (customer or provider: `auth.sanctum`, `user.active`, `auth.provider`)
 ```
@@ -537,7 +558,7 @@ PATCH /notifications/{notification}/read
     **2 offers on two different stores** (the former `count(2)` on the same store would
     violate the new `order_offers(order_id, store_id)` unique constraint).
 - Run the suite with: `php vendor/bin/phpunit` (or `php artisan test`).
-- Current status: **175 passed / 470 assertions**.
+- Current status: **199 passed / 548 assertions**.
 
 ---
 

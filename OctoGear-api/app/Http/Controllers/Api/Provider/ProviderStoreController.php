@@ -19,15 +19,6 @@ class ProviderStoreController extends Controller
         return $this->success(StoreResource::collection($stores));
     }
 
-    public function show(Store $store)
-    {
-        $this->authorize('manage', $store);
-
-        $store->load(['city', 'pictures']);
-
-        return $this->success(new StoreResource($store));
-    }
-
     public function update(UpdateProviderStoreRequest $request, Store $store)
     {
         $this->authorize('manage', $store);
