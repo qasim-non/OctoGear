@@ -29,21 +29,26 @@ return [
         'token_required' => 'رمز التسجيل مطلوب.',
     ],
 
-'admin' => [
+    'admin' => [
         'blocked' => 'تم حظر حسابك كمسؤول.',
         'store_requests' => [
-            'accepted'           => 'تم قبول طلب المتجر. أصبح المتجر متاحاً الآن.',
-            'rejected'           => 'تم رفض طلب المتجر.',
-            'already_processed'  => 'تمت معالجة طلب المتجر هذا بالفعل.',
+            'accepted' => 'تم قبول طلب المتجر. أصبح المتجر متاحاً الآن.',
+            'rejected' => 'تم رفض طلب المتجر.',
+            'already_processed' => 'تمت معالجة طلب المتجر هذا بالفعل.',
             'store_mobile_taken' => 'يوجد متجر بهذا الرقم بالفعل.',
         ],
         'users' => [
-            'blocked'   => 'تم حظر المستخدم.',
+            'blocked' => 'تم حظر المستخدم.',
             'unblocked' => 'تم إلغاء حظر المستخدم.',
         ],
         'stores' => [
             'activated' => 'تم تفعيل المتجر.',
             'suspended' => 'تم تعليق المتجر.',
+        ],
+        'orders' => [
+            'cancelled' => 'تم إلغاء الطلب.',
+            'refunded' => 'تم استرداد المبلغ.',
+            'refund_failed' => 'تعذر إتمام عملية استرداد المبلغ.',
         ],
     ],
 
@@ -90,19 +95,23 @@ return [
             ],
             'status_invalid' => 'حالة طلب المتجر غير صالحة.',
         ],
-'admin' => [
+        'admin' => [
             'users' => [
-                'type_invalid'   => 'Invalid user type.',
-                'status_invalid' => 'Invalid user status.',
+                'type_invalid' => 'نوع المستخدم غير صالح.',
+                'status_invalid' => 'حالة المستخدم غير صالحة.',
             ],
             'stores' => [
-                'status_invalid' => 'Invalid store status.',
+                'status_invalid' => 'حالة المتجر غير صالحة.',
             ],
             'name' => [
                 'max' => 'يجب ألا يتجاوز الاسم 100 حرف.',
             ],
             'mobile' => [
                 'max' => 'يجب ألا يتجاوز رقم الجوال 20 حرفاً.',
+            ],
+            'orders' => [
+                'status_invalid' => 'حالة الطلب غير صالحة.',
+                'type_invalid' => 'نوع الطلب غير صالح.',
             ],
         ],
         'order' => [
@@ -120,6 +129,7 @@ return [
             'cannot_delete_offer' => 'لا يمكن حذف هذا العرض.',
             'cannot_reject_general' => 'لا يمكن رفض طلب عام.',
             'cannot_reject_not_pending' => 'لا يمكن رفض طلب غير معلق.',
+            'cannot_refund' => 'لا يمكن استرداد المبلغ إلا للطلبات المدفوعة.',
             'store_required' => 'المتجر مطلوب.',
             'store_not_mine' => 'المتجر المحدد لا يخصك.',
         ],

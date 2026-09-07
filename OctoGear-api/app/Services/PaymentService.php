@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Events\OrderPaid;
+use App\Exceptions\BusinessRuleException;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\StoreCarComponent;
@@ -206,6 +207,116 @@ class PaymentService
         }
 
         return $payment->refresh();
+    }
+
+    /**
+     * Refund a paid order and cancel it.
+     *
+     * Admin-driven money return: only orders that are paid and carry a paid
+     * payment can be refunded. Unlike the charge path (customer → platform),
+     * the refund moves money BACK from the platform to the customer's card,
+     * so the refund is first sent to the payment gateway (stub driver approves)
+     * and only once approved is the DB state flipped — exactly mirroring
+     * charge(). If the gateway rejects the refund, nothing is changed locally.
+     *
+     * Stock taken at charge time is restored and the payment is marked
+     * PaymentStatus::Refunded under the same transaction as the order moving
+     * to Cancelled.
+     *
+     * Note the customer-facing cancel path stays untouched (OrderStatus::Paid
+     * cannot transition to Cancelled); this is the deliberate admin override.
+     *
+     * @throws RuntimeException when the gateway rejects the refund
+     */
+    public function refund(Order $order): Payment
+    {
+        $payment = $order->payment;
+
+        if ($order->status !== OrderStatus::Paid
+            || ! $payment
+            || $payment->payment_status !== PaymentStatus::Paid) {
+            throw new BusinessRuleException('Only paid orders can be refunded.', 'auth.validation.order.cannot_refund');
+        }
+
+        try {
+            $this->refundCard($payment);
+        } catch (\Throwable $e) {
+            Log::error('Card refund failed', [
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'amount' => $payment->amount,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('The card refund was not approved.', 0, $e);
+        }
+
+        return DB::transaction(function () use ($order, $payment) {
+            $payment->update(['payment_status' => PaymentStatus::Refunded]);
+            $order->update(['status' => OrderStatus::Cancelled]);
+
+            $this->restoreStock($order);
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Send the refund to the (simulated) gateway and return its status.
+     *
+     * In production this is the exact inverse of chargeCard(): the gateway is
+     * asked to return the money to the customer's card, keyed on the original
+     * charge. The stub driver always approves so local development can move
+     * the payment to "refunded". Any driver configured but not implemented
+     * here fails safely (throws) instead of silently approving real refunds.
+     *
+     * NOTE (real gateway): pass the payment (or original charge) id as the
+     * gateway's IDEMPOTENCY KEY so a retried admin request can never refund
+     * the customer twice. e.g.
+     *   $this->gateway($driver)->refund([
+     *       'amount'          => $payment->amount,
+     *       'payment_id'      => (string) $payment->id,
+     *       'idempotency_key' => (string) $payment->id,
+     *   ]);
+     */
+    private function refundCard(Payment $payment): PaymentStatus
+    {
+        $driver = config('payments.driver', 'stub');
+
+        Log::info('Card refund attempted', [
+            'driver' => $driver,
+            'order_id' => $payment->order_id,
+            'payment_id' => $payment->id,
+            'amount' => $payment->amount,
+        ]);
+
+        return match ($driver) {
+            'stub' => PaymentStatus::Refunded,
+
+            // Real gateway integration goes here, e.g.:
+            // 'moyasar' => $this->moyasar()->refund($payment),
+            // 'tap'     => $this->tap()->refund($payment),
+
+            default => throw new RuntimeException(
+                "Payment driver [{$driver}] is not implemented."
+            ),
+        };
+    }
+
+    /**
+     * Restore the stock that commitStock() consumed when the order was paid.
+     */
+    private function restoreStock(Order $order): void
+    {
+        if (! $order->store_car_component_id) {
+            return;
+        }
+
+        $quantity = max(1, (int) $order->quantity);
+
+        StoreCarComponent::query()
+            ->whereKey($order->store_car_component_id)
+            ->increment('stock_quantity', $quantity);
     }
 
     /**

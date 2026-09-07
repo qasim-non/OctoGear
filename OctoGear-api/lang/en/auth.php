@@ -29,21 +29,26 @@ return [
         'token_required' => 'Registration token is required.',
     ],
 
-'admin' => [
+    'admin' => [
         'blocked' => 'Your admin account has been blocked.',
         'store_requests' => [
-            'accepted'           => 'Store request accepted. The store is now live.',
-            'rejected'           => 'Store request rejected.',
-            'already_processed'  => 'This store request has already been processed.',
+            'accepted' => 'Store request accepted. The store is now live.',
+            'rejected' => 'Store request rejected.',
+            'already_processed' => 'This store request has already been processed.',
             'store_mobile_taken' => 'A store with this mobile number already exists.',
         ],
         'users' => [
-            'blocked'   => 'User has been blocked.',
+            'blocked' => 'User has been blocked.',
             'unblocked' => 'User has been unblocked.',
         ],
         'stores' => [
             'activated' => 'Store has been activated.',
             'suspended' => 'Store has been suspended.',
+        ],
+        'orders' => [
+            'cancelled' => 'Order cancelled.',
+            'refunded' => 'Payment refunded.',
+            'refund_failed' => 'The refund could not be processed.',
         ],
     ],
 
@@ -98,23 +103,15 @@ return [
             'stores' => [
                 'status_invalid' => 'Invalid store status.',
             ],
-            'search' => [
-                'max' => 'Search must not exceed 100 characters.',
-            ],
-        ],
-        'admin' => [
-            'users' => [
-                'type_invalid'   => 'Invalid user type.',
-                'status_invalid' => 'Invalid user status.',
-            ],
-            'stores' => [
-                'status_invalid' => 'Invalid store status.',
-            ],
             'name' => [
                 'max' => 'Name must not exceed 100 characters.',
             ],
             'mobile' => [
                 'max' => 'Mobile must not exceed 20 characters.',
+            ],
+            'orders' => [
+                'status_invalid' => 'Invalid order status.',
+                'type_invalid' => 'Invalid order type.',
             ],
         ],
         'car_name_id' => [
@@ -232,6 +229,7 @@ return [
             'cannot_delete_offer' => 'This offer cannot be deleted.',
             'cannot_reject_general' => 'Cannot reject a general order.',
             'cannot_reject_not_pending' => 'Cannot reject a non-pending order.',
+            'cannot_refund' => 'Only paid orders can be refunded.',
             'store_required' => 'The store is required.',
             'store_not_mine' => 'The selected store does not belong to you.',
         ],
