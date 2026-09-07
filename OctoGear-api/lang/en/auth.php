@@ -29,8 +29,22 @@ return [
         'token_required' => 'Registration token is required.',
     ],
 
-    'admin' => [
+'admin' => [
         'blocked' => 'Your admin account has been blocked.',
+        'store_requests' => [
+            'accepted'           => 'Store request accepted. The store is now live.',
+            'rejected'           => 'Store request rejected.',
+            'already_processed'  => 'This store request has already been processed.',
+            'store_mobile_taken' => 'A store with this mobile number already exists.',
+        ],
+        'users' => [
+            'blocked'   => 'User has been blocked.',
+            'unblocked' => 'User has been unblocked.',
+        ],
+        'stores' => [
+            'activated' => 'Store has been activated.',
+            'suspended' => 'Store has been suspended.',
+        ],
     ],
 
     /*
@@ -68,6 +82,40 @@ return [
         'password' => [
             'required' => 'Password is required.',
             'min' => 'Password must be at least :min characters.',
+        ],
+        'store_requests' => [
+            'reason' => [
+                'required' => 'A rejection reason is required.',
+                'max' => 'The rejection reason must not exceed 255 characters.',
+            ],
+            'status_invalid' => 'Invalid store request status.',
+        ],
+        'admin' => [
+            'users' => [
+                'type_invalid' => 'Invalid user type.',
+                'status_invalid' => 'Invalid user status.',
+            ],
+            'stores' => [
+                'status_invalid' => 'Invalid store status.',
+            ],
+            'search' => [
+                'max' => 'Search must not exceed 100 characters.',
+            ],
+        ],
+        'admin' => [
+            'users' => [
+                'type_invalid'   => 'Invalid user type.',
+                'status_invalid' => 'Invalid user status.',
+            ],
+            'stores' => [
+                'status_invalid' => 'Invalid store status.',
+            ],
+            'name' => [
+                'max' => 'Name must not exceed 100 characters.',
+            ],
+            'mobile' => [
+                'max' => 'Mobile must not exceed 20 characters.',
+            ],
         ],
         'car_name_id' => [
             'required' => 'Car name is required.',
@@ -229,6 +277,7 @@ return [
     'middleware' => [
         'user_blocked' => 'Your account has been blocked.',
         'admin_blocked' => 'Your admin account has been blocked.',
+        'admin_required' => 'Admin access required.',
         'customer_only' => 'This endpoint is for customers only.',
         'provider_only' => 'This endpoint is for service providers only.',
     ],

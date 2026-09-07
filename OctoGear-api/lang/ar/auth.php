@@ -29,8 +29,22 @@ return [
         'token_required' => 'رمز التسجيل مطلوب.',
     ],
 
-    'admin' => [
+'admin' => [
         'blocked' => 'تم حظر حسابك كمسؤول.',
+        'store_requests' => [
+            'accepted'           => 'تم قبول طلب المتجر. أصبح المتجر متاحاً الآن.',
+            'rejected'           => 'تم رفض طلب المتجر.',
+            'already_processed'  => 'تمت معالجة طلب المتجر هذا بالفعل.',
+            'store_mobile_taken' => 'يوجد متجر بهذا الرقم بالفعل.',
+        ],
+        'users' => [
+            'blocked'   => 'تم حظر المستخدم.',
+            'unblocked' => 'تم إلغاء حظر المستخدم.',
+        ],
+        'stores' => [
+            'activated' => 'تم تفعيل المتجر.',
+            'suspended' => 'تم تعليق المتجر.',
+        ],
     ],
 
     /*
@@ -68,6 +82,28 @@ return [
         'password' => [
             'required' => 'كلمة المرور مطلوبة.',
             'min' => 'يجب أن تكون كلمة المرور على الأقل :min أحرف.',
+        ],
+        'store_requests' => [
+            'reason' => [
+                'required' => 'سبب الرفض مطلوب.',
+                'max' => 'يجب ألا يتجاوز سبب الرفض 255 حرفاً.',
+            ],
+            'status_invalid' => 'حالة طلب المتجر غير صالحة.',
+        ],
+'admin' => [
+            'users' => [
+                'type_invalid'   => 'Invalid user type.',
+                'status_invalid' => 'Invalid user status.',
+            ],
+            'stores' => [
+                'status_invalid' => 'Invalid store status.',
+            ],
+            'name' => [
+                'max' => 'يجب ألا يتجاوز الاسم 100 حرف.',
+            ],
+            'mobile' => [
+                'max' => 'يجب ألا يتجاوز رقم الجوال 20 حرفاً.',
+            ],
         ],
         'order' => [
             'not_found' => 'الطلب غير موجود.',
@@ -171,6 +207,7 @@ return [
     'middleware' => [
         'user_blocked' => 'تم حظر حسابك.',
         'admin_blocked' => 'تم حظر حسابك كمسؤول.',
+        'admin_required' => 'الوصول متاح للمسؤولين فقط.',
         'customer_only' => 'هذه الخدمة متاحة للعملاء فقط.',
         'provider_only' => 'هذه الخدمة متاحة لمزودي الخدمات فقط.',
     ],

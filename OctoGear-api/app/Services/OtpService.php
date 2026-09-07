@@ -40,7 +40,7 @@ class OtpService
             ->latest()
             ->first();
 
-        if (!$record || !Hash::check($otp, $record->hashed_otp)) {
+        if (! $record || ! Hash::check($otp, $record->hashed_otp)) {
             Log::warning('OTP verification failed', [
                 'mobile' => $mobile,
             ]);

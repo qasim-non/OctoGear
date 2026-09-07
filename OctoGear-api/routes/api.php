@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\Admin\AdminStoreController;
+use App\Http\Controllers\Api\Admin\AdminStoreRequestController;
+use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\CmsController;
 use App\Http\Controllers\Api\Customer\CustomerCarController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
@@ -46,6 +50,26 @@ Route::middleware(['locale'])->group(function () {
     });
 
     Route::get('/cms/{cms}', [CmsController::class, 'show']); // Done
+
+    // Admin panel — web dashboard. Tokens come from /auth/admin/login.
+    Route::middleware(['auth:sanctum', 'admin.active'])->prefix('admin')->group(function () {
+        Route::get('/dashboard', [AdminDashboardController::class, 'show']);
+
+        Route::get('/store-requests', [AdminStoreRequestController::class, 'index']);
+        Route::get('/store-requests/{storeRequest}', [AdminStoreRequestController::class, 'show']);
+        Route::post('/store-requests/{storeRequest}/accept', [AdminStoreRequestController::class, 'accept']);
+        Route::post('/store-requests/{storeRequest}/reject', [AdminStoreRequestController::class, 'reject']);
+
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/customers', [AdminUserController::class, 'customers']);
+        Route::get('/users/providers', [AdminUserController::class, 'providers']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show']);
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'status']);
+
+        Route::get('/stores', [AdminStoreController::class, 'index']);
+        Route::get('/stores/{store}', [AdminStoreController::class, 'show']);
+        Route::patch('/stores/{store}/status', [AdminStoreController::class, 'status']);
+    });
 
     // Marketplace browsing — shared between customers and providers (read-only).
     // The `can_manage` flag in the resources tells the frontend whether the

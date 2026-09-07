@@ -115,10 +115,9 @@ class PaymentService
      * must be IDEMPOTENT — pass a stable key (order id) so a retried request
      * never charges the card twice.
      *
-     * @param  Order  $order
      * @param  string  $paymentMethod  validated payment_method (must be credit_card)
      * @param  string|null  $cardToken  validated card token from the gateway
-     * @return Payment  the payment record (paid, or pending awaiting reconcile)
+     * @return Payment the payment record (paid, or pending awaiting reconcile)
      *
      * @throws RuntimeException when the method is not credit_card, the order is
      *                          already paid / in an unpaid-able state, or the
@@ -143,15 +142,15 @@ class PaymentService
         try {
             // 1) Durable pending row (single atomic INSERT).
             $payment = $order->payment()->create([
-                'amount'         => $amount,
+                'amount' => $amount,
                 'payment_method' => PaymentMethod::CreditCard,
                 'payment_status' => PaymentStatus::Pending,
             ]);
         } catch (\Throwable $e) {
             Log::error('Could not create pending payment', [
                 'order_id' => $order->id,
-                'amount'   => $amount,
-                'error'    => $e->getMessage(),
+                'amount' => $amount,
+                'error' => $e->getMessage(),
             ]);
 
             throw new RuntimeException('Payment could not be initialized.', 0, $e);
@@ -162,10 +161,10 @@ class PaymentService
             $this->chargeCard($order, $amount, $cardToken);
         } catch (\Throwable $e) {
 
-                Log::error('Card charge failed', [
+            Log::error('Card charge failed', [
                 'order_id' => $order->id,
-                'amount'   => $amount,
-                'error'    => $e->getMessage(),
+                'amount' => $amount,
+                'error' => $e->getMessage(),
             ]);
 
             $payment->update(['payment_status' => PaymentStatus::Failed]);
@@ -189,10 +188,10 @@ class PaymentService
             });
         } catch (\Throwable $e) {
             Log::critical('PAID-BUT-COMMIT-FAILED: reconcile order', [
-                'order_id'   => $order->id,
+                'order_id' => $order->id,
                 'payment_id' => $payment->id,
-                'amount'     => $amount,
-                'error'      => $e->getMessage(),
+                'amount' => $amount,
+                'error' => $e->getMessage(),
             ]);
         }
 
@@ -202,7 +201,7 @@ class PaymentService
         } catch (\Throwable $e) {
             Log::error('Failed to dispatch order-paid notification', [
                 'order_id' => $order->id,
-                'error'    => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
 
@@ -229,9 +228,9 @@ class PaymentService
         $driver = config('payments.driver', 'stub');
 
         Log::info('Card payment attempted', [
-            'driver'    => $driver,
-            'order_id'  => $order->id,
-            'amount'    => $amount,
+            'driver' => $driver,
+            'order_id' => $order->id,
+            'amount' => $amount,
             'has_token' => $cardToken !== null,
         ]);
 

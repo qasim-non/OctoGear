@@ -23,6 +23,8 @@ class StoreRequest extends Model
         'commercial_registration_picture',
         'city_id',
         'request_status',
+        'rejection_reason',
+        'processed_by',
     ];
 
     protected $hidden = [

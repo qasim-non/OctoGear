@@ -1,7 +1,7 @@
 # OctoGear (YARDY) - API Code Guide
 
 > Status: reflects the CURRENT state of the project **after** the completed
-> service-layer refactor. Tests green: **199 passed / 548 assertions**.
+> service-layer refactor. Tests green: **234 passed / 689 assertions**.
 
 ## Project Overview
 
@@ -558,7 +558,7 @@ PATCH /notifications/{notification}/read
     **2 offers on two different stores** (the former `count(2)` on the same store would
     violate the new `order_offers(order_id, store_id)` unique constraint).
 - Run the suite with: `php vendor/bin/phpunit` (or `php artisan test`).
-- Current status: **199 passed / 548 assertions**.
+- Current status: **234 passed / 689 assertions**.
 
 ---
 
