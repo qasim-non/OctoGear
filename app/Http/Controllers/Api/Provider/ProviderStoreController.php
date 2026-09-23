@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Controllers\Api\Provider;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Provider\UpdateProviderStoreRequest;
+use App\Http\Resources\StoreResource;
+use App\Models\Store;
+
+class ProviderStoreController extends Controller
+{
+    public function index()
+    {
+        $stores = auth()->user()
+            ->stores()
+            ->with(['city', 'pictures'])
+            ->get();
+
+        return $this->success(StoreResource::collection($stores));
+    }
+
+    public function update(UpdateProviderStoreRequest $request, Store $store)
+    {
+        $this->authorize('manage', $store);
+
+        $store->update($request->validated());
+
+        $store->load(['city', 'pictures']);
+
+        return $this->success(new StoreResource($store), __('auth.store.updated'));
+    }
+}
