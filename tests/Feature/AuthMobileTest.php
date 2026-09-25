@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\City;
-use App\Models\OtpCode;
 use App\Models\User;
 use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -107,15 +106,50 @@ class AuthMobileTest extends TestCase
 
         $this->postJson('/api/auth/register', [
             'temp_token' => $token,
-            'full_name'  => 'Test User',
-            'city_id'    => $city->id,
+            'full_name' => 'Test User',
+            'city_id' => $city->id,
         ])
             ->assertOk();
 
         $this->assertDatabaseHas('users', [
-            'mobile'    => '+966555555555',
+            'mobile' => '+966555555555',
             'full_name' => 'Test User',
+            'device_token' => null,
         ]);
+    }
+
+    public function test_registration_stores_an_optional_device_token(): void
+    {
+        $city = City::factory()->create();
+        $token = $this->pendingRegistrationToken('+966555555555');
+
+        $this->postJson('/api/auth/register', [
+            'temp_token' => $token,
+            'full_name' => 'Test User',
+            'city_id' => $city->id,
+            'device_token' => 'fcm-registration-token',
+        ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('users', [
+            'mobile' => '+966555555555',
+            'device_token' => 'fcm-registration-token',
+        ]);
+    }
+
+    public function test_registration_rejects_an_oversized_device_token(): void
+    {
+        $city = City::factory()->create();
+        $token = $this->pendingRegistrationToken('+966555555555');
+
+        $this->postJson('/api/auth/register', [
+            'temp_token' => $token,
+            'full_name' => 'Test User',
+            'city_id' => $city->id,
+            'device_token' => str_repeat('a', 513),
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('device_token');
     }
 
     private function pendingRegistrationToken(string $mobile): string

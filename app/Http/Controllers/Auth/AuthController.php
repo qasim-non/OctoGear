@@ -7,7 +7,6 @@ use App\Http\Requests\Auth\AdminLoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\SendOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
-use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -46,14 +45,10 @@ class AuthController extends Controller
             $data['temp_token'],
             $data['full_name'],
             $data['city_id'],
+            $data['device_token'] ?? null,
         );
 
         return $this->success(['token' => $result['token']], __('auth.register.completed'));
-    }
-
-    public function me(Request $request)
-    {
-        return $this->success(new UserResource($request->user()->load('city')));
     }
 
     public function logout(Request $request)

@@ -8,13 +8,6 @@ use App\Http\Resources\UserResource;
 
 class ProviderProfileController extends Controller
 {
-    public function show()
-    {
-        $user = auth()->user()->load('city');
-
-        return $this->success(new UserResource($user));
-    }
-
     public function update(UpdateProviderProfileRequest $request)
     {
         $user = auth()->user();

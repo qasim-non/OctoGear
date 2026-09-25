@@ -12,34 +12,6 @@ class ProviderProfileTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_provider_can_view_their_profile(): void
-    {
-        $city = City::factory()->create();
-        $provider = User::factory()->provider()->create(['full_name' => 'Provider One', 'city_id' => $city->id]);
-
-        $this->actingAs($provider, 'sanctum')
-            ->getJson('/api/provider/profile')
-            ->assertOk()
-            ->assertJsonPath('data.full_name', 'Provider One')
-            ->assertJsonPath('data.type', UserType::ServiceProvider->value)
-            ->assertJsonPath('data.city.id', $city->id);
-    }
-
-    public function test_customer_cannot_access_provider_profile(): void
-    {
-        $customer = User::factory()->customer()->create();
-
-        $this->actingAs($customer, 'sanctum')
-            ->getJson('/api/provider/profile')
-            ->assertStatus(403);
-    }
-
-    public function test_unauthenticated_user_cannot_view_profile(): void
-    {
-        $this->getJson('/api/provider/profile')
-            ->assertStatus(401);
-    }
-
     public function test_provider_can_update_profile(): void
     {
         $provider = User::factory()->provider()->create(['full_name' => 'Old Name']);

@@ -84,6 +84,9 @@ return [
             'integer' => 'City must be a valid ID.',
             'exists' => 'Selected city does not exist.',
         ],
+        'device_token' => [
+            'max' => 'Device token is too long.',
+        ],
         'email' => [
             'required' => 'Email is required.',
             'email' => 'Must be a valid email address.',

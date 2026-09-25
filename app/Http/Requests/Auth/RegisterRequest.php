@@ -10,8 +10,9 @@ class RegisterRequest extends BaseRequest
     {
         return [
             'temp_token' => ['required', 'string', 'max:64'],
-            'full_name'  => ['required', 'string', 'max:100'],
-            'city_id'    => ['required', 'integer', 'exists:cities,id'],
+            'full_name' => ['required', 'string', 'max:100'],
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'device_token' => ['nullable', 'string', 'max:512'],
         ];
     }
 
@@ -19,12 +20,13 @@ class RegisterRequest extends BaseRequest
     {
         return [
             'temp_token.required' => __('auth.validation.temp_token.required'),
-            'temp_token.max'      => __('auth.validation.temp_token.max'),
-            'full_name.required'  => __('auth.validation.full_name.required'),
-            'full_name.max'       => __('auth.validation.full_name.max'),
-            'city_id.required'    => __('auth.validation.city_id.required'),
-            'city_id.integer'     => __('auth.validation.city_id.integer'),
-            'city_id.exists'      => __('auth.validation.city_id.exists'),
+            'temp_token.max' => __('auth.validation.temp_token.max'),
+            'full_name.required' => __('auth.validation.full_name.required'),
+            'full_name.max' => __('auth.validation.full_name.max'),
+            'city_id.required' => __('auth.validation.city_id.required'),
+            'city_id.integer' => __('auth.validation.city_id.integer'),
+            'city_id.exists' => __('auth.validation.city_id.exists'),
+            'device_token.max' => __('auth.validation.device_token.max'),
         ];
     }
 }

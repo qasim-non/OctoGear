@@ -8,13 +8,6 @@ use App\Http\Resources\UserResource;
 
 class ProfileController extends Controller
 {
-    public function show()
-    {
-        $user = auth()->user()->load('city');
-
-        return $this->success(new UserResource($user));
-    }
-
     public function update(UpdateProfileRequest $request)
     {
         $user = auth()->user();

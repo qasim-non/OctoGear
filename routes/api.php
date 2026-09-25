@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\CmsController;
 use App\Http\Controllers\Api\Customer\CustomerCarController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
-use App\Http\Controllers\Api\Customer\ProfileController;
+use App\Http\Controllers\Api\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Api\OrderOfferController;
 use App\Http\Controllers\Api\Provider\ProviderOrderController;
 use App\Http\Controllers\Api\Provider\ProviderProfileController;
@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Reference\CompanyController;
 use App\Http\Controllers\Api\Reference\FuelTypeController;
 use App\Http\Controllers\Api\Shared\ConversationController;
 use App\Http\Controllers\Api\Shared\NotificationController;
+use App\Http\Controllers\Api\Shared\ProfileController;
 use App\Http\Controllers\Api\Shared\RatingController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Auth\AuthController;
@@ -35,11 +36,8 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:customerLogin');
         Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:customerLogin');
         Route::post('/register', [AuthController::class, 'register']); // Done
-        Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:adminLogin');
-
-        Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])
-            ->get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+        Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:adminLogin');
     });
 
     // All done
@@ -105,7 +103,6 @@ Route::middleware(['locale'])->group(function () {
         });
 
         Route::middleware('provider')->group(function () {
-            Route::get('/profile', [ProviderProfileController::class, 'show']);
             Route::put('/profile', [ProviderProfileController::class, 'update']);
 
             Route::get('/stores', [ProviderStoreController::class, 'index']);
@@ -137,8 +134,7 @@ Route::middleware(['locale'])->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'user.active', 'customer'])->prefix('customer')->group(function () {
-        Route::get('/profile', [ProfileController::class, 'show']);
-        Route::patch('/profile', [ProfileController::class, 'update']);
+        Route::patch('/profile', [CustomerProfileController::class, 'update']);
 
         Route::get('/customer-cars', [CustomerCarController::class, 'index']);
         Route::post('/customer-cars', [CustomerCarController::class, 'store']);
@@ -160,6 +156,8 @@ Route::middleware(['locale'])->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
+        Route::get('/profile', [ProfileController::class, 'show']);
+
         Route::get('/conversations', [ConversationController::class, 'index']);
         Route::post('/conversations', [ConversationController::class, 'store']);
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages']);
