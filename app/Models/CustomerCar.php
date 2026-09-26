@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\CustomerCarPhotoService;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -19,10 +20,14 @@ class CustomerCar extends Model
         'color_id',
         'customer_id',
         'fuel_type',
+        'idempotency_key',
+        'idempotency_fingerprint',
     ];
 
     protected $hidden = [
         'deleted_at',
+        'idempotency_key',
+        'idempotency_fingerprint',
     ];
 
     protected function casts(): array
@@ -57,6 +62,23 @@ class CustomerCar extends Model
 
     public function pictures(): HasMany
     {
-        return $this->hasMany(CustomerCarPicture::class, 'car_id');
+        // Historic records only contained arbitrary client strings and have
+        // no trusted private file behind them. The current API exposes only
+        // records created by the private-media workflow.
+        return $this->hasMany(CustomerCarPicture::class, 'car_id')
+            ->whereNotNull('disk')
+            ->whereNotNull('path')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        // Normal user deletion is a soft delete and intentionally preserves
+        // media. An Eloquent instance force delete must remove private files
+        // before the database cascade can remove their metadata rows.
+        static::forceDeleting(function (self $car): void {
+            app(CustomerCarPhotoService::class)->purgeFilesForForceDelete($car);
+        });
     }
 }

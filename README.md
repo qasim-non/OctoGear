@@ -7,6 +7,45 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Customer-car media operations
+
+Customer-car photos are private application media. The mobile client uploads
+JPEG, PNG, or WebP files using multipart form data and receives an
+authenticated API-relative image URL; it must never receive a filesystem path
+or a public storage URL. Creation requests require an `Idempotency-Key` UUID
+header so an explicit mobile retry returns the original car rather than adding
+a duplicate. A key is replayable for at most 24 hours by default
+(`CUSTOMER_CAR_IDEMPOTENCY_RETENTION_HOURS`): the retry must have the same
+vehicle fields and the same ordered image content/MIME types. Reusing the key
+for a different submission returns a safe `409` and creates nothing. The key
+and its server-only fingerprint are never exposed in API responses. The create
+flow enforces expiry even if the scheduler is delayed; deploy the Laravel
+scheduler so `customer-car-media:purge-expired-idempotency-keys` can release
+expired key metadata hourly.
+
+Local development uses the `customer_car_media_local` disk below
+`storage/app/private/customer-cars`. Set `CUSTOMER_CAR_MEDIA_DISK` to a
+configured private disk for a future object-store migration. Existing picture
+records retain the disk used at upload time, so copy existing files before
+changing their disk configuration.
+
+Before production, configure PHP and the reverse proxy to accept the feature
+limits (`upload_max_filesize` at least 5 MiB and `post_max_size` at least 26
+MiB). The current server validates MIME type, size, and image dimensions, but
+does not normalize orientation or strip EXIF because this host has neither GD
+nor Imagick. Provision one of those processors or a managed image service and
+add normalization/EXIF-removal coverage before public production release.
+
+Normal customer-car deletion is a soft delete and deliberately keeps the
+private files for the record-retention lifecycle. An Eloquent instance
+`$car->forceDelete()` first removes every active and soft-deleted private file;
+if a physical deletion fails, it aborts before the database cascade can remove
+the file metadata. Do not use bulk/raw database deletes, `forceDeleteQuietly`,
+or user/account cascade deletion for customer cars. Before adding an account
+purge or another direct cascading delete, implement and test an explicit purge
+lifecycle which force-deletes each customer car through this guarded model
+path.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

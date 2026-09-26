@@ -12,7 +12,10 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -47,9 +50,38 @@ return Application::configure(basePath: dirname(__DIR__))
                 ? __($e->messageKey(), $e->messageParams())
                 : $e->getMessage();
 
-            return response()->json([
+            $response = [
                 'success' => false,
                 'message' => $message,
-            ], $e->statusCode());
+            ];
+
+            if ($e->errors() !== []) {
+                $response['errors'] = $e->errors();
+            }
+
+            return response()->json($response, $e->statusCode());
+        });
+
+        // An API client must never receive a database, filesystem, or stack
+        // trace detail, even when APP_DEBUG is enabled for local development.
+        // Expected HTTP, validation, authentication, and business outcomes
+        // continue through their dedicated renderers below/above this fallback.
+        $exceptions->renderable(function (Throwable $e, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            if ($e instanceof HttpExceptionInterface
+                || $e instanceof HttpResponseException
+                || $e instanceof ValidationException) {
+                return null;
+            }
+
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('auth.general.unexpected'),
+            ], 500);
         });
     })->create();

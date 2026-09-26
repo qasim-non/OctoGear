@@ -146,9 +146,22 @@ return [
             'integer' => 'Fuel type must be a valid ID.',
             'exists' => 'Selected fuel type does not exist.',
         ],
+        'idempotency_key' => [
+            'required' => 'A request key is required.',
+            'uuid' => 'The request key is invalid.',
+            'conflict' => 'This request key was already used for a different car submission.',
+        ],
         'pictures' => [
+            'required' => 'At least one picture is required.',
             'array' => 'Pictures must be an array.',
             'max' => 'Maximum :max pictures allowed.',
+            'min' => 'At least one picture is required.',
+            'file' => 'Each picture must be uploaded as a file.',
+            'image' => 'Each picture must be a JPEG, PNG, or WebP image.',
+            'mimes' => 'Each picture must be a JPEG, PNG, or WebP image.',
+            'file_max' => 'Each picture must not exceed 5 MiB.',
+            'dimensions' => 'Each picture has unsupported dimensions.',
+            'total_max' => 'A car can have at most :max pictures.',
         ],
         'sections' => [
             'required' => 'At least one car section is required.',
@@ -301,6 +314,8 @@ return [
         'unauthorized' => 'Unauthorized',
         'forbidden' => 'Forbidden',
         'conflict' => 'Conflict',
+        'unexpected' => 'We could not complete your request. Please try again.',
+        'media_cleanup_unavailable' => 'Private car media could not be deleted safely. Please try again later.',
     ],
 
     /*

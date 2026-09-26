@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\AdminStoreRequestController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\CmsController;
 use App\Http\Controllers\Api\Customer\CustomerCarController;
+use App\Http\Controllers\Api\Customer\CustomerCarPictureController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
 use App\Http\Controllers\Api\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Api\OrderOfferController;
@@ -138,6 +139,12 @@ Route::middleware(['locale'])->group(function () {
 
         Route::get('/customer-cars', [CustomerCarController::class, 'index']);
         Route::post('/customer-cars', [CustomerCarController::class, 'store']);
+        Route::post('/customer-cars/{customerCar}/pictures', [CustomerCarPictureController::class, 'store'])
+            ->name('customer.customer-cars.pictures.store');
+        Route::get('/customer-cars/{customerCar}/pictures/{customerCarPicture}', [CustomerCarPictureController::class, 'show'])
+            ->name('customer.customer-cars.pictures.show');
+        Route::delete('/customer-cars/{customerCar}/pictures/{customerCarPicture}', [CustomerCarPictureController::class, 'destroy'])
+            ->name('customer.customer-cars.pictures.destroy');
         Route::get('/customer-cars/{customerCar}', [CustomerCarController::class, 'show']);
         Route::patch('/customer-cars/{customerCar}', [CustomerCarController::class, 'update']);
         Route::delete('/customer-cars/{customerCar}', [CustomerCarController::class, 'destroy']);

@@ -15,6 +15,8 @@ class CustomerCarController extends Controller
 
     public function index()
     {
+        $this->authorize('viewAny', CustomerCar::class);
+
         $cars = auth()->user()
             ->customerCars()
             ->with(['carName', 'color', 'fuelType', 'pictures'])
