@@ -7,6 +7,63 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Shared image storage
+
+All image uploads use the injected `App\Services\ImageStorageService`.
+`App\Support\ImageRules` and `config/images.php` define shared validation and
+limits. Feature services retain their ownership checks, relationships, ordering,
+and transaction boundaries. The database stores a disk, relative path, MIME type,
+and byte size; API clients receive authenticated API-relative URLs.
+
+New uploads default to `IMAGE_DISK=images_local`, rooted at
+`storage/app/private/images`. Defaults are JPEG/PNG/WebP, 5 MiB per image,
+4096 × 4096 maximum dimensions, and five gallery photos. Configure these in
+`config/images.php` (or its documented environment variables). The optional
+`CUSTOMER_CAR_MEDIA_DISK` override remains supported, and existing rows keep
+their original disk so changing the upload default does not break older files.
+
+| API | Multipart image field |
+| --- | --- |
+| `POST /api/customer/customer-cars` and its `/pictures` endpoint | `pictures[]` |
+| `POST /api/provider/store/{store}/cars` | `pictures[]` |
+| `PUT /api/provider/store/{store}/cars/{car}` | `pictures[]` replaces gallery |
+| `PUT /api/provider/store/{store}` | `pictures[]` replaces gallery; `commercial_registration_picture` replaces registration |
+| `POST /api/provider/store-requests` and `/direct` | `commercial_registration_picture` |
+| `POST /api/customer/orders` | optional `customer_image` |
+
+Send actual file parts, not local paths, URLs, or base64 strings. For multipart
+updates use HTTP `POST` with the form field `_method=PUT`; PHP then parses the
+file parts while Laravel routes the request as PUT. Other required fields and
+existing authorization requirements still apply. Omitting a gallery preserves
+it; a JSON update with `pictures: []` clears it.
+
+Gallery responses use `{id, url, mime_type, size_bytes, sort_order}` objects.
+The scalar `customer_image` and `commercial_registration_picture` response fields
+contain a protected URL or null. Send the same bearer token when loading images.
+Store galleries follow marketplace access; registration documents require the
+owner or an active administrator; order images follow order access rules.
+Customer-car photo routes and their existing response format are unchanged.
+
+Uploads are cleaned up if database persistence fails. Replacement deletions
+are recorded in `pending_image_deletions` in the same database transaction and
+run only after commit. Failed cleanup remains available to `php artisan
+images:cleanup`, scheduled every fifteen minutes by Laravel's scheduler. The
+scheduler must be running for automatic retries. Store-request approval copies
+the registration image so request and store records have independent files.
+
+Deploy both `2026_09_26_160000_standardize_image_storage` and
+`2026_09_26_170000_create_pending_image_deletions_table` before serving the new
+upload APIs. The schema migration preserves historical path/URL strings but
+leaves their disk null because they do not identify verified stored files. Such
+records are not exposed as working image URLs; upload the real images through
+the relevant API to replace them. No remote URL is downloaded automatically.
+
+Soft deletion retains private files. Instance force deletion on image-owning
+models performs file cleanup before removing metadata. Bulk/raw database
+deletions and unrelated foreign-key cascades bypass Eloquent events; any future
+account/reference-data purge must explicitly clean its dependent media through
+the feature services before deleting records.
+
 ## Customer-car media operations
 
 Customer-car photos are private application media. The mobile client uploads
@@ -23,11 +80,10 @@ flow enforces expiry even if the scheduler is delayed; deploy the Laravel
 scheduler so `customer-car-media:purge-expired-idempotency-keys` can release
 expired key metadata hourly.
 
-Local development uses the `customer_car_media_local` disk below
-`storage/app/private/customer-cars`. Set `CUSTOMER_CAR_MEDIA_DISK` to a
-configured private disk for a future object-store migration. Existing picture
-records retain the disk used at upload time, so copy existing files before
-changing their disk configuration.
+Earlier customer photos remain on `customer_car_media_local` below
+`storage/app/private/customer-cars`. New uploads follow the shared storage
+configuration above. Copy existing files before changing a saved disk's root
+or removing its configuration.
 
 Before production, configure PHP and the reverse proxy to accept the feature
 limits (`upload_max_filesize` at least 5 MiB and `post_max_size` at least 26

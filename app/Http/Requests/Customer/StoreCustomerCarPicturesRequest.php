@@ -15,7 +15,7 @@ class StoreCustomerCarPicturesRequest extends BaseRequest
                 'required',
                 'array',
                 'min:1',
-                'max:'.config('customer_car_media.max_files'),
+                'max:'.self::pictureLimit(),
             ],
             'pictures.*' => self::pictureFileRules(),
         ];

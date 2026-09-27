@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Provider\UpdateProviderStoreRequest;
 use App\Http\Resources\StoreResource;
 use App\Models\Store;
+use App\Services\StoreMediaService;
 
 class ProviderStoreController extends Controller
 {
+    public function __construct(private StoreMediaService $media) {}
+
     public function index()
     {
         $stores = auth()->user()
@@ -23,7 +26,7 @@ class ProviderStoreController extends Controller
     {
         $this->authorize('manage', $store);
 
-        $store->update($request->validated());
+        $store = $this->media->update($store, $request->validated());
 
         $store->load(['city', 'pictures']);
 

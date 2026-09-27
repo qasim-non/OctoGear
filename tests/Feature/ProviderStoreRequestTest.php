@@ -8,12 +8,20 @@ use App\Models\StoreRequest;
 use App\Models\User;
 use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Tests\TestCase;
 
 class ProviderStoreRequestTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake(config('images.disk'));
+    }
 
     private function storeRequestPayload(City $city, string $tempToken): array
     {
@@ -24,7 +32,7 @@ class ProviderStoreRequestTest extends TestCase
             'employee_name' => 'John Doe',
             'url_location' => 'https://maps.example.com/location',
             'commercial_registration_number' => '1234567890',
-            'commercial_registration_picture' => 'uploads/reg/abc.jpg',
+            'commercial_registration_picture' => $this->registrationImage(),
             'city_id' => $city->id,
         ];
     }
@@ -195,7 +203,7 @@ class ProviderStoreRequestTest extends TestCase
             'employee_name' => 'John Doe',
             'url_location' => 'https://maps.example.com/location',
             'commercial_registration_number' => '1234567890',
-            'commercial_registration_picture' => 'uploads/reg/abc.jpg',
+            'commercial_registration_picture' => $this->registrationImage(),
             'city_id' => $city->id,
         ];
 
@@ -255,5 +263,12 @@ class ProviderStoreRequestTest extends TestCase
     private function storePendingToken(string $mobile): string
     {
         return $this->app->make(OtpService::class)->createPendingToken('store', $mobile);
+    }
+
+    private function registrationImage(): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent('registration.png', base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAF/gL+9/3K8QAAAABJRU5ErkJggg=='
+        ));
     }
 }

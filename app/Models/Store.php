@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\StoreStatus;
+use App\Models\Concerns\HasRegistrationImage;
+use App\Services\StoreMediaService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Store extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasRegistrationImage, SoftDeletes;
 
     /**
      * Why these fields are fillable:
@@ -23,7 +25,7 @@ class Store extends Model
      * - employee_name: Name of employee managing the store — provider inputs this
      * - url_location: Google Maps URL — provider inputs this
      * - commercial_registration_number: Official registration number — provider inputs this
-     * - commercial_registration_picture: Path to uploaded image — service sets this after upload
+     * - commercial_registration_*: File metadata set by the image service after upload
      * - city_id: Which city the store is in — provider selects this
      * - user_id: Which user owns this store — SET IN CODE (not by user input!)
      *
@@ -41,7 +43,10 @@ class Store extends Model
         'url_location',
         'status',
         'commercial_registration_number',
-        'commercial_registration_picture',
+        'commercial_registration_disk',
+        'commercial_registration_path',
+        'commercial_registration_mime_type',
+        'commercial_registration_size_bytes',
         'city_id',
         'user_id',
     ];
@@ -52,12 +57,15 @@ class Store extends Model
      */
     protected $hidden = [
         'deleted_at',
+        'commercial_registration_disk',
+        'commercial_registration_path',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => StoreStatus::class,    // "active" → StoreStatus::Active
+            'commercial_registration_size_bytes' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
@@ -84,8 +92,6 @@ class Store extends Model
      * $store->owner returns the User model of the store owner.
      * Using 'user' as the method name would conflict with Laravel's built-in auth.
      * So we name it 'owner' to be explicit.
-     *
-     * @return BelongsTo
      */
     public function owner(): BelongsTo
     {
@@ -94,8 +100,6 @@ class Store extends Model
 
     /**
      * A store is located in one city.
-     *
-     * @return BelongsTo
      */
     public function city(): BelongsTo
     {
@@ -104,12 +108,21 @@ class Store extends Model
 
     /**
      * A store has many pictures (gallery photos).
-     *
-     * @return HasMany
      */
     public function pictures(): HasMany
     {
-        return $this->hasMany(StorePicture::class);
+        return $this->hasMany(StorePicture::class)
+            ->whereNotNull('disk')
+            ->whereNotNull('path')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (self $store): void {
+            app(StoreMediaService::class)->purgeFilesForForceDelete($store);
+        });
     }
 
     /**
@@ -120,8 +133,6 @@ class Store extends Model
      * A company (Toyota) can be serviced by many stores.
      *
      * $store->companies → Collection of CarCompany models
-     *
-     * @return BelongsToMany
      */
     public function companies(): BelongsToMany
     {
@@ -132,8 +143,6 @@ class Store extends Model
      * A store has many cars in its inventory.
      *
      * $store->cars → Collection of StoresCar models
-     *
-     * @return HasMany
      */
     public function cars(): HasMany
     {
@@ -142,8 +151,6 @@ class Store extends Model
 
     /**
      * A store has submitted many offers on orders.
-     *
-     * @return HasMany
      */
     public function orderOffers(): HasMany
     {
@@ -152,8 +159,6 @@ class Store extends Model
 
     /**
      * A store has received many ratings from customers.
-     *
-     * @return HasMany
      */
     public function ratings(): HasMany
     {
@@ -165,8 +170,6 @@ class Store extends Model
      *
      * This is NOT a relationship — it's a helper method.
      * We use it in API Resources: $store->average_rating
-     *
-     * @return float|null
      */
     public function getAverageRatingAttribute(): ?float
     {

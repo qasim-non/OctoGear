@@ -17,6 +17,9 @@ class AdminStoreResource extends JsonResource
             'nick_name' => $this->nick_name,
             'mobile' => $this->mobile,
             'status' => $this->status->value,
+            'commercial_registration_picture' => $this->hasRegistrationImage()
+                ? route('media.store-registration.show', ['store' => $this->id], false)
+                : null,
             'cars_count' => $this->cars_count,
             'average_rating' => $this->average_rating,
             'owner' => $this->whenLoaded('owner', fn () => [

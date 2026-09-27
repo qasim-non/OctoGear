@@ -5,21 +5,19 @@ namespace App\Services;
 use App\Exceptions\BusinessRuleException;
 use App\Models\CustomerCar;
 use App\Models\CustomerCarPicture;
-use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
- * Owns private file storage for customer-car photos. The database stores only
- * a disk and relative path; clients receive an authenticated API route.
+ * Owns customer-car photo limits and records. File operations are shared with
+ * every other image feature through ImageStorageService.
  */
 class CustomerCarPhotoService
 {
-    public function __construct(private FilesystemFactory $filesystems) {}
+    public function __construct(private ImageStorageService $images) {}
 
     /**
      * Store initial photos while CustomerCarService owns the surrounding
@@ -61,48 +59,29 @@ class CustomerCarPhotoService
 
     public function stream(CustomerCarPicture $picture): ?StreamedResponse
     {
-        $storage = $this->filesystems->disk($picture->disk);
-
-        if (! $storage->exists($picture->path)) {
-            return null;
-        }
-
-        return $storage->response(
-            $picture->path,
-            'car-photo.'.$this->extensionFor($picture),
-            [
-                'Cache-Control' => 'private, no-store, max-age=0',
-                'X-Content-Type-Options' => 'nosniff',
-            ],
-            'inline',
-        );
+        return $this->images->stream($picture->getAttributes());
     }
 
     /**
-     * Hide the photo immediately by soft deleting its row, then remove the
-     * physical private file. A cleanup failure leaves an inaccessible,
-     * soft-deleted row rather than resurrecting a public/private reference.
+     * Hide the photo and durably queue its file deletion in one transaction.
+     * Failed cleanup retains hidden metadata and is retried by images:cleanup.
      */
     public function delete(CustomerCarPicture $picture): void
     {
-        $disk = $picture->disk;
-        $path = $picture->path;
-
         DB::transaction(function () use ($picture) {
             $picture->delete();
+            $this->images->deleteAfterCommit([$picture->getAttributes()]);
+
+            DB::afterCommit(function () use ($picture): void {
+                try {
+                    // The model guard verifies deletion before discarding
+                    // metadata, including calls made outside this service.
+                    $picture->forceDelete();
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
         });
-
-        try {
-            $storage = $this->filesystems->disk($disk);
-
-            if ($storage->exists($path)) {
-                $storage->delete($path);
-            }
-
-            $picture->forceDelete();
-        } catch (Throwable $exception) {
-            report($exception);
-        }
     }
 
     /**
@@ -120,7 +99,7 @@ class CustomerCarPhotoService
             ->get();
 
         foreach ($pictures as $picture) {
-            $this->deleteFileOrAbort((string) $picture->disk, (string) $picture->path);
+            $this->images->delete($picture->getAttributes());
         }
     }
 
@@ -129,13 +108,7 @@ class CustomerCarPhotoService
      */
     public function cleanupStoredFiles(array $storedFiles): void
     {
-        foreach ($storedFiles as $file) {
-            try {
-                $this->filesystems->disk($file['disk'])->delete($file['path']);
-            } catch (Throwable $exception) {
-                report($exception);
-            }
-        }
+        $this->images->cleanup($storedFiles);
     }
 
     /**
@@ -155,19 +128,8 @@ class CustomerCarPhotoService
         $pictures = [];
 
         foreach ($files as $file) {
-            $path = $file->store($this->directoryFor($car), $disk);
-
-            if ($path === false) {
-                throw new RuntimeException('Unable to store customer-car media.');
-            }
-
-            $storedFiles[] = ['disk' => $disk, 'path' => $path];
-
             $pictures[] = [
-                'disk' => $disk,
-                'path' => $path,
-                'mime_type' => $file->getMimeType(),
-                'size_bytes' => $file->getSize(),
+                ...$this->images->store($file, $this->directoryFor($car), $storedFiles, $disk),
                 'sort_order' => $nextSortOrder++,
             ];
         }
@@ -177,7 +139,7 @@ class CustomerCarPhotoService
 
     private function ensurePhotoLimit(CustomerCar $car, int $incomingCount): void
     {
-        $maximum = (int) config('customer_car_media.max_files');
+        $maximum = (int) (config('customer_car_media.max_files') ?? config('images.max_files'));
 
         if (($car->pictures()->count() + $incomingCount) <= $maximum) {
             return;
@@ -193,37 +155,8 @@ class CustomerCarPhotoService
         );
     }
 
-    private function deleteFileOrAbort(string $disk, string $path): void
-    {
-        try {
-            $storage = $this->filesystems->disk($disk);
-
-            if ($storage->exists($path) && ! $storage->delete($path)) {
-                throw new RuntimeException('Private media deletion returned false.');
-            }
-        } catch (Throwable) {
-            // Do not surface or log a storage path/disk name. The caller must
-            // keep the database rows intact so an operator can retry safely.
-            throw new BusinessRuleException(
-                message: __('auth.general.media_cleanup_unavailable'),
-                messageKey: 'auth.general.media_cleanup_unavailable',
-                statusCode: 503,
-            );
-        }
-    }
-
     private function directoryFor(CustomerCar $car): string
     {
         return "customer-cars/{$car->customer_id}/{$car->id}";
-    }
-
-    private function extensionFor(CustomerCarPicture $picture): string
-    {
-        return match ($picture->mime_type) {
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            default => 'image',
-        };
     }
 }

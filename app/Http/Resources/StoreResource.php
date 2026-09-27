@@ -19,6 +19,12 @@ class StoreResource extends JsonResource
             'employee_name' => $this->employee_name,
             'url_location' => $this->url_location,
             'commercial_registration_number' => $this->commercial_registration_number,
+            'commercial_registration_picture' => $this->when(
+                (bool) ($request->user()?->can('manage', $this->resource) ?? false),
+                fn () => $this->hasRegistrationImage()
+                    ? route('media.store-registration.show', ['store' => $this->id], false)
+                    : null,
+            ),
             'status' => $this->status->value,
             'average_rating' => $this->ratings_avg_rating,
             'sold_quantity' => (int) ($this->sold_quantity ?? 0),
@@ -26,8 +32,7 @@ class StoreResource extends JsonResource
                 'id' => $this->city->id,
                 'name' => $locale === 'en' ? $this->city->name_en : $this->city->name_ar,
             ]),
-            'pictures' => $this->whenLoaded('pictures', fn () => $this->pictures->pluck('picture')
-            ),
+            'pictures' => StorePictureResource::collection($this->whenLoaded('pictures')),
             'can_manage' => (bool) ($request->user()?->can('manage', $this->resource) ?? false),
             'created_at' => $this->created_at,
         ];

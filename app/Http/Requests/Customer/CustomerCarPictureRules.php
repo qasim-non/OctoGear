@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Customer;
 
+use App\Support\ImageRules;
+
 trait CustomerCarPictureRules
 {
     /**
@@ -31,16 +33,11 @@ trait CustomerCarPictureRules
      */
     public static function pictureFileRules(): array
     {
-        return [
-            'bail',
-            'file',
-            'image',
-            'mimes:jpg,jpeg,png,webp',
-            'max:'.config('customer_car_media.max_file_size_kb'),
-            'dimensions:min_width='.config('customer_car_media.min_width')
-                .',min_height='.config('customer_car_media.min_height')
-                .',max_width='.config('customer_car_media.max_width')
-                .',max_height='.config('customer_car_media.max_height'),
-        ];
+        return ImageRules::file(config('customer_car_media'));
+    }
+
+    public static function pictureLimit(): int
+    {
+        return (int) (config('customer_car_media.max_files') ?? config('images.max_files'));
     }
 }

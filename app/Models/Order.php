@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
+use App\Services\ImageStorageService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,10 @@ class Order extends Model
     protected $fillable = [
         'order_type',
         'quantity',
-        'customer_image',
+        'customer_image_disk',
+        'customer_image_path',
+        'customer_image_mime_type',
+        'customer_image_size_bytes',
         'status',
         'offered_price',
         'notes',
@@ -30,6 +34,8 @@ class Order extends Model
 
     protected $hidden = [
         'deleted_at',
+        'customer_image_disk',
+        'customer_image_path',
     ];
 
     protected function casts(): array
@@ -38,11 +44,36 @@ class Order extends Model
             'order_type' => OrderType::class,
             'status' => OrderStatus::class,
             'quantity' => 'integer',
+            'customer_image_size_bytes' => 'integer',
             'offered_price' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Order $order): void {
+            app(ImageStorageService::class)->delete($order->customerImage());
+        });
+    }
+
+    public function customerImage(): array
+    {
+        return [
+            'disk' => $this->customer_image_disk,
+            'path' => $this->customer_image_path,
+            'mime_type' => $this->customer_image_mime_type,
+            'size_bytes' => $this->customer_image_size_bytes,
+        ];
+    }
+
+    public function customerImageUrl(): ?string
+    {
+        return filled($this->customer_image_disk) && filled($this->customer_image_path)
+            ? route('media.order-image.show', ['order' => $this->id], false)
+            : null;
     }
 
     /*
@@ -68,8 +99,6 @@ class Order extends Model
     /**
      * The specific store car component this order targets.
      * NULL for general orders (no store selected yet).
-     *
-     * @return BelongsTo
      */
     public function storeCarComponent(): BelongsTo
     {
@@ -80,8 +109,6 @@ class Order extends Model
      * The car model this order is for.
      * Used mainly for general orders (no specific component selected yet).
      * For specific orders, the model can be derived from storeCarComponent.
-     *
-     * @return BelongsTo
      */
     public function carModel(): BelongsTo
     {
@@ -92,8 +119,6 @@ class Order extends Model
      * Convenience: get the store that owns this order's component.
      * Chain: order → storeCarComponent → storeCar → store
      * NULL for general orders.
-     *
-     * @return Store|null
      */
     public function getStoreAttribute(): ?Store
     {

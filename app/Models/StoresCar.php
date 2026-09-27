@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use App\Enums\SectionCondition;
-use Illuminate\Database\Eloquent\Model;
+use App\Services\StoreCarService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -58,7 +59,19 @@ class StoresCar extends Model
 
     public function pictures(): HasMany
     {
-        return $this->hasMany(StoreCarPicture::class, 'car_id');
+        return $this->hasMany(StoreCarPicture::class, 'car_id')
+            ->whereNotNull('disk')
+            ->whereNotNull('path')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->chaperone('car');
+    }
+
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (self $car): void {
+            app(StoreCarService::class)->purgeFilesForForceDelete($car);
+        });
     }
 
     public function components(): HasMany

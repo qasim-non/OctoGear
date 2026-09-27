@@ -7,7 +7,7 @@ use App\Models\StoresCar;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\StoreCarPicture>
+ * @extends Factory<StoreCarPicture>
  */
 class StoreCarPictureFactory extends Factory
 {
@@ -16,7 +16,11 @@ class StoreCarPictureFactory extends Factory
     public function definition(): array
     {
         return [
-            'picture' => fake()->imageUrl(400, 300, 'car'),
+            'disk' => config('images.disk'),
+            'path' => 'store-cars/'.fake()->uuid().'.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 1024,
+            'sort_order' => 0,
             'car_id' => StoresCar::factory(),
         ];
     }

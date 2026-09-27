@@ -8,7 +8,7 @@ use App\Models\Order;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\Order>
+ * @extends Factory<Order>
  */
 class OrderFactory extends Factory
 {
@@ -19,7 +19,7 @@ class OrderFactory extends Factory
         return [
             'order_type' => OrderType::General,
             'quantity' => fake()->numberBetween(1, 10),
-            'customer_image' => null,
+            'customer_image_path' => null,
             'status' => OrderStatus::Pending,
             'offered_price' => null,
             'notes' => fake()->optional(0.5)->sentence(),

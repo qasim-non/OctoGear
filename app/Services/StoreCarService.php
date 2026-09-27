@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Store;
+use App\Models\StoreCarPicture;
 use App\Models\StoresCar;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Owns the store-car persistence workflow (a car plus its section report and
@@ -16,24 +18,29 @@ use Illuminate\Support\Facades\DB;
  */
 class StoreCarService
 {
+    public function __construct(private ImageStorageService $images) {}
+
     /**
      * Create a store car with its sections and pictures.
      */
     public function create(Store $store, array $data): StoresCar
     {
-        return DB::transaction(function () use ($store, $data) {
-            $car = $store->cars()->create(collect($data)->except(['pictures', 'sections'])->all());
+        $storedFiles = [];
 
-            $this->syncSections($car, $data['sections'] ?? []);
+        try {
+            return DB::transaction(function () use ($store, $data, &$storedFiles) {
+                $car = $store->cars()->create(collect($data)->except(['pictures', 'sections'])->all());
 
-            if (! empty($data['pictures'])) {
-                $car->pictures()->createMany(
-                    array_map(fn ($picture) => ['picture' => $picture], $data['pictures'])
-                );
-            }
+                $this->syncSections($car, $data['sections'] ?? []);
+                $this->storePictures($car, $data['pictures'] ?? [], $storedFiles);
 
-            return $car;
-        });
+                return $car;
+            });
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+
+            throw $exception;
+        }
     }
 
     /**
@@ -41,23 +48,60 @@ class StoreCarService
      */
     public function update(StoresCar $car, array $data): StoresCar
     {
-        DB::transaction(function () use ($car, $data) {
-            $car->update(collect($data)->except(['pictures', 'sections'])->all());
+        $storedFiles = [];
 
-            if (array_key_exists('sections', $data)) {
-                $this->syncSections($car, $data['sections'] ?? []);
-            }
+        try {
+            DB::transaction(function () use ($car, $data, &$storedFiles) {
+                $lockedCar = StoresCar::query()->lockForUpdate()->findOrFail($car->getKey());
+                $lockedCar->update(collect($data)->except(['pictures', 'sections'])->all());
 
-            if (array_key_exists('pictures', $data)) {
-                $car->pictures()->delete();
+                if (array_key_exists('sections', $data)) {
+                    $this->syncSections($lockedCar, $data['sections'] ?? []);
+                }
 
-                $car->pictures()->createMany(
-                    array_map(fn ($picture) => ['picture' => $picture], $data['pictures'])
-                );
-            }
-        });
+                if (array_key_exists('pictures', $data)) {
+                    $oldPictures = $lockedCar->pictures()->get();
+                    $lockedCar->pictures()->delete();
+                    $this->storePictures($lockedCar, $data['pictures'] ?? [], $storedFiles);
 
-        return $car;
+                    // Commit the replacement and durable cleanup references
+                    // together, then remove old files through the shared retry flow.
+                    $this->images->deleteAfterCommit(
+                        $oldPictures->map(fn (StoreCarPicture $picture) => $picture->getAttributes())->all(),
+                    );
+                }
+            });
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+
+            throw $exception;
+        }
+
+        return $car->refresh();
+    }
+
+    public function purgeFilesForForceDelete(StoresCar $car): void
+    {
+        $pictures = StoreCarPicture::query()->withTrashed()
+            ->where('car_id', $car->getKey())
+            ->whereNotNull('disk')->whereNotNull('path')->get();
+
+        foreach ($pictures as $picture) {
+            $this->images->delete($picture->getAttributes());
+        }
+    }
+
+    private function storePictures(StoresCar $car, array $files, array &$storedFiles): void
+    {
+        foreach (array_values($files) as $sortOrder => $file) {
+            $metadata = $this->images->store(
+                $file,
+                "store-cars/{$car->store_id}/{$car->id}",
+                $storedFiles,
+            );
+
+            $car->pictures()->create([...$metadata, 'sort_order' => $sortOrder]);
+        }
     }
 
     /**

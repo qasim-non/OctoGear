@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Provider;
 
 use App\Http\Requests\BaseRequest;
+use App\Support\ImageRules;
 use App\Support\MobileNumber;
 
 class StoreStoreRequestDirectRequest extends BaseRequest
@@ -23,7 +24,7 @@ class StoreStoreRequestDirectRequest extends BaseRequest
             'employee_name' => ['required', 'string', 'max:100'],
             'url_location' => ['required', 'string', 'max:255'],
             'commercial_registration_number' => ['required', 'string', 'max:50'],
-            'commercial_registration_picture' => ['required', 'string', 'max:255'],
+            'commercial_registration_picture' => ['required', ...ImageRules::file()],
             'city_id' => ['required', 'integer', 'exists:cities,id'],
         ];
     }

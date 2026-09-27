@@ -84,6 +84,27 @@ class CustomerCarMediaTest extends TestCase
             ->assertJsonValidationErrors('idempotency_key');
     }
 
+    public function test_customer_photos_inherit_the_shared_disk_and_limits_without_an_override(): void
+    {
+        config([
+            'customer_car_media.disk' => null,
+            'customer_car_media.max_files' => null,
+            'images.disk' => 'images_local',
+            'images.max_files' => 1,
+        ]);
+        Storage::fake('images_local');
+        $customer = User::factory()->customer()->create();
+
+        $car = $this->createCar($customer, ['pictures' => [$this->image()]]);
+        $picture = $car->pictures()->firstOrFail();
+        $this->assertSame('images_local', $picture->disk);
+        Storage::disk('images_local')->assertExists($picture->path);
+
+        $this->actingAs($customer, 'sanctum')
+            ->post('/api/customer/customer-cars/'.$car->id.'/pictures', ['pictures' => [$this->image()]])
+            ->assertUnprocessable();
+    }
+
     public function test_reusing_an_idempotency_key_returns_the_original_car_without_duplicate_photos(): void
     {
         $customer = User::factory()->customer()->create();
@@ -403,6 +424,95 @@ class CustomerCarMediaTest extends TestCase
         $this->assertDatabaseCount('customer_car_pictures', 0);
     }
 
+    public function test_failed_individual_file_deletion_preserves_hidden_metadata_and_is_retried(): void
+    {
+        $customer = User::factory()->customer()->create();
+        $car = $this->createCar($customer, ['pictures' => [$this->image()]]);
+        $picture = $car->pictures()->firstOrFail();
+        $filesystem = Mockery::mock(Filesystem::class);
+        $filesystem->shouldReceive('exists')->twice()->with($picture->path)->andReturnTrue();
+        $filesystem->shouldReceive('delete')->twice()->with($picture->path)->andReturnFalse();
+        $factory = Mockery::mock(FilesystemFactory::class);
+        $factory->shouldReceive('disk')->twice()->with($picture->disk)->andReturn($filesystem);
+        $this->app->instance(FilesystemFactory::class, $factory);
+
+        $this->actingAs($customer, 'sanctum')
+            ->deleteJson('/api/customer/customer-cars/'.$car->id.'/pictures/'.$picture->id)
+            ->assertOk();
+
+        $this->assertSoftDeleted('customer_car_pictures', ['id' => $picture->id]);
+        Storage::disk('customer_car_media_local')->assertExists($picture->path);
+        $this->assertSame(0, $car->pictures()->count());
+        $this->assertDatabaseHas('pending_image_deletions', ['disk' => $picture->disk, 'path' => $picture->path]);
+
+        $this->app->instance(FilesystemFactory::class, Storage::getFacadeRoot());
+        $this->artisan('images:cleanup')->assertSuccessful();
+
+        Storage::disk('customer_car_media_local')->assertMissing($picture->path);
+        $this->assertDatabaseCount('pending_image_deletions', 0);
+    }
+
+    public function test_individual_deletion_rolls_back_if_its_cleanup_job_cannot_be_persisted(): void
+    {
+        $customer = User::factory()->customer()->create();
+        $car = $this->createCar($customer, ['pictures' => [$this->image()]]);
+        $picture = $car->pictures()->firstOrFail();
+        DB::unprepared(<<<'SQL'
+            CREATE TRIGGER fail_image_cleanup_insert
+            BEFORE INSERT ON pending_image_deletions
+            BEGIN
+                SELECT RAISE(ABORT, 'Simulated cleanup persistence failure');
+            END;
+            SQL);
+
+        try {
+            $this->actingAs($customer, 'sanctum')
+                ->deleteJson('/api/customer/customer-cars/'.$car->id.'/pictures/'.$picture->id)
+                ->assertStatus(500);
+        } finally {
+            DB::unprepared('DROP TRIGGER IF EXISTS fail_image_cleanup_insert');
+        }
+
+        $this->assertNotSoftDeleted('customer_car_pictures', ['id' => $picture->id]);
+        $this->assertDatabaseCount('pending_image_deletions', 0);
+        Storage::disk('customer_car_media_local')->assertExists($picture->path);
+    }
+
+    public function test_direct_picture_force_delete_removes_its_private_file(): void
+    {
+        $customer = User::factory()->customer()->create();
+        $car = $this->createCar($customer, ['pictures' => [$this->image()]]);
+        $picture = $car->pictures()->firstOrFail();
+
+        $picture->forceDelete();
+
+        Storage::disk('customer_car_media_local')->assertMissing($picture->path);
+        $this->assertDatabaseMissing('customer_car_pictures', ['id' => $picture->id]);
+    }
+
+    public function test_direct_picture_force_delete_retains_metadata_when_storage_is_unavailable(): void
+    {
+        $customer = User::factory()->customer()->create();
+        $car = $this->createCar($customer, ['pictures' => [$this->image()]]);
+        $picture = $car->pictures()->firstOrFail();
+        $filesystem = Mockery::mock(Filesystem::class);
+        $filesystem->shouldReceive('exists')->once()->with($picture->path)->andReturnTrue();
+        $filesystem->shouldReceive('delete')->once()->with($picture->path)->andReturnFalse();
+        $factory = Mockery::mock(FilesystemFactory::class);
+        $factory->shouldReceive('disk')->once()->with($picture->disk)->andReturn($filesystem);
+        $this->app->instance(FilesystemFactory::class, $factory);
+
+        try {
+            $picture->forceDelete();
+            $this->fail('Expected failed file cleanup to prevent metadata deletion.');
+        } catch (BusinessRuleException $exception) {
+            $this->assertSame(503, $exception->statusCode());
+        }
+
+        $this->assertDatabaseHas('customer_car_pictures', ['id' => $picture->id]);
+        Storage::disk('customer_car_media_local')->assertExists($picture->path);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -432,8 +542,7 @@ class CustomerCarMediaTest extends TestCase
         User $customer,
         array $overrides = [],
         ?string $idempotencyKey = null,
-    ): CustomerCar
-    {
+    ): CustomerCar {
         $response = $this->postCarWithKey(
             $customer,
             $idempotencyKey ?? (string) Str::uuid(),

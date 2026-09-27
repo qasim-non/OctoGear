@@ -56,6 +56,10 @@ class CustomerCarService
                 return $car;
             });
         } catch (QueryException $exception) {
+            // A rolled-back attempt can have written images before a unique
+            // constraint failure. Clean those files even when replay succeeds.
+            $this->photos->cleanupStoredFiles($storedFiles);
+
             // A concurrent retry may not see the first transaction until its
             // unique customer/key insert commits. A matching active request
             // may replay that car; a changed request remains a safe conflict.
@@ -68,8 +72,6 @@ class CustomerCarService
                     $this->throwIdempotencyConflict();
                 }
             }
-
-            $this->photos->cleanupStoredFiles($storedFiles);
 
             throw $exception;
         } catch (Throwable $exception) {

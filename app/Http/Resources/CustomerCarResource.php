@@ -15,10 +15,16 @@ class CustomerCarResource extends JsonResource
             'id' => $this->id,
             'manufacturing_year' => $this->manufacturing_year,
             'vehicle_plat_number' => $this->vehicle_plat_number,
-            'car_name' => $this->whenLoaded('carName', fn () => [
+            'car_name' => [
                 'id' => $this->carName->id,
                 'name' => $locale === 'en' ? $this->carName->name_en : $this->carName->name_ar,
-            ]),
+            ],
+            'company' => [
+                'id' => $this->carName->carCompany->id,
+                'name' => $locale === 'en'
+                    ? $this->carName->carCompany->name_en
+                    : $this->carName->carCompany->name_ar,
+            ],
             'color' => $this->whenLoaded('color', fn () => [
                 'id' => $this->color->id,
                 'name' => $locale === 'en' ? $this->color->name_en : $this->color->name_ar,

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Customer;
 
 use App\Http\Requests\BaseRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCustomerCarRequest extends BaseRequest
 {
@@ -23,13 +24,13 @@ class StoreCustomerCarRequest extends BaseRequest
         $year = date('Y');
 
         return [
-            'car_name_id' => ['required', 'integer', 'exists:cars_names,id'],
+            'car_name_id' => ['required', 'integer', Rule::exists('cars_names', 'id')->whereNull('deleted_at')],
             'manufacturing_year' => ['required', 'integer', 'min:1970', "max:$year"],
             'vehicle_plat_number' => ['required', 'string', 'max:50'],
-            'color_id' => ['required', 'integer', 'exists:colors,id'],
-            'fuel_type' => ['required', 'integer', 'exists:fuel_types,id'],
+            'color_id' => ['required', 'integer', Rule::exists('colors', 'id')->whereNull('deleted_at')],
+            'fuel_type' => ['required', 'integer', Rule::exists('fuel_types', 'id')->whereNull('deleted_at')],
             'idempotency_key' => ['required', 'uuid'],
-            'pictures' => ['nullable', 'array', 'max:'.config('customer_car_media.max_files')],
+            'pictures' => ['nullable', 'array', 'max:'.self::pictureLimit()],
             'pictures.*' => self::pictureFileRules(),
         ];
     }

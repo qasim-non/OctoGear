@@ -47,7 +47,9 @@ class CustomerCar extends Model
 
     public function carName(): BelongsTo
     {
-        return $this->belongsTo(CarName::class);
+        // A saved car is historical customer data. Its catalog name must
+        // remain displayable even if an administrator later retires it.
+        return $this->belongsTo(CarName::class)->withTrashed();
     }
 
     public function color(): BelongsTo

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Customer;
 
 use App\Http\Requests\BaseRequest;
 use App\Models\StoreCarComponent;
+use App\Support\ImageRules;
 use Illuminate\Validation\Rule;
 
 class StoreOrderRequest extends BaseRequest
@@ -13,10 +14,10 @@ class StoreOrderRequest extends BaseRequest
         $orderType = $this->input('order_type');
 
         $rules = [
-            'order_type'     => ['required', Rule::in(['general', 'specific'])],
-            'quantity'       => ['required', 'integer', 'min:1'],
-            'customer_image' => ['nullable', 'string', 'max:255'],
-            'notes'          => ['nullable', 'string', 'max:1000'],
+            'order_type' => ['required', Rule::in(['general', 'specific'])],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'customer_image' => ['nullable', ...ImageRules::file()],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ];
 
         if ($orderType === 'specific') {

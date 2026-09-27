@@ -129,7 +129,7 @@ class AdminUserManagementTest extends TestCase
             'employee_name' => 'Emp',
             'url_location' => 'https://maps.google.com/?q=test',
             'commercial_registration_number' => '1234567890',
-            'commercial_registration_picture' => 'storage/test.jpg',
+            'commercial_registration_path' => 'legacy/registration.jpg',
             'city_id' => $user->city_id,
             'status' => 'active',
         ]);

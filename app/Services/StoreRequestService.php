@@ -9,6 +9,7 @@ use App\Models\StoreRequest;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Owns the provider store-request onboarding workflow.
@@ -21,7 +22,7 @@ class StoreRequestService
 {
     private const TOKEN_INTENT = 'store';
 
-    public function __construct(private OtpService $otp) {}
+    public function __construct(private OtpService $otp, private ImageStorageService $images) {}
 
     /**
      * Send an OTP to the provider's mobile to start the store-request flow.
@@ -78,11 +79,7 @@ class StoreRequestService
 
         $this->ensureMobileDiffersFromAccount($user, $verifiedMobile);
 
-        return DB::transaction(function () use ($user, $data, $verifiedMobile) {
-            $user->update(['type' => UserType::ServiceProvider]);
-
-            return $this->createRequest($user, $data, $verifiedMobile);
-        });
+        return $this->createRequest($user, $data, $verifiedMobile, promote: true);
     }
 
     /**
@@ -98,13 +95,42 @@ class StoreRequestService
         return $this->createRequest($provider, $data, $data['mobile']);
     }
 
-    private function createRequest(User $user, array $data, string $mobile): StoreRequest
+    private function createRequest(User $user, array $data, string $mobile, bool $promote = false): StoreRequest
     {
-        return $user->storeRequests()->create([
-            ...Arr::except($data, ['temp_token', 'mobile']),
-            'mobile' => $mobile,
-            'request_status' => RequestStatus::Pending,
-        ]);
+        $storedFiles = [];
+
+        try {
+            $storeRequest = DB::transaction(function () use ($user, $data, $mobile, $promote, &$storedFiles) {
+                $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+                if ($promote) {
+                    $lockedUser->update(['type' => UserType::ServiceProvider]);
+                }
+
+                $image = $this->images->store(
+                    $data['commercial_registration_picture'],
+                    "store-requests/{$user->id}/registration",
+                    $storedFiles,
+                );
+
+                return $lockedUser->storeRequests()->create([
+                    ...Arr::except($data, ['temp_token', 'mobile', 'commercial_registration_picture']),
+                    ...StoreMediaService::registrationAttributes($image),
+                    'mobile' => $mobile,
+                    'request_status' => RequestStatus::Pending,
+                ]);
+            });
+
+            if ($promote) {
+                $user->setAttribute('type', UserType::ServiceProvider);
+            }
+
+            return $storeRequest;
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+
+            throw $exception;
+        }
     }
 
     private function ensureMobileDiffersFromAccount(User $user, string $mobile): void

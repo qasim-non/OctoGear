@@ -6,17 +6,16 @@ return [
     | Customer-car media storage
     |--------------------------------------------------------------------------
     |
-    | New uploads use this private disk. Each picture records the disk used at
-    | upload time, so moving future uploads to S3 does not break existing local
-    | files while a migration is in progress.
+    | Null settings inherit the shared images configuration. Existing disk
+    | overrides remain supported, and every picture retains its original disk.
     |
     */
 
-    'disk' => env('CUSTOMER_CAR_MEDIA_DISK', 'customer_car_media_local'),
+    'disk' => env('CUSTOMER_CAR_MEDIA_DISK'),
 
-    'max_files' => 5,
+    'max_files' => env('CUSTOMER_CAR_MEDIA_MAX_FILES'),
 
-    'max_file_size_kb' => 5 * 1024,
+    'max_file_size_kb' => env('CUSTOMER_CAR_MEDIA_MAX_FILE_SIZE_KB'),
 
     // A key is replayable only for this bounded window. The scheduled purge
     // removes the key and its fingerprint afterwards, while the create flow
@@ -30,8 +29,8 @@ return [
     // application. It does not normalize orientation or remove EXIF data.
     // Before production, provision GD, Imagick, or a managed image service
     // and add server-side normalization/metadata stripping to this workflow.
-    'min_width' => 1,
-    'min_height' => 1,
-    'max_width' => 4096,
-    'max_height' => 4096,
+    'min_width' => env('CUSTOMER_CAR_MEDIA_MIN_WIDTH'),
+    'min_height' => env('CUSTOMER_CAR_MEDIA_MIN_HEIGHT'),
+    'max_width' => env('CUSTOMER_CAR_MEDIA_MAX_WIDTH'),
+    'max_height' => env('CUSTOMER_CAR_MEDIA_MAX_HEIGHT'),
 ];

@@ -315,7 +315,7 @@ return [
         'forbidden' => 'Forbidden',
         'conflict' => 'Conflict',
         'unexpected' => 'We could not complete your request. Please try again.',
-        'media_cleanup_unavailable' => 'Private car media could not be deleted safely. Please try again later.',
+        'media_cleanup_unavailable' => 'Private images could not be deleted safely. Please try again later.',
     ],
 
     /*

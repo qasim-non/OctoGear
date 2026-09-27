@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Customer\CustomerCarController;
 use App\Http\Controllers\Api\Customer\CustomerCarPictureController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
 use App\Http\Controllers\Api\Customer\ProfileController as CustomerProfileController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\OrderOfferController;
 use App\Http\Controllers\Api\Provider\ProviderOrderController;
 use App\Http\Controllers\Api\Provider\ProviderProfileController;
@@ -29,9 +30,17 @@ use App\Http\Controllers\Api\Shared\ProfileController;
 use App\Http\Controllers\Api\Shared\RatingController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Auth\AuthController;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Route; 
 
 Route::middleware(['locale'])->group(function () {
+
+    Route::middleware('auth:sanctum')->prefix('media')->name('media.')->group(function () {
+        Route::get('/stores/{store}/pictures/{storePicture}', [MediaController::class, 'storePicture'])->name('store-pictures.show');
+        Route::get('/stores/{store}/cars/{storeCar}/pictures/{storeCarPicture}', [MediaController::class, 'storeCarPicture'])->name('store-car-pictures.show');
+        Route::get('/stores/{store}/registration', [MediaController::class, 'storeRegistration'])->name('store-registration.show');
+        Route::get('/store-requests/{storeRequest}/registration', [MediaController::class, 'storeRequestRegistration'])->name('store-request-registration.show');
+        Route::get('/orders/{order}/image', [MediaController::class, 'orderImage'])->name('order-image.show');
+    });
 
     Route::prefix('auth')->group(function () {
         Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:customerLogin');

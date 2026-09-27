@@ -4,6 +4,7 @@ namespace App\Http\Requests\Provider;
 
 use App\Enums\SectionCondition;
 use App\Http\Requests\BaseRequest;
+use App\Support\ImageRules;
 use Illuminate\Validation\Rule;
 
 class UpdateProviderStoreCarRequest extends BaseRequest
@@ -13,46 +14,47 @@ class UpdateProviderStoreCarRequest extends BaseRequest
         $year = date('Y');
 
         return [
-            'car_name_id'         => ['sometimes', 'integer', 'exists:cars_names,id'],
-            'manufacturing_year'  => ['sometimes', 'integer', 'min:1970', "max:$year"],
+            'car_name_id' => ['sometimes', 'integer', 'exists:cars_names,id'],
+            'manufacturing_year' => ['sometimes', 'integer', 'min:1970', "max:$year"],
             'vehicle_plat_number' => ['sometimes', 'string', 'max:50'],
-            'color_id'            => ['sometimes', 'integer', 'exists:colors,id'],
-            'fuel_type'           => ['sometimes', 'integer', 'exists:fuel_types,id'],
-            'pictures'            => ['nullable', 'array'],
-            'pictures.*'          => ['string', 'max:255'],
+            'color_id' => ['sometimes', 'integer', 'exists:colors,id'],
+            'fuel_type' => ['sometimes', 'integer', 'exists:fuel_types,id'],
+            'pictures' => ['nullable', 'array', 'max:'.config('images.max_files')],
+            'pictures.*' => ImageRules::file(),
 
-            'sections'              => ['sometimes', 'array', 'min:1'],
+            'sections' => ['sometimes', 'array', 'min:1'],
             'sections.*.section_id' => ['required', 'integer', 'distinct', 'exists:car_sections,id'],
-            'sections.*.condition'  => ['required', Rule::enum(SectionCondition::class)],
+            'sections.*.condition' => ['required', Rule::enum(SectionCondition::class)],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'car_name_id.required'    => __('auth.validation.car_name_id.required'),
-            'car_name_id.integer'     => __('auth.validation.car_name_id.integer'),
-            'car_name_id.exists'      => __('auth.validation.car_name_id.exists'),
+            'car_name_id.required' => __('auth.validation.car_name_id.required'),
+            'car_name_id.integer' => __('auth.validation.car_name_id.integer'),
+            'car_name_id.exists' => __('auth.validation.car_name_id.exists'),
             'manufacturing_year.required' => __('auth.validation.manufacturing_year.required'),
-            'manufacturing_year.integer'  => __('auth.validation.manufacturing_year.integer'),
-            'manufacturing_year.min'  => __('auth.validation.manufacturing_year.min'),
-            'manufacturing_year.max'  => __('auth.validation.manufacturing_year.max'),
+            'manufacturing_year.integer' => __('auth.validation.manufacturing_year.integer'),
+            'manufacturing_year.min' => __('auth.validation.manufacturing_year.min'),
+            'manufacturing_year.max' => __('auth.validation.manufacturing_year.max'),
             'vehicle_plat_number.required' => __('auth.validation.vehicle_plat_number.required'),
             'vehicle_plat_number.max' => __('auth.validation.vehicle_plat_number.max'),
-            'color_id.required'       => __('auth.validation.color_id.required'),
-            'color_id.integer'        => __('auth.validation.color_id.integer'),
-            'color_id.exists'         => __('auth.validation.color_id.exists'),
-            'fuel_type.required'      => __('auth.validation.fuel_type.required'),
-            'fuel_type.integer'       => __('auth.validation.fuel_type.integer'),
-            'fuel_type.exists'        => __('auth.validation.fuel_type.exists'),
-            'pictures.array'          => __('auth.validation.pictures.array'),
-            'pictures.*.max'          => __('auth.validation.pictures.max'),
-            'sections.sometimes'      => __('auth.validation.sections.required'),
-            'sections.array'          => __('auth.validation.sections.array'),
+            'color_id.required' => __('auth.validation.color_id.required'),
+            'color_id.integer' => __('auth.validation.color_id.integer'),
+            'color_id.exists' => __('auth.validation.color_id.exists'),
+            'fuel_type.required' => __('auth.validation.fuel_type.required'),
+            'fuel_type.integer' => __('auth.validation.fuel_type.integer'),
+            'fuel_type.exists' => __('auth.validation.fuel_type.exists'),
+            'pictures.array' => __('auth.validation.pictures.array'),
+            'pictures.max' => __('auth.validation.pictures.total_max', ['max' => config('images.max_files')]),
+            'pictures.*.max' => __('auth.validation.pictures.file_max', ['max' => config('images.max_file_size_kb')]),
+            'sections.sometimes' => __('auth.validation.sections.required'),
+            'sections.array' => __('auth.validation.sections.array'),
             'sections.*.section_id.required' => __('auth.validation.sections.section_id_required'),
-            'sections.*.section_id.exists'   => __('auth.validation.sections.section_id_exists'),
-            'sections.*.condition.required'  => __('auth.validation.sections.condition_required'),
-            'sections.*.condition.enum'      => __('auth.validation.sections.condition_enum'),
+            'sections.*.section_id.exists' => __('auth.validation.sections.section_id_exists'),
+            'sections.*.condition.required' => __('auth.validation.sections.condition_required'),
+            'sections.*.condition.enum' => __('auth.validation.sections.condition_enum'),
         ];
     }
 }

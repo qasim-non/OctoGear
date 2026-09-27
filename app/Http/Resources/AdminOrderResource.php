@@ -15,7 +15,7 @@ class AdminOrderResource extends JsonResource
             'id' => $this->id,
             'order_type' => $this->order_type->value,
             'quantity' => $this->quantity,
-            'customer_image' => $this->customer_image,
+            'customer_image' => $this->customerImageUrl(),
             'status' => $this->status->value,
             'offered_price' => $this->offered_price,
             'notes' => $this->notes,

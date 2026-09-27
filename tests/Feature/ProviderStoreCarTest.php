@@ -11,11 +11,20 @@ use App\Models\StoreCarPicture;
 use App\Models\StoresCar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProviderStoreCarTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake(config('images.disk'));
+    }
 
     public function test_provider_can_list_their_store_cars(): void
     {
@@ -57,14 +66,14 @@ class ProviderStoreCarTest extends TestCase
             'vehicle_plat_number' => '1234-567',
             'color_id' => $color->id,
             'fuel_type' => $fuel->id,
-            'pictures' => ['a.jpg', 'b.jpg'],
+            'pictures' => [$this->image(), $this->image()],
             'sections' => [
                 ['section_id' => $section->id, 'condition' => 'okay'],
             ],
         ];
 
         $this->actingAs($provider, 'sanctum')
-            ->postJson("/api/provider/store/{$store->id}/cars", $payload)
+            ->post("/api/provider/store/{$store->id}/cars", $payload, ['Accept' => 'application/json'])
             ->assertStatus(201)
             ->assertJsonPath('data.manufacturing_year', 2020)
             ->assertJsonPath('data.vehicle_plat_number', '1234-567');
@@ -209,11 +218,13 @@ class ProviderStoreCarTest extends TestCase
         StoreCarPicture::factory()->count(2)->create(['car_id' => $car->id]);
 
         $this->actingAs($provider, 'sanctum')
-            ->putJson("/api/provider/store/{$store->id}/cars/{$car->id}", [
-                'pictures' => ['new.jpg'],
-            ])
+            ->post("/api/provider/store/{$store->id}/cars/{$car->id}", [
+                '_method' => 'PUT',
+                'pictures' => [$this->image()],
+            ], ['Accept' => 'application/json'])
             ->assertOk()
-            ->assertJsonPath('data.pictures', ['new.jpg']);
+            ->assertJsonCount(1, 'data.pictures')
+            ->assertJsonPath('data.pictures.0.mime_type', 'image/png');
 
         $this->assertSame(1, StoreCarPicture::where('car_id', $car->id)->count());
     }
@@ -243,5 +254,12 @@ class ProviderStoreCarTest extends TestCase
             ->assertStatus(404);
 
         $this->assertDatabaseHas('stores_cars', ['id' => $car->id]);
+    }
+
+    private function image(): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent('car.png', base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAF/gL+9/3K8QAAAABJRU5ErkJggg=='
+        ));
     }
 }

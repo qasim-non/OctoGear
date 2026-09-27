@@ -40,7 +40,7 @@ class StoreCarResource extends JsonResource
                 'condition' => $section->condition->value,
             ])
             ),
-            'pictures' => $this->whenLoaded('pictures', fn () => $this->pictures->pluck('picture')
+            'pictures' => $this->whenLoaded('pictures', fn () => StoreCarPictureResource::collection($this->pictures)
             ),
             'created_at' => $this->created_at,
         ];

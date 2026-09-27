@@ -12,17 +12,19 @@ class StoreRequestResource extends JsonResource
         $locale = $request->header('Accept-Language', app()->getLocale());
 
         return [
-            'id'                               => $this->id,
-            'name'                             => $this->name,
-            'nick_name'                        => $this->nick_name,
-            'mobile'                           => $this->mobile,
-            'employee_name'                    => $this->employee_name,
-            'url_location'                     => $this->url_location,
-            'commercial_registration_number'   => $this->commercial_registration_number,
-            'commercial_registration_picture'  => $this->commercial_registration_picture,
-            'request_status'                   => $this->request_status->value,
+            'id' => $this->id,
+            'name' => $this->name,
+            'nick_name' => $this->nick_name,
+            'mobile' => $this->mobile,
+            'employee_name' => $this->employee_name,
+            'url_location' => $this->url_location,
+            'commercial_registration_number' => $this->commercial_registration_number,
+            'commercial_registration_picture' => $this->hasRegistrationImage()
+                ? route('media.store-request-registration.show', ['storeRequest' => $this->id], false)
+                : null,
+            'request_status' => $this->request_status->value,
             'city' => $this->whenLoaded('city', fn () => [
-                'id'   => $this->city->id,
+                'id' => $this->city->id,
                 'name' => $locale === 'en' ? $this->city->name_en : $this->city->name_ar,
             ]),
             'created_at' => $this->created_at,

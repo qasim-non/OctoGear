@@ -19,7 +19,9 @@ class AdminStoreRequestResource extends JsonResource
             'employee_name' => $this->employee_name,
             'url_location' => $this->url_location,
             'commercial_registration_number' => $this->commercial_registration_number,
-            'commercial_registration_picture' => $this->commercial_registration_picture,
+            'commercial_registration_picture' => $this->hasRegistrationImage()
+                ? route('media.store-request-registration.show', ['storeRequest' => $this->id], false)
+                : null,
             'request_status' => $this->request_status->value,
             'rejection_reason' => $this->rejection_reason,
             'processed_by' => $this->processed_by,

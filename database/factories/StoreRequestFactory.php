@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\StoreRequest>
+ * @extends Factory<StoreRequest>
  */
 class StoreRequestFactory extends Factory
 {
@@ -18,16 +18,16 @@ class StoreRequestFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id'                        => User::factory(),
-            'name'                           => fake()->company() . ' Auto Parts',
-            'mobile'                         => fake()->numerify('+9665########'),
-            'nick_name'                      => fake()->lastName(),
-            'employee_name'                  => fake()->name(),
-            'url_location'                   => fake()->url(),
+            'user_id' => User::factory(),
+            'name' => fake()->company().' Auto Parts',
+            'mobile' => fake()->numerify('+9665########'),
+            'nick_name' => fake()->lastName(),
+            'employee_name' => fake()->name(),
+            'url_location' => fake()->url(),
             'commercial_registration_number' => fake()->numerify('###########'),
-            'commercial_registration_picture' => fake()->imageUrl(400, 300, 'business'),
-            'city_id'                        => City::factory(),
-            'request_status'                 => RequestStatus::Pending,
+            'commercial_registration_path' => 'legacy/registration.jpg',
+            'city_id' => City::factory(),
+            'request_status' => RequestStatus::Pending,
         ];
     }
 

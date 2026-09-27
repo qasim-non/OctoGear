@@ -19,7 +19,12 @@ class CustomerCarController extends Controller
 
         $cars = auth()->user()
             ->customerCars()
-            ->with(['carName', 'color', 'fuelType', 'pictures'])
+            ->with([
+                'carName.carCompany' => fn ($query) => $query->withTrashed(),
+                'color',
+                'fuelType',
+                'pictures',
+            ])
             ->latest()
             ->get();
 
@@ -30,7 +35,12 @@ class CustomerCarController extends Controller
     {
         $this->authorize('view', $customerCar);
 
-        $customerCar->load(['carName', 'color', 'fuelType', 'pictures']);
+        $customerCar->load([
+            'carName.carCompany' => fn ($query) => $query->withTrashed(),
+            'color',
+            'fuelType',
+            'pictures',
+        ]);
 
         return $this->success(new CustomerCarResource($customerCar));
     }
@@ -41,7 +51,12 @@ class CustomerCarController extends Controller
 
         $customerCar = $this->cars->update($customerCar, $request->validated());
 
-        $customerCar->load(['carName', 'color', 'fuelType', 'pictures']);
+        $customerCar->load([
+            'carName.carCompany' => fn ($query) => $query->withTrashed(),
+            'color',
+            'fuelType',
+            'pictures',
+        ]);
 
         return $this->success(new CustomerCarResource($customerCar));
     }
@@ -52,7 +67,12 @@ class CustomerCarController extends Controller
 
         $car = $this->cars->create($request->user(), $request->validated());
 
-        $car->load(['carName', 'color', 'fuelType', 'pictures']);
+        $car->load([
+            'carName.carCompany' => fn ($query) => $query->withTrashed(),
+            'color',
+            'fuelType',
+            'pictures',
+        ]);
 
         return $this->created(new CustomerCarResource($car));
     }
@@ -63,6 +83,6 @@ class CustomerCarController extends Controller
 
         $customerCar->delete();
 
-        return $this->success(__('auth.general.ok'));
+        return $this->success(null, __('auth.general.ok'));
     }
 }

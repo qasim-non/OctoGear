@@ -21,7 +21,9 @@ use App\Services\OrderService;
 use App\Services\OtpService;
 use App\Services\StoreRequestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OrderServiceTest extends TestCase
@@ -185,6 +187,7 @@ class OrderServiceTest extends TestCase
 
     public function test_store_request_requires_a_valid_one_time_token(): void
     {
+        Storage::fake(config('images.disk'));
         $provider = User::factory()->provider()->create();
 
         $service = app(StoreRequestService::class);
@@ -201,7 +204,7 @@ class OrderServiceTest extends TestCase
             'employee_name' => 'John',
             'url_location' => 'https://maps.example/shop',
             'commercial_registration_number' => '12345',
-            'commercial_registration_picture' => 'https://example.com/reg.png',
+            'commercial_registration_picture' => UploadedFile::fake()->createWithContent('registration.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAF/gL+9/3K8QAAAABJRU5ErkJggg==')),
             'city_id' => $city->id,
         ];
 

@@ -38,9 +38,16 @@ return [
             'report' => false,
         ],
 
-        // Customer-car photos are intentionally separate from the default
-        // local disk. They are private and are served only through an
-        // authenticated, ownership-checked API route.
+        // New images are private and served by the feature's API route.
+        'images_local' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/images'),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => true,
+        ],
+
+        // Retained for existing customer-car photos that reference this disk.
         'customer_car_media_local' => [
             'driver' => 'local',
             'root' => storage_path('app/private/customer-cars'),

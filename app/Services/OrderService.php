@@ -10,7 +10,9 @@ use App\Exceptions\BusinessRuleException;
 use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Owns the order lifecycle and its state transitions.
@@ -27,13 +29,42 @@ use Illuminate\Support\Facades\DB;
  */
 class OrderService
 {
+    public function __construct(private ImageStorageService $images) {}
+
     public function createForCustomer(User $customer, array $data): Order
     {
-        $order = $customer->orders()->create([
-            ...$data,
-            'status' => OrderStatus::Pending,
-        ]);
+        $storedFiles = [];
 
+        try {
+            $order = DB::transaction(function () use ($customer, $data, &$storedFiles) {
+                $order = $customer->orders()->create([
+                    ...Arr::except($data, ['customer_image']),
+                    'status' => OrderStatus::Pending,
+                ]);
+
+                if (isset($data['customer_image'])) {
+                    $image = $this->images->store(
+                        $data['customer_image'],
+                        "orders/{$customer->id}/{$order->id}",
+                        $storedFiles,
+                    );
+                    $order->update([
+                        'customer_image_disk' => $image['disk'],
+                        'customer_image_path' => $image['path'],
+                        'customer_image_mime_type' => $image['mime_type'],
+                        'customer_image_size_bytes' => $image['size_bytes'],
+                    ]);
+                }
+
+                return $order;
+            });
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+
+            throw $exception;
+        }
+
+        // Notify consumers only after the order and its image metadata commit.
         OrderCreated::dispatch($order);
 
         return $order;
