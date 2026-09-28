@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\ComponentCarSearchRequest;
 use App\Http\Requests\Customer\FilterStoresRequest;
 use App\Http\Resources\ComponentCarResource;
+use App\Http\Resources\MarketplaceStoreCarResource;
 use App\Http\Resources\StoreCarComponentResource;
-use App\Http\Resources\StoreCarResource;
 use App\Http\Resources\StoreResource;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
@@ -42,12 +42,12 @@ class StoreController extends Controller
     {
         $cars = $this->storefront->carList($store);
 
-        return $this->paginated($cars->through(fn ($car) => new StoreCarResource($car)));
+        return $this->paginated($cars->through(fn ($car) => new MarketplaceStoreCarResource($car)));
     }
 
     public function showCar(Store $store, StoresCar $car)
     {
-        return $this->success(new StoreCarResource($this->storefront->carDetail($store, $car)));
+        return $this->success(new MarketplaceStoreCarResource($this->storefront->carDetail($store, $car)));
     }
 
     public function components(Store $store, StoresCar $car)

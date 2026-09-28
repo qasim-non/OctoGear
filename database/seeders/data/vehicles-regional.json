@@ -1,0 +1,450 @@
+{
+  "retrieved_at": "2026-09-27",
+  "scope": "Manufacturer and authorised regional catalogues; nameplates only, no inferred model years. Country denotes marque origin, not current ownership or assembly location.",
+  "makes": [
+    {
+      "name_en": "Renault",
+      "name_ar": "رينو",
+      "country": "France",
+      "source": "https://www.renault.co.uk/vehicles.html",
+      "year": null,
+      "models": [
+        [
+          "Clio",
+          "كليو"
+        ],
+        [
+          "Captur",
+          "كابتشر"
+        ],
+        [
+          "Megane",
+          "ميجان"
+        ],
+        [
+          "Scenic",
+          "سينيك"
+        ],
+        [
+          "Austral",
+          "أوسترال"
+        ],
+        [
+          "Rafale",
+          "رافال"
+        ]
+      ]
+    },
+    {
+      "name_en": "Dacia",
+      "name_ar": "داسيا",
+      "country": "Romania",
+      "source": "https://www.dacia.co.uk/vehicles.html",
+      "year": null,
+      "models": [
+        [
+          "Sandero",
+          "سانديرو"
+        ],
+        [
+          "Sandero Stepway",
+          "سانديرو ستيب واي"
+        ],
+        [
+          "Duster",
+          "داستر"
+        ],
+        [
+          "Jogger",
+          "جوغر"
+        ],
+        [
+          "Spring",
+          "سبرينغ"
+        ],
+        [
+          "Bigster",
+          "بيغستر"
+        ]
+      ]
+    },
+    {
+      "name_en": "Peugeot",
+      "name_ar": "بيجو",
+      "country": "France",
+      "source": "https://www.peugeot.co.uk/buy/model-prices-and-specs.html",
+      "year": null,
+      "models": [
+        [
+          "208",
+          "208"
+        ],
+        [
+          "2008",
+          "2008"
+        ],
+        [
+          "308",
+          "308"
+        ],
+        [
+          "3008",
+          "3008"
+        ],
+        [
+          "408",
+          "408"
+        ],
+        [
+          "5008",
+          "5008"
+        ]
+      ]
+    },
+    {
+      "name_en": "Citroen",
+      "name_ar": "سيتروين",
+      "country": "France",
+      "source": "https://www.citroen.co.uk/models/category/suv.html",
+      "year": null,
+      "models": [
+        [
+          "C3 Aircross",
+          "سي 3 إيركروس"
+        ],
+        [
+          "C5 Aircross",
+          "سي 5 إيركروس"
+        ]
+      ]
+    },
+    {
+      "name_en": "Skoda",
+      "name_ar": "سكودا",
+      "country": "Czech Republic",
+      "source": "https://www.skoda-auto.com/world/range",
+      "year": null,
+      "models": [
+        [
+          "Octavia",
+          "أوكتافيا"
+        ],
+        [
+          "Superb",
+          "سوبيرب"
+        ],
+        [
+          "Kodiaq",
+          "كودياك"
+        ],
+        [
+          "Karoq",
+          "كاروك"
+        ],
+        [
+          "Kamiq",
+          "كاميك"
+        ]
+      ]
+    },
+    {
+      "name_en": "SEAT",
+      "name_ar": "سيات",
+      "country": "Spain",
+      "source": "https://www.seat.com/seat-cars/new-cars-vehicles",
+      "year": null,
+      "models": [
+        [
+          "Ibiza",
+          "إيبيزا"
+        ],
+        [
+          "Leon",
+          "ليون"
+        ],
+        [
+          "Arona",
+          "أرونا"
+        ],
+        [
+          "Ateca",
+          "أتيكا"
+        ]
+      ]
+    },
+    {
+      "name_en": "BYD",
+      "name_ar": "بي واي دي",
+      "country": "China",
+      "source": "https://www.byd.com/us/news-list/BYD-unveils-Two-New-Full-electric-Vehicles-to-Spanish-Consumers-at-Automobile-Barcelona-2023",
+      "year": null,
+      "models": [
+        [
+          "ATTO 3",
+          "أتو 3"
+        ],
+        [
+          "Dolphin",
+          "دولفين"
+        ],
+        [
+          "Seal",
+          "سيل"
+        ]
+      ]
+    },
+    {
+      "name_en": "Chery",
+      "name_ar": "شيري",
+      "country": "China",
+      "source": "https://www.cheryinternational.com/",
+      "year": null,
+      "models": [
+        [
+          "Tiggo 7 CSH",
+          "تيجو 7 سي إس إتش"
+        ],
+        [
+          "Arrizo 8 CSH",
+          "أريزو 8 سي إس إتش"
+        ]
+      ]
+    },
+    {
+      "name_en": "Geely",
+      "name_ar": "جيلي",
+      "country": "China",
+      "source": "https://global.geely.com/",
+      "year": null,
+      "models": [
+        [
+          "Coolray",
+          "كولراي"
+        ],
+        [
+          "EX5",
+          "إي إكس 5"
+        ],
+        [
+          "EX5 EM-i",
+          "إي إكس 5 إي إم آي"
+        ],
+        [
+          "EX2",
+          "إي إكس 2"
+        ]
+      ]
+    },
+    {
+      "name_en": "MG",
+      "name_ar": "إم جي",
+      "country": "United Kingdom",
+      "source": "https://www.mgmotor.me/models/",
+      "year": null,
+      "models": [
+        [
+          "MG 5",
+          "إم جي 5"
+        ],
+        [
+          "ZS",
+          "زد إس"
+        ],
+        [
+          "HS",
+          "إتش إس"
+        ]
+      ]
+    },
+    {
+      "name_en": "Changan",
+      "name_ar": "شانجان",
+      "country": "China",
+      "source": "https://www.globalchangan.com/cn/uni.html",
+      "year": null,
+      "models": [
+        [
+          "UNI-V",
+          "يوني في"
+        ],
+        [
+          "CS75 Plus",
+          "سي إس 75 بلس"
+        ]
+      ]
+    },
+    {
+      "name_en": "GAC",
+      "name_ar": "جي إيه سي",
+      "country": "China",
+      "source": "https://gacmotor.com/index/car",
+      "year": null,
+      "models": [
+        [
+          "GS8",
+          "جي إس 8"
+        ],
+        [
+          "GS3 Power",
+          "جي إس 3 باور"
+        ],
+        [
+          "Emkoo",
+          "إمكو"
+        ]
+      ]
+    },
+    {
+      "name_en": "Haval",
+      "name_ar": "هافال",
+      "country": "China",
+      "source": "https://www.gwm-global.com/news/3403821.html",
+      "year": null,
+      "models": [
+        [
+          "H6L",
+          "إتش 6 إل"
+        ],
+        [
+          "Dargo",
+          "دارجو"
+        ],
+        [
+          "Menglong",
+          "مينغلونغ"
+        ]
+      ]
+    },
+    {
+      "name_en": "Tank",
+      "name_ar": "تانك",
+      "country": "China",
+      "source": "https://www.gwm-global.com/news/3403821.html",
+      "year": null,
+      "models": [
+        [
+          "300",
+          "300"
+        ],
+        [
+          "400",
+          "400"
+        ],
+        [
+          "500",
+          "500"
+        ]
+      ]
+    },
+    {
+      "name_en": "Jetour",
+      "name_ar": "جيتور",
+      "country": "China",
+      "source": "https://www.jetourglobal.com/",
+      "year": null,
+      "models": [
+        [
+          "T1",
+          "تي 1"
+        ],
+        [
+          "T2",
+          "تي 2"
+        ],
+        [
+          "G700",
+          "جي 700"
+        ]
+      ]
+    },
+    {
+      "name_en": "Omoda",
+      "name_ar": "أومودا",
+      "country": "China",
+      "source": "https://www.omodajaecoo.com/global/c5/",
+      "year": null,
+      "models": [
+        [
+          "C5",
+          "سي 5"
+        ]
+      ]
+    },
+    {
+      "name_en": "Jaecoo",
+      "name_ar": "جايكو",
+      "country": "China",
+      "source": "https://www.omodajaecoo.com/global/shs/",
+      "year": null,
+      "models": [
+        [
+          "J5",
+          "جي 5"
+        ]
+      ]
+    },
+    {
+      "name_en": "Toyota",
+      "name_ar": "تويوتا",
+      "country": "Japan",
+      "source": "https://www.toyota.com.sa/en/vehicles",
+      "year": null,
+      "models": [
+        [
+          "Hilux",
+          "هايلكس"
+        ],
+        [
+          "Fortuner",
+          "فورتشنر"
+        ],
+        [
+          "Yaris",
+          "ياريس"
+        ]
+      ]
+    },
+    {
+      "name_en": "Nissan",
+      "name_ar": "نيسان",
+      "country": "Japan",
+      "source": "https://en.nissan-saudiarabia.com/vehicles/new.html",
+      "year": null,
+      "models": [
+        [
+          "Patrol",
+          "باترول"
+        ],
+        [
+          "X-Trail",
+          "إكس تريل"
+        ],
+        [
+          "X-Terra",
+          "إكس تيرا"
+        ],
+        [
+          "Magnite",
+          "ماغنايت"
+        ]
+      ]
+    },
+    {
+      "name_en": "Isuzu",
+      "name_ar": "إيسوزو",
+      "country": "Japan",
+      "source": "https://www.isuzu.co.jp/world/product/p_car/",
+      "year": null,
+      "models": [
+        [
+          "D-MAX",
+          "دي ماكس"
+        ],
+        [
+          "MU-X",
+          "إم يو إكس"
+        ]
+      ]
+    }
+  ]
+}

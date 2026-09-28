@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
+use Database\Seeders\Support\SeedRecords;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ReferenceDataSeeder extends Seeder
 {
@@ -12,14 +13,12 @@ class ReferenceDataSeeder extends Seeder
     {
         $now = Carbon::now();
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
-        $this->seedCountries($now);
-        $this->seedSaudiCities($now);
-        $this->seedFuelTypes($now);
-        $this->seedColors($now);
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::transaction(function () use ($now): void {
+            $this->seedCountries($now);
+            $this->seedSaudiCities($now);
+            $this->seedFuelTypes($now);
+            $this->seedColors($now);
+        });
     }
 
     private function seedCountries(Carbon $now): void
@@ -124,9 +123,11 @@ class ReferenceDataSeeder extends Seeder
             ['New Zealand', 'نيوزيلندا'],
         ]);
 
-        DB::table('countries')->insert($rows);
+        foreach ($rows as $row) {
+            SeedRecords::reference('countries', ['name_en' => $row['name_en']], $row);
+        }
 
-        $this->command->info('Seeded ' . count($rows) . ' countries (1 query)');
+        $this->command?->info('Seeded '.count($rows).' countries');
     }
 
     private function seedSaudiCities(Carbon $now): void
@@ -139,11 +140,11 @@ class ReferenceDataSeeder extends Seeder
             ['Makkah', 'مكة المكرمة'], ['At Taif', 'الطائف'], ['Rabigh', 'رابغ'],
             ['Al Qunfudhah', 'القنفذة'], ['Al Madinah', 'المدينة المنورة'],
             ['Yanbu', 'ينبع'], ['Al Ula', 'العلا'], ['Dammam', 'الدمام'],
-            ['Al Dhahran', 'ظهران'], ['Al Khobar', 'الخبر'], ['Al Jubail', 'الجبيل'],
+            ['Al Dhahran', 'الظهران'], ['Al Khobar', 'الخبر'], ['Al Jubail', 'الجبيل'],
             ['Al Hofuf', 'الهفوف'], ['Qatif', 'القطيف'], ['Ras Tanura', 'رأس تنورة'],
             ['Abha', 'أبها'], ['Khamis Mushait', 'خميس مشيط'], ['Bishah', 'بيشة'],
             ['Muhayil', 'محايل'], ['Tabuk', 'تبوك'], ['Al Wajh', 'الوجه'],
-            ['Haql', 'حقل'], ['Hail', 'حائل'], ['Baqaa', 'البكاة'],
+            ['Haql', 'حقل'], ['Hail', 'حائل'], ['Baqaa', 'بقعاء'],
             ['Najran', 'نجران'], ['Sharorah', 'شرورة'], ['Jazan', 'جازان'],
             ['Samtah', 'صامطة'], ['Sabya', 'صبيا'], ['Abu Arish', 'أبو عريش'],
             ['Buraidah', 'بريدة'], ['Unaizah', 'عنيزة'], ['Al Rass', 'الرس'],
@@ -160,27 +161,31 @@ class ReferenceDataSeeder extends Seeder
             'updated_at' => $now,
         ], $cities);
 
-        DB::table('cities')->insert($rows);
+        foreach ($rows as $row) {
+            SeedRecords::reference('cities', ['country_id' => $countryId, 'name_en' => $row['name_en']], $row);
+        }
 
-        $this->command->info('Seeded ' . count($rows) . ' Saudi cities (1 query)');
+        $this->command?->info('Seeded '.count($rows).' Saudi cities');
     }
 
     private function seedFuelTypes(Carbon $now): void
     {
-        DB::table('fuel_types')->insert([
+        foreach ([
             ['type_en' => 'Gasoline', 'type_ar' => 'بنزين', 'created_at' => $now, 'updated_at' => $now],
             ['type_en' => 'Diesel', 'type_ar' => 'ديزل', 'created_at' => $now, 'updated_at' => $now],
             ['type_en' => 'Electric', 'type_ar' => 'كهرباء', 'created_at' => $now, 'updated_at' => $now],
             ['type_en' => 'Hybrid', 'type_ar' => 'هجين', 'created_at' => $now, 'updated_at' => $now],
             ['type_en' => 'Plug-in Hybrid', 'type_ar' => 'هجين قابل للشحن', 'created_at' => $now, 'updated_at' => $now],
-        ]);
+        ] as $row) {
+            SeedRecords::reference('fuel_types', ['type_en' => $row['type_en']], $row);
+        }
 
-        $this->command->info('Seeded 5 fuel types (1 query)');
+        $this->command?->info('Seeded 5 fuel types');
     }
 
     private function seedColors(Carbon $now): void
     {
-        DB::table('colors')->insert([
+        foreach ([
             ['name_en' => 'Black', 'name_ar' => 'أسود', 'created_at' => $now, 'updated_at' => $now],
             ['name_en' => 'White', 'name_ar' => 'أبيض', 'created_at' => $now, 'updated_at' => $now],
             ['name_en' => 'Silver', 'name_ar' => 'فضي', 'created_at' => $now, 'updated_at' => $now],
@@ -193,8 +198,10 @@ class ReferenceDataSeeder extends Seeder
             ['name_en' => 'Beige', 'name_ar' => 'بيج', 'created_at' => $now, 'updated_at' => $now],
             ['name_en' => 'Yellow', 'name_ar' => 'أصفر', 'created_at' => $now, 'updated_at' => $now],
             ['name_en' => 'Orange', 'name_ar' => 'برتقالي', 'created_at' => $now, 'updated_at' => $now],
-        ]);
+        ] as $row) {
+            SeedRecords::reference('colors', ['name_en' => $row['name_en']], $row);
+        }
 
-        $this->command->info('Seeded 12 colors (1 query)');
+        $this->command?->info('Seeded 12 colors');
     }
 }

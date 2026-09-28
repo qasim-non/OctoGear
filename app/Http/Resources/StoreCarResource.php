@@ -34,7 +34,7 @@ class StoreCarResource extends JsonResource
             'can_manage' => $this->whenLoaded('store', fn () => (bool) ($request->user()?->can('manage', $this->store) ?? false)
             ),
             'components_count' => $this->whenCounted('components'),
-            'sections' => $this->whenLoaded('storeCarSections', fn () => $this->storeCarSections->map(fn ($section) => [
+            'sections' => $this->whenLoaded('storeCarSections', fn () => $this->storeCarSections->filter(fn ($section) => $section->section !== null)->values()->map(fn ($section) => [
                 'section_id' => $section->section_id,
                 'name' => $locale === 'en' ? $section->section?->name_en : $section->section?->name_ar,
                 'condition' => $section->condition->value,

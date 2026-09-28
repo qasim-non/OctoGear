@@ -44,6 +44,7 @@ class StorefrontQueryService
 
     public function storeDetail(Store $store): Store
     {
+        $this->ensureMarketplaceVisible($store);
         $store->load(['city', 'pictures', 'companies']);
         $store->loadAvg('ratings', 'rating');
         $store->sold_quantity = $this->soldQuantity->forStore($store->id);
@@ -53,42 +54,51 @@ class StorefrontQueryService
 
     public function carList(Store $store): LengthAwarePaginator
     {
+        $this->ensureMarketplaceVisible($store);
+
         return $store->cars()
-            ->with(['carName', 'color', 'fuelType', 'pictures', 'store'])
-            ->withCount('components')
-            ->latest()
+            ->with(['carName.carCompany', 'color', 'fuelType', 'pictures', 'store'])
+            ->withCount(['components' => fn ($query) => $query->whereHas('component')])
+            ->latest()->orderByDesc('id')
             ->paginate(15);
     }
 
     public function carDetail(Store $store, StoresCar $car): StoresCar
     {
+        $this->ensureMarketplaceVisible($store);
         $this->ensureCarBelongsToStore($store, $car);
 
-        $car->load(['carName.carCompany', 'color', 'fuelType', 'pictures', 'store']);
-        $car->loadCount('components');
+        $car->load(['carName.carCompany', 'color', 'fuelType', 'pictures', 'store', 'storeCarSections.section']);
+        $car->loadCount(['components' => fn ($query) => $query->whereHas('component')]);
 
         return $car;
     }
 
     public function componentList(Store $store, StoresCar $car): LengthAwarePaginator
     {
+        $this->ensureMarketplaceVisible($store);
         $this->ensureCarBelongsToStore($store, $car);
 
         return $car->components()
-            ->with('component')
-            ->latest()
+            ->whereHas('component')
+            ->with('component.section')
+            ->latest()->orderByDesc('id')
             ->paginate(15);
     }
 
     public function componentDetail(Store $store, StoresCar $car, StoreCarComponent $component): StoreCarComponent
     {
+        $this->ensureMarketplaceVisible($store);
         $this->ensureCarBelongsToStore($store, $car);
 
         if ($component->store_car_id !== $car->id) {
             $this->notFound();
         }
 
-        $component->load('component');
+        $component->load('component.section');
+        if (! $component->component) {
+            $this->notFound();
+        }
 
         return $component;
     }
@@ -161,6 +171,20 @@ class StorefrontQueryService
     private function ensureCarBelongsToStore(Store $store, StoresCar $car): void
     {
         if ($car->store_id !== $store->id) {
+            $this->notFound();
+        }
+    }
+
+    /**
+     * Shared browsing must never reveal an inactive store merely because its
+     * numeric identifier is known. Store owners use dedicated provider
+     * management routes for inactive inventory.
+     *
+     * @throws BusinessRuleException <404 auth.general.not_found>
+     */
+    private function ensureMarketplaceVisible(Store $store): void
+    {
+        if ($store->status !== StoreStatus::Active) {
             $this->notFound();
         }
     }

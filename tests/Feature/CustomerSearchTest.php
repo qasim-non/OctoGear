@@ -12,6 +12,7 @@ use App\Models\Color;
 use App\Models\Component;
 use App\Models\FuelType;
 use App\Models\Order;
+use App\Models\Rating;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
 use App\Models\StoreCarSection;
@@ -132,6 +133,49 @@ class CustomerSearchTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.name', 'Toyota Center');
+    }
+
+    public function test_store_browse_returns_average_rating_as_a_json_number(): void
+    {
+        $store = $this->makeStore(['name' => 'Rated Store']);
+        $customer = $this->authCustomer();
+        $order = Order::factory()->create(['customer_id' => $customer->id]);
+        Rating::create([
+            'customer_id' => $customer->id,
+            'store_id' => $store->id,
+            'order_id' => $order->id,
+            'rating' => 4,
+        ]);
+
+        $response = $this->actingAs($this->authCustomer(), 'sanctum')
+            ->getJson('/api/stores');
+
+        $response->assertOk()->assertJsonPath('data.0.id', $store->id);
+        $averageRating = $response->json('data.0.average_rating');
+        $this->assertTrue(is_int($averageRating) || is_float($averageRating));
+        $this->assertSame(4, $averageRating);
+    }
+
+    public function test_store_browse_does_not_expose_provider_management_data(): void
+    {
+        $store = $this->makeStore([
+            'mobile' => '+966511111111',
+            'employee_name' => 'Private employee',
+            'url_location' => 'https://maps.example.test/private',
+            'commercial_registration_number' => 'CR-PRIVATE',
+        ]);
+
+        $response = $this->actingAs($this->authCustomer(), 'sanctum')
+            ->getJson('/api/stores');
+
+        $response->assertOk()->assertJsonPath('data.0.id', $store->id);
+        $storeData = $response->json('data.0');
+
+        $this->assertArrayNotHasKey('mobile', $storeData);
+        $this->assertArrayNotHasKey('employee_name', $storeData);
+        $this->assertArrayNotHasKey('url_location', $storeData);
+        $this->assertArrayNotHasKey('commercial_registration_number', $storeData);
+        $this->assertArrayNotHasKey('commercial_registration_picture', $storeData);
     }
 
     public function test_component_cars_returns_in_stock_cars_with_store_and_city(): void

@@ -1,0 +1,314 @@
+[
+  {
+    "name_en": "Toyota",
+    "name_ar": "تويوتا",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Honda",
+    "name_ar": "هوندا",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Nissan",
+    "name_ar": "نيسان",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Mazda",
+    "name_ar": "مازدا",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Mitsubishi",
+    "name_ar": "ميتسوبيشي",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Subaru",
+    "name_ar": "سوبارو",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Suzuki",
+    "name_ar": "سوزوكي",
+    "country": "Japan",
+    "year": 2012
+  },
+  {
+    "name_en": "Lexus",
+    "name_ar": "لكزس",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Infiniti",
+    "name_ar": "إنفينيتي",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Acura",
+    "name_ar": "أكيورا",
+    "country": "Japan",
+    "year": 2024
+  },
+  {
+    "name_en": "Hyundai",
+    "name_ar": "هيونداي",
+    "country": "South Korea",
+    "year": 2024
+  },
+  {
+    "name_en": "Kia",
+    "name_ar": "كيا",
+    "country": "South Korea",
+    "year": 2024
+  },
+  {
+    "name_en": "Genesis",
+    "name_ar": "جينيسيس",
+    "country": "South Korea",
+    "year": 2024
+  },
+  {
+    "name_en": "Ford",
+    "name_ar": "فورد",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Lincoln",
+    "name_ar": "لينكولن",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Chevrolet",
+    "name_ar": "شيفروليه",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "GMC",
+    "name_ar": "جي إم سي",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Cadillac",
+    "name_ar": "كاديلاك",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Buick",
+    "name_ar": "بويك",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Chrysler",
+    "name_ar": "كرايسلر",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Dodge",
+    "name_ar": "دودج",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Jeep",
+    "name_ar": "جيب",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Ram",
+    "name_ar": "رام",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Tesla",
+    "name_ar": "تسلا",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Rivian",
+    "name_ar": "ريفيان",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "Lucid",
+    "name_ar": "لوسيد",
+    "country": "United States",
+    "year": 2024
+  },
+  {
+    "name_en": "BMW",
+    "name_ar": "بي إم دبليو",
+    "country": "Germany",
+    "year": 2024
+  },
+  {
+    "name_en": "Mercedes-Benz",
+    "name_ar": "مرسيدس بنز",
+    "country": "Germany",
+    "year": 2024
+  },
+  {
+    "name_en": "Audi",
+    "name_ar": "أودي",
+    "country": "Germany",
+    "year": 2024
+  },
+  {
+    "name_en": "Volkswagen",
+    "name_ar": "فولكس واجن",
+    "country": "Germany",
+    "year": 2024
+  },
+  {
+    "name_en": "Porsche",
+    "name_ar": "بورش",
+    "country": "Germany",
+    "year": 2024
+  },
+  {
+    "name_en": "MINI",
+    "name_ar": "ميني",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Land Rover",
+    "name_ar": "لاند روفر",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Jaguar",
+    "name_ar": "جاكوار",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Bentley",
+    "name_ar": "بنتلي",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Rolls-Royce",
+    "name_ar": "رولز رويس",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Aston Martin",
+    "name_ar": "أستون مارتن",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "McLaren",
+    "name_ar": "ماكلارين",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Lotus",
+    "name_ar": "لوتس",
+    "country": "United Kingdom",
+    "year": 2024
+  },
+  {
+    "name_en": "Ferrari",
+    "name_ar": "فيراري",
+    "country": "Italy",
+    "year": 2024
+  },
+  {
+    "name_en": "Lamborghini",
+    "name_ar": "لامبورغيني",
+    "country": "Italy",
+    "year": 2024
+  },
+  {
+    "name_en": "Maserati",
+    "name_ar": "مازيراتي",
+    "country": "Italy",
+    "year": 2024
+  },
+  {
+    "name_en": "Alfa Romeo",
+    "name_ar": "ألفا روميو",
+    "country": "Italy",
+    "year": 2024
+  },
+  {
+    "name_en": "Fiat",
+    "name_ar": "فيات",
+    "country": "Italy",
+    "year": 2024
+  },
+  {
+    "name_en": "Volvo",
+    "name_ar": "فولفو",
+    "country": "Sweden",
+    "year": 2024
+  },
+  {
+    "name_en": "Polestar",
+    "name_ar": "بولستار",
+    "country": "Sweden",
+    "year": 2024
+  },
+  {
+    "name_en": "Saab",
+    "name_ar": "ساب",
+    "country": "Sweden",
+    "year": 2011
+  },
+  {
+    "name_en": "Pontiac",
+    "name_ar": "بونتياك",
+    "country": "United States",
+    "year": 2009
+  },
+  {
+    "name_en": "Hummer",
+    "name_ar": "هامر",
+    "country": "United States",
+    "year": 2009
+  },
+  {
+    "name_en": "Saturn",
+    "name_ar": "ساتورن",
+    "country": "United States",
+    "year": 2009
+  },
+  {
+    "name_en": "Mercury",
+    "name_ar": "ميركوري",
+    "country": "United States",
+    "year": 2010
+  },
+  {
+    "name_en": "Smart",
+    "name_ar": "سمارت",
+    "country": "Germany",
+    "year": 2018
+  }
+]

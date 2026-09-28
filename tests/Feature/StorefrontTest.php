@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\StoreStatus;
+use App\Models\CarCompany;
 use App\Models\Store;
 use App\Models\StoresCar;
 use App\Models\User;
@@ -69,6 +70,26 @@ class StorefrontTest extends TestCase
             ->assertJsonPath('data.can_manage', false);
     }
 
+    public function test_customer_store_detail_includes_localized_supported_companies(): void
+    {
+        $store = $this->makeStore($this->providerUser(), ['name' => 'A store']);
+        $company = CarCompany::factory()->create([
+            'name_en' => 'Toyota',
+            'name_ar' => 'تويوتا',
+        ]);
+        $store->companies()->attach($company);
+        $customer = User::factory()->create(['type' => 'customer']);
+
+        $this->actingAs($customer, 'sanctum')
+            ->withHeader('Accept-Language', 'en')
+            ->getJson("/api/stores/{$store->id}")
+            ->assertOk()
+            ->assertJsonPath('data.companies.0.id', $company->id)
+            ->assertJsonPath('data.companies.0.name', 'Toyota')
+            ->assertJsonMissingPath('data.mobile')
+            ->assertJsonMissingPath('data.employee_name');
+    }
+
     public function test_provider_can_browse_store_cars_and_components(): void
     {
         $owner = $this->providerUser();
@@ -104,5 +125,22 @@ class StorefrontTest extends TestCase
             ->getJson('/api/stores')
             ->assertOk()
             ->assertJsonPath('meta.total', 0);
+    }
+
+    public function test_inactive_store_detail_and_inventory_are_not_marketplace_resources(): void
+    {
+        $store = $this->makeStore($this->providerUser(), [
+            'status' => StoreStatus::Inactive,
+        ]);
+        StoresCar::factory()->create(['store_id' => $store->id]);
+        $customer = User::factory()->create(['type' => 'customer']);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/stores/{$store->id}")
+            ->assertNotFound();
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/stores/{$store->id}/cars")
+            ->assertNotFound();
     }
 }

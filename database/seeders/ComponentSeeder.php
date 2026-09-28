@@ -2,15 +2,14 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\Support\SeedRecords;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ComponentSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
         $sections = [
             'Front' => [
@@ -28,7 +27,7 @@ class ComponentSeeder extends Seeder
                     ['Front Fog Light - Left', 'إضاءة الضباب الأمامية - يسار'],
                     ['Front Fog Light - Right', 'إضاءة الضباب الأمامية - يمين'],
                     ['Radiator', 'الرادياتور / المبرد'],
-                    ['AC Condenser', 'تكيف الهواء / الكمبروسور'],
+                    ['AC Condenser', 'مكثف المكيف'],
                     ['Front Turn Signal - Left', 'الإشارة الأمامية - يسار'],
                     ['Front Turn Signal - Right', 'الإشارة الأمامية - يمين'],
                     ['Front License Plate Holder', 'حامل اللوحة الأمامية'],
@@ -96,13 +95,12 @@ class ComponentSeeder extends Seeder
                     ['Air Filter', 'فلتر الهواء'],
                     ['Oil Filter', 'فلتر الزيت'],
                     ['Fuel Filter', 'فلتر الوقود'],
-                    ['Cabin Air Filter', 'فلتر هواء المقصورة'],
-                    ['Spark Plugs', 'شومات الإشعال / البخاخات'],
+                    ['Spark Plugs', 'شمعات الإشعال'],
                     ['Timing Belt', 'حزام التوقيت'],
                     ['Timing Chain', 'سلسلة التوقيت'],
                     ['Water Pump', 'مضخة الماء'],
                     ['Alternator', 'الدينمو / مولد الكهرباء'],
-                    ['Starter Motor', 'محرك البداية'],
+                    ['Starter Motor', 'بادئ الحركة'],
                     ['Battery', 'البطارية'],
                     ['Radiator Hoses Upper', 'أنابيب المبرد العلوية'],
                     ['Radiator Hoses Lower', 'أنابيب المبرد السفلية'],
@@ -117,10 +115,7 @@ class ComponentSeeder extends Seeder
                     ['Serpentine Belt', 'الحزام المتعرج'],
                     ['Pulleys', 'البكرات'],
                     ['Coolant Reservoir', 'خزان التبريد'],
-                    ['Power Steering Pump', 'مضخة التوجيه'],
                     ['Engine Oil', 'زيت المحرك'],
-                    ['Transmission Fluid', 'زيت ناقل الحركة'],
-                    ['Brake Fluid', 'زيت الفرامل'],
                     ['Coolant', 'سائل التبريد'],
                 ],
             ],
@@ -141,13 +136,13 @@ class ComponentSeeder extends Seeder
                     ['Door Panel - Passenger', 'لوحة باب الراكب'],
                     ['Rear Door Panel - Left', 'لوحة الباب الخلفي - يسار'],
                     ['Rear Door Panel - Right', 'لوحة الباب الخلفي - يمين'],
-                    ['Sun Visor - Driver', 'المرآة الشمسية - السائق'],
-                    ['Sun Visor - Passenger', 'المرآة الشمسية - الراكب'],
+                    ['Sun Visor - Driver', 'حاجب الشمس - السائق'],
+                    ['Sun Visor - Passenger', 'حاجب الشمس - الراكب'],
                     ['Rearview Mirror', 'المرآة الداخلية'],
                     ['Instrument Cluster', 'لوحة العدادات'],
                     ['Infotainment Screen', 'شاشة الترفيه'],
                     ['AC Vents', 'فتحات التكييف'],
-                    ['Glove Box', 'درج glove'],
+                    ['Glove Box', 'صندوق القفازات'],
                     ['Seatbelt Buckle', 'مقبض حزام الأمان'],
                     ['Handbrake', 'يد الفرامل'],
                 ],
@@ -160,12 +155,12 @@ class ComponentSeeder extends Seeder
                     ['Fog Light Bulb', 'لمبة الضباب'],
                     ['Turn Signal Bulb', 'لمبة الإشارة'],
                     ['Interior Light Bulb', 'لمبة الإضاءة الداخلية'],
-                    ['Ignition Coil', 'ملفة الإشعال'],
+                    ['Ignition Coil', 'ملف الإشعال'],
                     ['Distributor Cap', 'غطاء الموزع'],
                     ['Window Motor', 'محرك النافذة'],
                     ['Door Lock Actuator', 'محرك القفل'],
-                    ['Horn', 'الزنبر / المنبه'],
-                    ['Fuse Box', 'علبة Fusible'],
+                    ['Horn', 'بوق السيارة'],
+                    ['Fuse Box', 'علبة المصاهر'],
                     ['Wiring Harness', 'حزمة الأسلاك'],
                     ['ECU / Engine Control Unit', 'وحدة التحكم الإلكترونية'],
                     ['Sensor - Oxygen', 'الحساس - الأكسجين'],
@@ -175,52 +170,22 @@ class ComponentSeeder extends Seeder
                     ['Parking Sensors', 'حساسات الركن'],
                     ['Reverse Camera', 'كاميرا الرجوع'],
                     ['Dashcam', 'كاميرا القيادة'],
-                    ['Battery Terminal', 'طرفي البطارية'],
+                    ['Battery Terminal', 'قطب البطارية'],
                 ],
             ],
         ];
 
-        $now = Carbon::now();
-        $sectionRows = [];
-        $componentRows = [];
-        $sectionIndex = 1;
+        $sections += require __DIR__.'/data/component-sections.php';
 
-        foreach ($sections as $sectionEn => [$sectionAr, $components]) {
-            $sectionRows[] = [
-                'name_en' => $sectionEn,
-                'name_ar' => $sectionAr,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-
-            foreach ($components as [$componentEn, $componentAr]) {
-                $componentRows[] = [
-                    'name_en' => $componentEn,
-                    'name_ar' => $componentAr,
-                    'section_id' => $sectionIndex,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
+        DB::transaction(function () use ($sections): void {
+            foreach ($sections as $sectionEn => [$sectionAr, $components]) {
+                $sectionId = SeedRecords::reference('car_sections', ['name_en' => $sectionEn], ['name_ar' => $sectionAr]);
+                foreach ($components as [$componentEn, $componentAr]) {
+                    SeedRecords::reference('components', ['section_id' => $sectionId, 'name_en' => $componentEn], ['name_ar' => $componentAr]);
+                }
             }
+        });
 
-            $sectionIndex++;
-        }
-
-        $totalSections = count($sectionRows);
-        $totalComponents = count($componentRows);
-
-        DB::table('car_sections')->insert($sectionRows);
-        $firstSectionId = DB::table('car_sections')->max('id') - $totalSections + 1;
-
-        foreach ($componentRows as &$row) {
-            $row['section_id'] = $firstSectionId + $row['section_id'];
-        }
-        unset($row);
-
-        DB::table('components')->insert($componentRows);
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
-
-        $this->command->info("Seeded {$totalSections} car sections and {$totalComponents} components (2 queries)");
+        $this->command?->info('Seeded '.count($sections).' sections with their component catalogue.');
     }
 }

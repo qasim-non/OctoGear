@@ -8,12 +8,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
-            ReferenceDataSeeder::class,
-            CarDataSeeder::class,
-            ComponentSeeder::class,
-            PlatformDataSeeder::class,
-        ]);
+        if (config('database.seed_test_data', false) && ! app()->environment(['local', 'testing'])) {
+            throw new \RuntimeException('Demo seeding is allowed only in local/testing environments.');
+        }
+
+        $this->call(ProductionDataSeeder::class);
 
         if (config('database.seed_test_data', false)) {
             $this->call([
@@ -21,6 +20,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Database seeding completed!');
+        $this->command?->info('Database seeding completed!');
     }
 }

@@ -7,6 +7,26 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Marketplace car catalog
+
+Authenticated marketplace clients can read `GET /api/stores/{store}/cars/{car}`
+and its paginated `/components?page=1` child. Both enforce active-store visibility
+and nested ownership. Car list/detail responses use `MarketplaceStoreCarResource`
+to omit license plates, management flags, and creation timestamps; detail includes
+localized manufacturer and section-condition data. Provider management responses
+keep their existing resource.
+
+Component `price` remains an integer in halalas, consistent with the existing
+payment service and fixtures. Additive `currency: "SAR"` and `price_scale: 100`
+metadata define the display conversion (52025 is SAR 520.25). Stock zero is retained
+so the catalog can truthfully show out-of-stock parts. The list also includes the
+localized component section when present. Removed stock/component references are
+excluded from both list and count; removed component detail returns 404. Pagination
+uses descending creation time and ID for deterministic ordering.
+
+No schema migration, SMS configuration change, real payment integration, or new
+ordering behavior is needed for this read-only feature.
+
 ## Shared image storage
 
 All image uploads use the injected `App\Services\ImageStorageService`.
