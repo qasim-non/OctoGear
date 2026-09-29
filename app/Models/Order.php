@@ -30,10 +30,14 @@ class Order extends Model
         'store_car_component_id',
         'model_id',
         'accepted_store_id',
+        'idempotency_key',
+        'idempotency_fingerprint',
     ];
 
     protected $hidden = [
         'deleted_at',
+        'idempotency_key',
+        'idempotency_fingerprint',
         'customer_image_disk',
         'customer_image_path',
     ];
