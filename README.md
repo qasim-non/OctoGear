@@ -7,6 +7,26 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Customer-car transmission
+
+Customer car `POST /api/customer/customer-cars` and
+`PATCH /api/customer/customer-cars/{id}` accept optional `transmission_type`:
+`automatic`, `manual`, `unknown`, or JSON null. `unknown` means the customer is
+not sure; null means no value is recorded. Omission on create stores null;
+omission on update leaves the current value intact. Explicit null clears it.
+Create/update responses and the existing customer-car list/detail endpoints
+return `transmission_type` as a nullable machine value, identical in both locales.
+Invalid values return the existing 422 envelope with localized field errors.
+
+Apply the additive migration
+`2026_10_01_000001_add_transmission_type_to_customer_cars.php` before deploying
+the updated API. Existing cars remain null; no historical transmission is
+guessed. Old clients may continue omitting the field. The creation
+`Idempotency-Key` contract is unchanged: identical retries replay, but a changed
+transmission selection conflicts. Pre-upgrade omitted-field fingerprints remain
+compatible. Existing customer ownership and provider restrictions still apply.
+No provider-car, order, payment, SMS, or Flutter changes are part of this step.
+
 ## Marketplace car catalog
 
 Authenticated marketplace clients can read `GET /api/stores/{store}/cars/{car}`

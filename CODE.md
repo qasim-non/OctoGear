@@ -1,7 +1,8 @@
 # OctoGear (YARDY) - API Code Guide
 
-> Status: reflects the CURRENT state of the project **after** the completed
-> service-layer refactor. Tests green: **249 passed / 737 assertions**.
+> Latest verification (2026-10-01): **348 passed / 1,590 assertions** after
+> the customer-car transmission update. Historical sections describe their
+> respective implementation slices.
 
 ## Project Overview
 
@@ -19,6 +20,29 @@
   "data": ..., "meta": ... }` via the `ApiResponse` trait.
 
 ---
+
+## Customer-car transmission contract (2026-10-01)
+
+This API-only slice adds optional `transmission_type` to customer cars. Accepted
+values are `automatic`, `manual`, `unknown`, or null (not recorded). Create may
+omit it; update omission preserves the existing value, explicit null clears it.
+Create, update, list and detail responses return the same nullable machine value
+regardless of locale. Validation messages are Arabic/English. No new endpoint,
+repository, permission or controller business logic is needed: the existing
+owner-authorized controller delegates validated data to CustomerCarService.
+
+Use an additive nullable migration with no guessed backfill. The PHP backed enum
+and request validation constrain new values. Idempotency includes non-null
+transmission values; omitted/null values retain the previous fingerprint format
+so older clients and in-flight retries remain compatible. Provider cars, orders,
+payment, SMS and Flutter are outside this slice. Verify create/read/update,
+invalid values, omission/null/unknown semantics, ownership, idempotent replay and
+conflict, migration preservation/rollback, then the full Laravel suite.
+
+Verification: all eight transmission tests passed (156 assertions), the full
+Laravel suite passed (348 tests / 1,590 assertions), and targeted Pint checks
+passed. Migration down/up preservation was exercised only in isolated SQLite;
+the additive migration was applied to the local MySQL database without a reset.
 
 ## Architecture Rules (governing conventions)
 

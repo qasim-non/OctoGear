@@ -63,6 +63,9 @@ return [
     */
 
     'validation' => [
+        'transmission_type' => [
+            'invalid' => 'اختر نوع ناقل الحركة: أوتوماتيك أو عادي (يدوي) أو غير متأكد.',
+        ],
         'mobile' => [
             'required' => 'رقم الجوال مطلوب.',
             'regex' => 'يجب أن يكون الجوال رقم سعودي صالح (05XXXXXXXX أو +9665XXXXXXXX).',

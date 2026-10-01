@@ -14,6 +14,7 @@ class CustomerCarResource extends JsonResource
         return [
             'id' => $this->id,
             'manufacturing_year' => $this->manufacturing_year,
+            'transmission_type' => $this->transmission_type?->value,
             'vehicle_plat_number' => $this->vehicle_plat_number,
             'car_name' => [
                 'id' => $this->carName->id,

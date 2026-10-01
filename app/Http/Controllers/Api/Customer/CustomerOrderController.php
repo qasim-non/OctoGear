@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\AcceptOfferRequest;
+use App\Http\Requests\Customer\CustomerOrdersRequest;
 use App\Http\Requests\Customer\PayOrderRequest;
 use App\Http\Requests\Customer\StoreOrderRequest;
+use App\Http\Resources\CustomerOrderResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Order;
@@ -18,17 +20,21 @@ class CustomerOrderController extends Controller
 {
     public function __construct(private OrderService $orders) {}
 
-    public function index()
+    public function index(CustomerOrdersRequest $request)
     {
         $this->authorize('viewAny', Order::class);
 
         $orders = auth()->user()
             ->orders()
-            ->with(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore'])
+            ->with($this->historyRelations())
+            ->with('offers.store')
+            ->withCount('offers')
+            ->when($request->validated('order_type'), fn ($query, $type) => $query->where('order_type', $type))
             ->latest()
+            ->orderByDesc('id')
             ->paginate(15);
 
-        return $this->paginated($orders->through(fn ($order) => new OrderResource($order)));
+        return $this->paginated($orders->through(fn ($order) => new CustomerOrderResource($order)));
     }
 
     public function store(StoreOrderRequest $request)
@@ -44,9 +50,16 @@ class CustomerOrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load([...$this->historyRelations(), 'offers' => fn ($query) => $query->with('store')->latest()->orderByDesc('id')]);
+        $order->loadCount('offers');
 
-        return $this->success(new OrderResource($order));
+        return $this->success(new CustomerOrderResource($order));
+    }
+
+    private function historyRelations(): array
+    {
+        return ['carModel.carName', 'storeCarComponent.component', 'storeCarComponent.storeCar.carName',
+            'storeCarComponent.storeCar.store', 'acceptedStore', 'payment'];
     }
 
     public function acceptOffer(AcceptOfferRequest $request, Order $order)

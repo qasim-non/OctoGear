@@ -204,6 +204,11 @@ class CustomerCarService
             'color_id' => (int) $data['color_id'],
             'fuel_type' => (int) $data['fuel_type'],
             'pictures' => $pictures,
+            // Keep old omitted/null requests byte-compatible with their saved
+            // fingerprints, while detecting changed transmission selections.
+            ...isset($data['transmission_type'])
+                ? ['transmission_type' => $data['transmission_type']]
+                : [],
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 

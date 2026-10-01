@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TransmissionType;
 use App\Services\CustomerCarPhotoService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ class CustomerCar extends Model
         'color_id',
         'customer_id',
         'fuel_type',
+        'transmission_type',
         'idempotency_key',
         'idempotency_fingerprint',
     ];
@@ -34,6 +36,7 @@ class CustomerCar extends Model
     {
         return [
             'manufacturing_year' => 'integer',
+            'transmission_type' => TransmissionType::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Customer;
 
+use App\Enums\TransmissionType;
 use App\Http\Requests\BaseRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,6 +31,7 @@ class StoreCustomerCarRequest extends BaseRequest
             'color_id' => ['required', 'integer', Rule::exists('colors', 'id')->whereNull('deleted_at')],
             'fuel_type' => ['required', 'integer', Rule::exists('fuel_types', 'id')->whereNull('deleted_at')],
             'idempotency_key' => ['required', 'uuid'],
+            'transmission_type' => ['nullable', 'string', Rule::enum(TransmissionType::class)],
             'pictures' => ['nullable', 'array', 'max:'.self::pictureLimit()],
             'pictures.*' => self::pictureFileRules(),
         ];
@@ -39,6 +41,8 @@ class StoreCustomerCarRequest extends BaseRequest
     {
         return [
             'car_name_id.required' => __('auth.validation.car_name_id.required'),
+            'transmission_type.string' => __('auth.validation.transmission_type.invalid'),
+            'transmission_type.enum' => __('auth.validation.transmission_type.invalid'),
             'car_name_id.integer' => __('auth.validation.car_name_id.integer'),
             'car_name_id.exists' => __('auth.validation.car_name_id.exists'),
             'manufacturing_year.required' => __('auth.validation.manufacturing_year.required'),

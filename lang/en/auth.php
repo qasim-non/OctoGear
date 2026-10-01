@@ -63,6 +63,9 @@ return [
     */
 
     'validation' => [
+        'transmission_type' => [
+            'invalid' => 'Choose automatic, manual, or unknown for the transmission type.',
+        ],
         'mobile' => [
             'required' => 'Mobile number is required.',
             'regex' => 'Mobile must be a valid Saudi number (05XXXXXXXX or +9665XXXXXXXX).',

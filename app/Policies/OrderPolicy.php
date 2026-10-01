@@ -28,6 +28,10 @@ class OrderPolicy
      */
     private function isProvider(User $user, Order $order): bool
     {
+        if (! $user->isProvider()) {
+            return false;
+        }
+
         if ($order->isGeneral()) {
             if ($order->status === OrderStatus::Pending) {
                 return true;

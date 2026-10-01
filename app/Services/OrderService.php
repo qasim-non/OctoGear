@@ -67,13 +67,13 @@ class OrderService
                     }
                 }
 
-                if ($type === OrderType::Specific->value) {
-                    $this->validateRequestedComponent($data);
-                }
+                $requestedUnitPrice = $type === OrderType::Specific->value
+                    ? $this->validateRequestedComponent($data)->price : null;
 
                 $order = $customer->orders()->create([
                     ...Arr::only($data, ['order_type', 'quantity', 'notes', 'store_car_component_id', 'model_id']),
                     'status' => OrderStatus::Pending,
+                    'requested_unit_price' => $requestedUnitPrice,
                     'idempotency_key' => $key,
                     'idempotency_fingerprint' => $fingerprint,
                 ]);
@@ -110,7 +110,7 @@ class OrderService
         return $order;
     }
 
-    private function validateRequestedComponent(array $data): void
+    private function validateRequestedComponent(array $data): StoreCarComponent
     {
         $component = StoreCarComponent::with(['component', 'storeCar.store'])
             ->lockForUpdate()->find($data['store_car_component_id']);
@@ -130,6 +130,8 @@ class OrderService
                 errors: ['store_car_component_id' => [$error]],
             );
         }
+
+        return $component;
     }
 
     /**
