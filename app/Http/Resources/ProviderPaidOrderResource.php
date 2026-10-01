@@ -14,25 +14,25 @@ class ProviderPaidOrderResource extends JsonResource
         $store = $this->sellerStore();
 
         return [
-            'id'            => $this->id,
-            'order_type'    => $this->order_type->value,
-            'quantity'      => $this->quantity,
-            'status'        => $this->status->value,
-            'gross_amount'  => $this->resource->gross_amount ?? 0,
-            'commission'    => $this->resource->commission ?? 0,
-            'net_amount'    => $this->resource->net_amount ?? 0,
+            'id' => $this->id,
+            'order_type' => $this->order_type->value,
+            'quantity' => $this->when($this->isSpecific(), $this->quantity),
+            'status' => $this->status->value,
+            'gross_amount' => $this->resource->gross_amount ?? 0,
+            'commission' => $this->resource->commission ?? 0,
+            'net_amount' => $this->resource->net_amount ?? 0,
             'sold_to' => [
-                'id'   => $this->customer?->id,
+                'id' => $this->customer?->id,
                 'name' => $this->customer?->full_name,
             ],
             'store' => $store ? [
-                'id'   => $store->id,
+                'id' => $store->id,
                 'name' => $store->name,
             ] : null,
-            'car_model' => $this->whenLoaded('carModel', fn () => [
-                'id'   => $this->carModel->id,
-                'name' => $locale === 'en' ? $this->carModel->name_en : $this->carModel->name_ar,
-            ]),
+            'description' => $this->when($this->isGeneral(), $this->notes),
+            'component_id' => $this->when($this->isGeneral(), $this->component_id),
+            'component_name' => $this->when($this->isGeneral(), $this->requestedComponentName($locale)),
+            'vehicle_details' => new OrderVehicleDetailResource($this->whenLoaded('vehicleDetails'), $this->customer_id),
             'created_at' => $this->created_at,
         ];
     }

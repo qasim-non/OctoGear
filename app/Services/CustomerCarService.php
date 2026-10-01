@@ -21,6 +21,14 @@ class CustomerCarService
 {
     public function __construct(private CustomerCarPhotoService $photos) {}
 
+    /** The enclosing order transaction and submission key own atomicity and retries. */
+    public function saveRequestVehicle(User $customer, array $vehicle): CustomerCar
+    {
+        return $customer->customerCars()->create(Arr::only($vehicle, [
+            'car_name_id', 'manufacturing_year', 'transmission_type', 'color_id', 'fuel_type',
+        ]));
+    }
+
     public function create(User $customer, array $data): CustomerCar
     {
         $idempotencyKey = $data['idempotency_key'];

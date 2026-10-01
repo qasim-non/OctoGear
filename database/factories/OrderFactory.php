@@ -18,14 +18,13 @@ class OrderFactory extends Factory
     {
         return [
             'order_type' => OrderType::General,
-            'quantity' => fake()->numberBetween(1, 10),
+            'quantity' => 1,
             'customer_image_path' => null,
             'status' => OrderStatus::Pending,
             'offered_price' => null,
             'notes' => fake()->optional(0.5)->sentence(),
             'customer_id' => null,
             'store_car_component_id' => null,
-            'model_id' => null,
         ];
     }
 

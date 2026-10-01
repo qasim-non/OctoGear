@@ -7,6 +7,105 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## General request details (API step 2)
+
+`POST /api/customer/orders` requires a UUID `Idempotency-Key` header for general
+requests. Select exactly one vehicle source and exactly one part source:
+
+```json
+{
+  "order_type": "general",
+  "customer_car_id": 12,
+  "component_id": 7,
+  "description": "Left and right mirrors"
+}
+```
+
+Alternatively, enter a vehicle for this request and a custom part name:
+
+```json
+{
+  "order_type": "general",
+  "vehicle": {
+    "car_name_id": 4,
+    "manufacturing_year": 2022,
+    "transmission_type": "automatic",
+    "color_id": 2,
+    "fuel_type": 1
+  },
+  "save_to_my_cars": true,
+  "component_name": "All mirrors"
+}
+```
+
+IDs are examples; use real catalog/owned-car IDs. Either vehicle mode works with
+either part mode. Description is optional (1000 characters maximum). Custom part
+names allow 255 characters in any language and are stored exactly as submitted
+after normal request whitespace trimming. They are not translated or copied
+into separate language columns.
+
+`component_id` identifies a catalog selection; its order `component_name` column
+stays null. Response `component_name` (and customer history `part_name`) resolves
+the current catalog name using `Accept-Language`. Renaming a catalog component
+therefore changes the name shown on earlier orders. Soft-deleted components remain
+readable on their existing orders but cannot be selected for new requests. The
+foreign key prevents permanent deletion of a component referenced by orders.
+Custom selections instead store only `component_name`, with a null `component_id`.
+There is no `component_name_ar` or `component_name_en` on orders.
+
+Manual vehicle details require all five fields shown above. Transmission accepts
+`automatic`, `manual`, or `unknown`; year must be 1970 through the current year.
+Color and fuel IDs must be active catalog entries. Manufacturer comes from the
+selected car name. A selected saved car supplies its own color and fuel; if either
+is missing/unavailable, submission returns a localized 422 on `customer_car_id`
+asking the customer to complete the car. Update it through the existing garage
+PATCH endpoint, then retry. Existing saved-car transmission can remain null.
+
+`save_to_my_cars` is optional, defaults to false, and is only allowed for manual
+vehicle details. Saving persists car name, year, transmission, color and fuel.
+A license plate is not required for this path; regular garage creation keeps its
+existing validation. Request snapshots never expose license plates.
+
+Customer, provider and admin order responses include `vehicle_details`: vehicle
+IDs/names, year, transmission, `color_id`, localized `color_name`, `fuel_type` (ID),
+and localized `fuel_type_name`. Vehicle names, color and fuel labels are copied at
+submission, so later garage/catalog edits do not alter a request. If a referenced
+vehicle/color/fuel entry is permanently deleted, the snapshot keeps its labels
+and its corresponding reference becomes null. The private
+`vehicle_details.customer_car_id` is visible only to the customer and admins.
+
+General input rejects `quantity`, `model_id`, `notes` and
+`store_car_component_id`. Use optional `description`, currently stored in `notes`.
+General responses omit quantity. New general rows use an internal quantity of one
+until the separate payment schema step, keeping their accepted offer as the whole
+request total through the existing payment stub.
+
+Identical same-key retries return the original request even if selected entries
+were later deleted. Changed payloads (including color/fuel) or retries of deleted
+orders return 409. Order, vehicle snapshot, optional garage save and existing
+single `customer_image` upload share a transaction; retries do not duplicate them
+or their notifications. Multi-image support remains a subsequent step.
+
+### Fresh database setup
+
+Development data is disposable. These migrations define the current schema,
+without legacy order conversion, legacy model metadata or restoration code.
+Because original migrations changed, rebuild the local development database:
+
+```sh
+php artisan migrate:fresh --seed --seeder=DemoDataSeeder
+```
+
+This removes the current database records and creates fresh demo/reference data.
+Demo requests cover both catalog selections and custom part names, with complete
+vehicle color/fuel snapshots. Do not apply this reset to a database whose data
+must be retained. See `database/seeders/README.md` for demo accounts.
+
+This is an API-only contract change; update Flutter in its later implementation
+step before enabling the new general-request flow. Offer selection/status changes,
+multiple photos and payment schema cleanup are still separate steps. The existing
+buy route, payment stub and test SMS configuration are unchanged.
+
 ## Customer-car transmission
 
 Customer car `POST /api/customer/customer-cars` and

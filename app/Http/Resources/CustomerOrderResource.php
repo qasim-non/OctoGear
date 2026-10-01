@@ -13,14 +13,14 @@ class CustomerOrderResource extends OrderResource
         $name = $request->header('Accept-Language', app()->getLocale()) === 'en' ? 'name_en' : 'name_ar';
         $part = $this->resource->storeCarComponent;
         $car = $part?->storeCar;
-        $model = $this->resource->carModel;
+        $vehicle = $this->resource->vehicleDetails;
         $payment = $this->resource->payment;
 
         return [
             ...parent::toArray($request),
-            'part_name' => $part?->component?->{$name},
-            'car_name' => ($car?->carName ?? $model?->carName)?->{$name},
-            'manufacturing_year' => $car?->manufacturing_year,
+            'part_name' => $this->isGeneral() ? $this->requestedComponentName($name === 'name_en' ? 'en' : 'ar') : $part?->component?->{$name},
+            'car_name' => $this->isGeneral() ? $vehicle?->{'car_'.$name} : $car?->carName?->{$name},
+            'manufacturing_year' => $this->isGeneral() ? $vehicle?->manufacturing_year : $car?->manufacturing_year,
             'currency' => 'SAR',
             'price_scale' => 100,
             'requested_unit_price' => $this->requested_unit_price,

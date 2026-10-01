@@ -1,6 +1,6 @@
 # Production and demo seed data
 
-All code and generated source assets for this change live under `database/seeders`. Factories, application code, migrations, and the current application database are unchanged by preparing these files.
+Seeders supply reference data and complete local demo scenarios for the current API schema.
 
 ## Run
 
@@ -13,6 +13,9 @@ php artisan db:seed --class=ProductionDataSeeder --force
 # Permanent data plus the complete local demo.
 # APP_ENV must be local or testing.
 php artisan db:seed --class=DemoDataSeeder
+
+# Rebuild disposable local data after changing the development schema.
+php artisan migrate:fresh --seed --seeder=DemoDataSeeder
 
 # Isolated verification: SQLite in memory + a temporary private image disk.
 php database/seeders/verify.php
@@ -62,6 +65,11 @@ The dataset contains:
 | Conversations / messages | 30 / 120 |
 
 Orders include general and specific requests across pending, negotiating, paid, completed, rejected, and cancelled states. Bids belong only to general orders; accepted offers match their orders. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. Offers and conversations use active stores in the customer's city.
+
+The 30 general requests split between 15 catalog selections (`component_id` only)
+and 15 custom part names (`component_name` only). Each has a vehicle snapshot with
+year, transmission, color and fuel type, including bilingual vehicle/color/fuel
+labels. Part names are not duplicated into language columns on orders.
 
 Demo administrators use `demo-admin@example.test`, `demo-manager@example.test`, `demo-employee@example.test`, `demo-hr@example.test`, and `demo-developer@example.test`; their local-only initial password is `DemoOnly-ChangeMe!`. Customer mobile fixtures begin at `+966500000100`; provider fixtures begin at `+966500000200`. All identities, phone values, businesses, registration numbers, inventory codes, prices, ratings, messages, and transactions are synthetic. Map links point to a city search, not a claimed real business address. No OTPs, login tokens, device tokens, deletion jobs, or gateway transactions are generated.
 

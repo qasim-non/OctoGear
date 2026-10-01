@@ -14,7 +14,7 @@ class AdminOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_type' => $this->order_type->value,
-            'quantity' => $this->quantity,
+            'quantity' => $this->when($this->isSpecific(), $this->quantity),
             'customer_image' => $this->customerImageUrl(),
             'status' => $this->status->value,
             'offered_price' => $this->offered_price,
@@ -24,12 +24,10 @@ class AdminOrderResource extends JsonResource
                 'full_name' => $this->customer?->full_name,
                 'mobile' => $this->customer?->mobile,
             ]),
-            'car_model' => $this->whenLoaded('carModel', fn () => $this->carModel ? [
-                'id' => $this->carModel->id,
-                'name' => $locale === 'en'
-                    ? $this->carModel->name_en
-                    : $this->carModel->name_ar,
-            ] : null),
+            'description' => $this->when($this->isGeneral(), $this->notes),
+            'component_id' => $this->when($this->isGeneral(), $this->component_id),
+            'component_name' => $this->when($this->isGeneral(), $this->requestedComponentName($locale)),
+            'vehicle_details' => new OrderVehicleDetailResource($this->whenLoaded('vehicleDetails'), $this->customer_id),
             'store_car_component' => $this->whenLoaded('storeCarComponent', fn () => $this->storeCarComponent ? [
                 'id' => $this->storeCarComponent->id,
                 'part_number' => $this->storeCarComponent->part_number,

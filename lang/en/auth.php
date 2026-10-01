@@ -63,6 +63,17 @@ return [
     */
 
     'validation' => [
+        'general_order' => [
+            'invalid_reference' => 'The selected item is unavailable. Please choose an available item.',
+            'vehicle_choice' => 'Choose one of your cars or enter vehicle details, but not both.',
+            'part_choice' => 'Choose a catalog component or enter a custom part name, but not both.',
+            'vehicle_fields' => 'Provide the car name, manufacturing year, transmission, color and fuel type.',
+            'complete_car' => 'Update the selected car with an available color and fuel type before submitting the request.',
+            'save_boolean' => 'Save to My cars must be true or false.',
+            'part_name' => 'The custom part name must be text of no more than 255 characters.',
+            'description' => 'The optional description must be text of no more than 1000 characters.',
+            'prohibited' => 'This field is not allowed for the selected request details.',
+        ],
         'transmission_type' => [
             'invalid' => 'Choose automatic, manual, or unknown for the transmission type.',
         ],

@@ -14,15 +14,15 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_type' => $this->order_type->value,
-            'quantity' => $this->quantity,
+            'quantity' => $this->when($this->isSpecific(), $this->quantity),
             'customer_image' => $this->customerImageUrl(),
             'status' => $this->status->value,
             'offered_price' => $this->offered_price,
             'notes' => $this->notes,
-            'car_model' => $this->whenLoaded('carModel', fn () => [
-                'id' => $this->carModel->id,
-                'name' => $locale === 'en' ? $this->carModel->name_en : $this->carModel->name_ar,
-            ]),
+            'description' => $this->when($this->isGeneral(), $this->notes),
+            'component_id' => $this->when($this->isGeneral(), $this->component_id),
+            'component_name' => $this->when($this->isGeneral(), $this->requestedComponentName($locale)),
+            'vehicle_details' => new OrderVehicleDetailResource($this->whenLoaded('vehicleDetails'), $this->customer_id),
             'store_car_component' => $this->whenLoaded('storeCarComponent', fn () => [
                 'id' => $this->storeCarComponent->id,
                 'part_number' => $this->storeCarComponent->part_number,

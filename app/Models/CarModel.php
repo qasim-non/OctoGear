@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CarModel extends Model
@@ -43,10 +42,5 @@ class CarModel extends Model
     public function carName(): BelongsTo
     {
         return $this->belongsTo(CarName::class, 'car_name_id');
-    }
-
-    public function orders(): HasMany
-    {
-        return $this->hasMany(Order::class);
     }
 }

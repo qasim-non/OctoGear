@@ -43,7 +43,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->createForCustomer($request->user(), $request->validated());
 
-        return $this->created(new OrderResource($order));
+        return $this->created(new OrderResource($order->loadMissing(['vehicleDetails', 'component'])));
     }
 
     public function show(Order $order)
@@ -58,7 +58,7 @@ class CustomerOrderController extends Controller
 
     private function historyRelations(): array
     {
-        return ['carModel.carName', 'storeCarComponent.component', 'storeCarComponent.storeCar.carName',
+        return ['vehicleDetails', 'component', 'storeCarComponent.component', 'storeCarComponent.storeCar.carName',
             'storeCarComponent.storeCar.store', 'acceptedStore', 'payment'];
     }
 
@@ -70,7 +70,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->acceptOffer($order, $offer);
 
-        $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load(['vehicleDetails', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
         return $this->success(new OrderResource($order));
     }
@@ -81,7 +81,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->cancel($order);
 
-        $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load(['vehicleDetails', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
         return $this->success(new OrderResource($order));
     }
@@ -109,7 +109,7 @@ class CustomerOrderController extends Controller
             return $this->error($message);
         }
 
-        $order->refresh()->load(['carModel', 'storeCarComponent.storeCar.store', 'acceptedStore']);
+        $order->refresh()->load(['vehicleDetails', 'component', 'storeCarComponent.storeCar.store', 'acceptedStore']);
 
         return $this->success([
             'payment' => new PaymentResource($payment),
@@ -123,7 +123,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->complete($order);
 
-        $order->load(['carModel', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load(['vehicleDetails', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
 
         return $this->success(new OrderResource($order));
     }

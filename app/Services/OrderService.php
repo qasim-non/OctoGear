@@ -31,7 +31,7 @@ use Throwable;
  */
 class OrderService
 {
-    public function __construct(private ImageStorageService $images) {}
+    public function __construct(private ImageStorageService $images, private GeneralOrderDetailsService $generalDetails) {}
 
     public function createForCustomer(User $customer, array $data): Order
     {
@@ -39,14 +39,28 @@ class OrderService
         $created = false;
         $key = $data['idempotency_key'] ?? null;
         $type = $data['order_type'] instanceof OrderType ? $data['order_type']->value : $data['order_type'];
-        $fingerprint = $key === null ? null : hash('sha256', json_encode([
+        $fingerprintData = $type === OrderType::General->value ? [
+            $type,
+            (int) ($data['customer_car_id'] ?? 0),
+            (int) ($data['vehicle']['car_name_id'] ?? 0),
+            (int) ($data['vehicle']['manufacturing_year'] ?? 0),
+            (int) ($data['vehicle']['color_id'] ?? 0),
+            (int) ($data['vehicle']['fuel_type'] ?? 0),
+            $data['vehicle']['transmission_type'] ?? null,
+            (bool) ($data['save_to_my_cars'] ?? false),
+            (int) ($data['component_id'] ?? 0),
+            trim($data['component_name'] ?? ''),
+            trim($data['description'] ?? ''),
+            isset($data['customer_image']) ? hash_file('sha256', $data['customer_image']->getRealPath()) : null,
+        ] : [
             $type,
             (int) ($data['store_car_component_id'] ?? 0),
-            (int) ($data['model_id'] ?? 0),
+            0, // Preserve the existing specific-request fingerprint layout.
             (int) $data['quantity'],
             trim($data['notes'] ?? ''),
             isset($data['customer_image']) ? hash_file('sha256', $data['customer_image']->getRealPath()) : null,
-        ], JSON_THROW_ON_ERROR));
+        ];
+        $fingerprint = $key === null ? null : hash('sha256', json_encode($fingerprintData, JSON_THROW_ON_ERROR));
 
         try {
             $order = DB::transaction(function () use ($customer, $data, $key, $type, $fingerprint, &$storedFiles, &$created) {
@@ -71,12 +85,21 @@ class OrderService
                     ? $this->validateRequestedComponent($data)->price : null;
 
                 $order = $customer->orders()->create([
-                    ...Arr::only($data, ['order_type', 'quantity', 'notes', 'store_car_component_id', 'model_id']),
+                    ...($type === OrderType::General->value ? [
+                        'order_type' => OrderType::General,
+                        // Internal compatibility value until the payment schema slice.
+                        'quantity' => 1,
+                        'notes' => $data['description'] ?? null,
+                    ] : Arr::only($data, ['order_type', 'quantity', 'notes', 'store_car_component_id'])),
                     'status' => OrderStatus::Pending,
                     'requested_unit_price' => $requestedUnitPrice,
                     'idempotency_key' => $key,
                     'idempotency_fingerprint' => $fingerprint,
                 ]);
+
+                if ($type === OrderType::General->value) {
+                    $this->generalDetails->attach($order, $customer, $data);
+                }
 
                 if (isset($data['customer_image'])) {
                     $image = $this->images->store(

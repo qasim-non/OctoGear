@@ -29,7 +29,8 @@ class Order extends Model
         'notes',
         'customer_id',
         'store_car_component_id',
-        'model_id',
+        'component_id',
+        'component_name',
         'accepted_store_id',
         'idempotency_key',
         'idempotency_fingerprint',
@@ -93,7 +94,7 @@ class Order extends Model
      |   Order → storeCarComponent → storeCar → Store (direct chain)
      |
      | GENERAL order:
-     |   Order → model_id (what car the part is for, no store selected yet)
+     |   Order → vehicleDetails (submission-time vehicle snapshot)
      |   Order → offers (multiple stores bid on it)
      */
 
@@ -111,14 +112,21 @@ class Order extends Model
         return $this->belongsTo(StoreCarComponent::class, 'store_car_component_id');
     }
 
-    /**
-     * The car model this order is for.
-     * Used mainly for general orders (no specific component selected yet).
-     * For specific orders, the model can be derived from storeCarComponent.
-     */
-    public function carModel(): BelongsTo
+    public function vehicleDetails(): HasOne
     {
-        return $this->belongsTo(CarModel::class, 'model_id');
+        return $this->hasOne(OrderVehicleDetail::class);
+    }
+
+    public function component(): BelongsTo
+    {
+        return $this->belongsTo(Component::class)->withTrashed();
+    }
+
+    public function requestedComponentName(string $locale): ?string
+    {
+        return $this->component_id === null
+            ? $this->component_name
+            : $this->component?->{$locale === 'en' ? 'name_en' : 'name_ar'};
     }
 
     /**

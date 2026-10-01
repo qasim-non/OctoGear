@@ -39,9 +39,9 @@ class OrderServiceTest extends TestCase
         $component = StoreCarComponent::factory()->create(['store_car_id' => $car->id]);
 
         $order = app(OrderService::class)->createForCustomer($customer, [
-            'store_car_component_id' => $component->id,
+            'component_id' => $component->component_id,
             'order_type' => OrderType::General,
-            'quantity' => 2,
+            'vehicle' => ['car_name_id' => $car->car_name_id, 'manufacturing_year' => 2020, 'transmission_type' => 'manual', 'color_id' => $car->color_id, 'fuel_type' => $car->fuel_type],
         ]);
 
         $this->assertSame(OrderStatus::Pending, $order->status);

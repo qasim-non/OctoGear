@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\OrderStatus;
 use App\Events\OrderCreated;
-use App\Models\CarModel;
 use App\Models\CarName;
 use App\Models\Order;
 use App\Models\OrderOffer;
@@ -49,7 +48,7 @@ class CustomerOrderHistoryTest extends TestCase
             ->assertJsonPath('data.part_name', 'Left wheel')->assertJsonPath('data.car_name', 'Camry')
             ->assertJsonPath('data.store_car_component.price', 12345)->assertJsonPath('data.currency', 'SAR')
             ->assertJsonPath('data.price_scale', 100)->assertJsonPath('data.requested_unit_price', null)
-            ->assertJsonPath('data.paid_amount', null)->assertJsonPath('data.car_model', null)
+            ->assertJsonPath('data.paid_amount', null)->assertJsonPath('data.vehicle_details', null)
             ->assertJsonMissingPath('data.payment')->assertJsonMissingPath('data.customer_id');
         $this->getJson('/api/customer/orders/'.$order->id, ['Accept-Language' => 'ar'])->assertOk()
             ->assertJsonPath('data.part_name', 'العجلة اليسرى')->assertJsonPath('data.car_name', 'كامري');
@@ -59,10 +58,14 @@ class CustomerOrderHistoryTest extends TestCase
     {
         $customer = User::factory()->customer()->create();
         $carName = CarName::factory()->create(['name_en' => 'Sunny']);
-        $model = CarModel::create(['car_name_id' => $carName->id, 'name_en' => '2020', 'name_ar' => '٢٠٢٠']);
-        $order = Order::factory()->general()->create(['customer_id' => $customer->id, 'model_id' => $model->id, 'quantity' => 2]);
+        $order = Order::factory()->general()->create(['customer_id' => $customer->id]);
+        $order->vehicleDetails()->create([
+            'car_name_id' => $carName->id, 'car_name_en' => 'Sunny', 'car_name_ar' => 'صني', 'manufacturing_year' => 2020,
+            'company_name_en' => $carName->carCompany->name_en, 'company_name_ar' => $carName->carCompany->name_ar,
+            'color_name_en' => 'White', 'color_name_ar' => 'أبيض', 'fuel_type_en' => 'Petrol', 'fuel_type_ar' => 'بنزين',
+        ]);
         $this->actingAs($customer, 'sanctum')->getJson('/api/customer/orders/'.$order->id, ['Accept-Language' => 'en'])->assertOk()
-            ->assertJsonPath('data.store_car_component', null)->assertJsonPath('data.car_model.name', '2020')
+            ->assertJsonPath('data.store_car_component', null)->assertJsonPath('data.vehicle_details.manufacturing_year', 2020)
             ->assertJsonPath('data.car_name', 'Sunny')->assertJsonPath('data.accepted_store', null)
             ->assertJsonPath('data.offers_count', 0)->assertJsonCount(0, 'data.offers');
         $store = Store::factory()->create();

@@ -65,7 +65,7 @@ class ProviderOrderController extends Controller
         $user = auth()->user();
 
         $offers = OrderOffer::query()
-            ->with(['order.carModel', 'store'])
+            ->with(['order.vehicleDetails', 'order.component', 'store'])
             ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
             ->latest()
             ->paginate(15);
@@ -80,7 +80,7 @@ class ProviderOrderController extends Controller
         $storeIds = $user->stores()->pluck('id');
 
         $orders = Order::query()
-            ->with(['customer', 'carModel', 'acceptedStore', 'storeCarComponent.storeCar.store'])
+            ->with(['customer', 'vehicleDetails', 'component', 'acceptedStore', 'storeCarComponent.storeCar.store'])
             ->whereIn('status', [OrderStatus::Paid])
             ->where(function ($q) use ($user, $storeIds) {
                 $q->whereIn('accepted_store_id', $storeIds)
@@ -123,7 +123,7 @@ class ProviderOrderController extends Controller
     private function generalRelations($user): array
     {
         return [
-            'carModel',
+            'vehicleDetails', 'component',
             'offers' => fn ($q) => $q
                 ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
                 ->with('store'),

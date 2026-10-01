@@ -5,8 +5,9 @@ namespace Tests\Feature;
 use App\Enums\OrderStatus;
 use App\Events\OrderCreated;
 use App\Models\Admin;
-use App\Models\CarModel;
 use App\Models\CarName;
+use App\Models\Color;
+use App\Models\FuelType;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class OrderImageTest extends TestCase
@@ -117,12 +119,12 @@ class OrderImageTest extends TestCase
 
     private function payload(): array
     {
-        $model = CarModel::create(['name_en' => 'Model', 'name_ar' => 'Model', 'car_name_id' => CarName::factory()->create()->id]);
+        $this->withHeader('Idempotency-Key', (string) Str::uuid());
 
         return [
             'order_type' => 'general',
-            'quantity' => 1,
-            'model_id' => $model->id,
+            'component_name' => 'Both mirrors',
+            'vehicle' => ['car_name_id' => CarName::factory()->create()->id, 'manufacturing_year' => 2020, 'transmission_type' => 'manual', 'color_id' => Color::factory()->create()->id, 'fuel_type' => FuelType::factory()->create()->id],
             'customer_image' => UploadedFile::fake()->createWithContent('image.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAF/gL+9/3K8QAAAABJRU5ErkJggg==')),
         ];
     }

@@ -1,7 +1,7 @@
 # OctoGear (YARDY) - API Code Guide
 
-> Latest verification (2026-10-01): **348 passed / 1,590 assertions** after
-> the customer-car transmission update. Historical sections describe their
+> Latest verification (2026-10-02): **366 passed / 2,108 assertions** after
+> the request color/fuel and component-name cleanup. Historical sections describe their
 > respective implementation slices.
 
 ## Project Overview
@@ -43,6 +43,52 @@ Verification: all eight transmission tests passed (156 assertions), the full
 Laravel suite passed (348 tests / 1,590 assertions), and targeted Pint checks
 passed. Migration down/up preservation was exercised only in isolated SQLite;
 the additive migration was applied to the local MySQL database without a reset.
+
+## General request details: API-only contract
+
+General creation uses POST /api/customer/orders with a required Idempotency-Key.
+Exactly one vehicle source: customer_car_id or vehicle containing car_name_id,
+manufacturing_year, transmission_type, color_id and fuel_type. All manual fields
+are required. Saved cars must have available color/fuel references; otherwise
+return a localized 422 asking the owner to update the garage car. Manual details
+may set save_to_my_cars=true. Garage saves include color/fuel; only the plate can
+be absent. Existing regular garage-create validation remains unchanged.
+
+Exactly one part source: component_id or component_name. The latter is custom
+text in any language, stored once. Catalog names come from the component relation
+with soft-deleted history included; renames appear on earlier orders. Referenced
+catalog components cannot be hard deleted. No bilingual part-name copies are
+stored on orders. Load component alongside vehicleDetails for order responses.
+Description is optional; general quantity, model_id, notes and store inventory
+IDs are prohibited input. The internal quantity remains one until the later
+payment schema step; general API responses omit it.
+
+order_vehicle_details stores the submitted vehicle, year, transmission and
+bilingual color/fuel labels. Reference IDs may become null after hard deletion;
+labels remain unchanged. The optional garage-car link is private to its owner
+and admins. Vehicle and part references resolve after idempotent replay, inside
+the creation transaction. Retries cannot duplicate cars, orders, files or events.
+Color and fuel participate in the general submission fingerprint.
+
+Existing development data is disposable, as explicitly agreed with the user.
+The affected migrations define the desired fresh schema, with no legacy-model
+conversion, data-preservation loops or rollback restoration. Rebuild development
+with migrate:fresh and DemoDataSeeder rather than adding compatibility migrations.
+Keep updates scoped and complete across schema, validation, services, resources,
+seeders and tests. Do not reset any non-development database.
+
+See README.md for payloads, response fields and rebuild instructions. This slice
+contains no Flutter, offer/payment state, SMS or multi-image changes. Verify manual
+and saved vehicles, catalog/custom parts, localization, ownership, retry conflicts,
+rollback, snapshot stability, role-specific reads, fresh schema and demo seeding,
+then the complete Laravel suite.
+
+Verification (2026-10-02): all 366 tests passed (2,108 assertions), targeted Pint
+passed, and the local MySQL `octogear` database was rebuilt and seeded successfully.
+The build contains 60 demo orders and 30 complete vehicle snapshots; general
+requests split evenly between catalog IDs and custom names. Removed a MySQL-only
+column-positioning dependency on `model_id` from the accepted-store migration.
+The obsolete order name/model columns and legacy snapshot metadata are absent.
 
 ## Architecture Rules (governing conventions)
 
@@ -436,7 +482,7 @@ Notifications (`NewOrderNotification`, `NewOfferNotification`, `NewMessageNotifi
   `whenLoaded(...)` guards so no N+1 leaks from serialization.
 - Listing endpoints use `paginate` and the `paginated` response helper.
 - Resources use `whenLoaded` for nullable relations (`acceptedStore`,
-  `storeCarComponent`, `offers`, `carModel`, etc.).
+  `storeCarComponent`, `offers`, `vehicleDetails`, etc.).
 - Locale-aware fields (e.g. `name_en`/`name_ar`) are selected per `Accept-Language`
   inside resources using `$request->header('Accept-Language', app()->getLocale())`.
 

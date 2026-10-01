@@ -218,9 +218,9 @@ class DemoDataSeeder extends Seeder
                     'stock_quantity' => $unavailable ? 0 : 8,
                     'warranty_months' => $unavailable ? 0 : 3,
                 ]);
-                $components[] = ['id' => $stockId, 'price' => $price, 'image' => $image, 'name' => $name];
+                $components[] = ['id' => $stockId, 'component_id' => $componentId, 'price' => $price, 'image' => $image, 'name' => $name];
             }
-            $cars[] = ['id' => $id, 'model_id' => $profile['model_id'], 'components' => $components];
+            $cars[] = ['id' => $id, 'components' => $components];
         }
 
         return $cars;
@@ -301,12 +301,28 @@ class DemoDataSeeder extends Seeder
                     'status' => $status,
                     'quantity' => 1,
                     'offered_price' => $price,
-                    'model_id' => $type === 'general' ? $car['model_id'] : null,
+                    'component_id' => $type === 'general' && $offset === 0 ? $part['component_id'] : null,
+                    'component_name' => $type === 'general' && $offset !== 0 ? $part['name'] : null,
                     'store_car_component_id' => $type === 'specific' ? $part['id'] : null,
                     'accepted_store_id' => $type === 'general' && $accepted ? $chosenStore['id'] : null,
                     'created_at' => now()->subDays(20 - $offset),
                     'updated_at' => now()->subDays(10 - $offset),
                 ]);
+                if ($type === 'general') {
+                    $vehicle = DB::table('stores_cars')->where('id', $car['id'])->first();
+                    $name = DB::table('cars_names')->where('id', $vehicle->car_name_id)->first();
+                    $company = DB::table('cars_companies')->where('id', $name->car_company_id)->first();
+                    $color = DB::table('colors')->where('id', $vehicle->color_id)->first();
+                    $fuel = DB::table('fuel_types')->where('id', $vehicle->fuel_type)->first();
+                    SeedRecords::once('order_vehicle_details', ['order_id' => $orderId], [
+                        'car_name_id' => $name->id, 'car_company_id' => $company->id,
+                        'car_name_en' => $name->name_en, 'car_name_ar' => $name->name_ar,
+                        'company_name_en' => $company->name_en, 'company_name_ar' => $company->name_ar,
+                        'manufacturing_year' => $vehicle->manufacturing_year, 'transmission_type' => 'unknown',
+                        'color_id' => $color->id, 'color_name_en' => $color->name_en, 'color_name_ar' => $color->name_ar,
+                        'fuel_type' => $fuel->id, 'fuel_type_en' => $fuel->type_en, 'fuel_type_ar' => $fuel->type_ar,
+                    ]);
+                }
                 if (($index + $offset) % 4 !== 0) {
                     $this->images->attachment('orders', $orderId, 'customer_image_', $part['image']);
                 }

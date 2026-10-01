@@ -31,7 +31,7 @@ class AdminOrderService
         $mobile = $filters['mobile'] ?? null;
 
         return Order::query()
-            ->with(['customer', 'carModel', 'acceptedStore'])
+            ->with(['customer', 'vehicleDetails', 'component', 'acceptedStore'])
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($type, fn ($query) => $query->where('order_type', $type))
             ->when($customer, fn ($query) => $query->whereHas(
@@ -50,7 +50,7 @@ class AdminOrderService
     {
         return $order->load([
             'customer',
-            'carModel',
+            'vehicleDetails', 'component',
             'storeCarComponent.storeCar.store',
             'acceptedStore',
             'payment',
