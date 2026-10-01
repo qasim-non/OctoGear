@@ -6,6 +6,7 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\Order;
+use App\Models\OrderImage;
 use App\Models\Store;
 use App\Models\StoreCarPicture;
 use App\Models\StorePicture;
@@ -58,9 +59,10 @@ class MediaController extends Controller
         return $this->images->stream($storeRequest->registrationImage()) ?? $this->notFound();
     }
 
-    public function orderImage(Request $request, Order $order)
+    public function orderImage(Request $request, Order $order, OrderImage $orderImage)
     {
         $viewer = $this->viewer($request);
+        abort_unless($orderImage->order_id === $order->id, 404);
         if ($viewer instanceof User) {
             // General pending orders are browsable by providers; that rule must
             // never grant other customers access to a customer's attachment.
@@ -68,7 +70,7 @@ class MediaController extends Controller
             $this->authorize('view', $order);
         }
 
-        return $this->images->stream($order->customerImage()) ?? $this->notFound();
+        return $this->images->stream($orderImage->fileMetadata()) ?? $this->notFound();
     }
 
     private function viewer(Request $request): User|Admin

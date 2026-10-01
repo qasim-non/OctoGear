@@ -127,7 +127,6 @@ class CustomerCarTransmissionTest extends TestCase
         $fingerprint = hash('sha256', json_encode([
             'car_name_id' => $payload['car_name_id'],
             'manufacturing_year' => $payload['manufacturing_year'],
-            'vehicle_plat_number' => $payload['vehicle_plat_number'],
             'color_id' => $payload['color_id'],
             'fuel_type' => $payload['fuel_type'],
             'pictures' => [],
@@ -182,7 +181,6 @@ class CustomerCarTransmissionTest extends TestCase
         return [
             'car_name_id' => CarName::factory()->create()->id,
             'manufacturing_year' => 2022,
-            'vehicle_plat_number' => 'TRANSMISSION-TEST',
             'color_id' => Color::factory()->create()->id,
             'fuel_type' => FuelType::factory()->create()->id,
         ];

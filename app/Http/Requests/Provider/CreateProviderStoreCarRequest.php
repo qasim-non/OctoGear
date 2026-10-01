@@ -16,7 +16,6 @@ class CreateProviderStoreCarRequest extends BaseRequest
         return [
             'car_name_id' => ['required', 'integer', 'exists:cars_names,id'],
             'manufacturing_year' => ['required', 'integer', 'min:1970', "max:$year"],
-            'vehicle_plat_number' => ['required', 'string', 'max:50'],
             'color_id' => ['required', 'integer', 'exists:colors,id'],
             'fuel_type' => ['required', 'integer', 'exists:fuel_types,id'],
             'pictures' => ['nullable', 'array', 'max:'.config('images.max_files')],
@@ -38,8 +37,6 @@ class CreateProviderStoreCarRequest extends BaseRequest
             'manufacturing_year.integer' => __('auth.validation.manufacturing_year.integer'),
             'manufacturing_year.min' => __('auth.validation.manufacturing_year.min'),
             'manufacturing_year.max' => __('auth.validation.manufacturing_year.max'),
-            'vehicle_plat_number.required' => __('auth.validation.vehicle_plat_number.required'),
-            'vehicle_plat_number.max' => __('auth.validation.vehicle_plat_number.max'),
             'color_id.required' => __('auth.validation.color_id.required'),
             'color_id.integer' => __('auth.validation.color_id.integer'),
             'color_id.exists' => __('auth.validation.color_id.exists'),

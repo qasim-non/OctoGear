@@ -208,12 +208,10 @@ class CustomerCarService
         return hash('sha256', json_encode([
             'car_name_id' => (int) $data['car_name_id'],
             'manufacturing_year' => (int) $data['manufacturing_year'],
-            'vehicle_plat_number' => (string) $data['vehicle_plat_number'],
             'color_id' => (int) $data['color_id'],
             'fuel_type' => (int) $data['fuel_type'],
             'pictures' => $pictures,
-            // Keep old omitted/null requests byte-compatible with their saved
-            // fingerprints, while detecting changed transmission selections.
+            // Omission and null represent the same transmission selection.
             ...isset($data['transmission_type'])
                 ? ['transmission_type' => $data['transmission_type']]
                 : [],

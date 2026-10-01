@@ -15,7 +15,6 @@ class UpdateCustomerCarRequest extends BaseRequest
         return [
             'car_name_id' => ['sometimes', 'integer', Rule::exists('cars_names', 'id')->whereNull('deleted_at')],
             'manufacturing_year' => ['sometimes', 'integer', 'min:1970', "max:$year"],
-            'vehicle_plat_number' => ['sometimes', 'string', 'max:50'],
             'transmission_type' => ['sometimes', 'nullable', 'string', Rule::enum(TransmissionType::class)],
             'color_id' => ['sometimes', 'integer', Rule::exists('colors', 'id')->whereNull('deleted_at')],
             'fuel_type' => ['sometimes', 'integer', Rule::exists('fuel_types', 'id')->whereNull('deleted_at')],

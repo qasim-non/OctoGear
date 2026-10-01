@@ -19,7 +19,6 @@ class OrderFactory extends Factory
         return [
             'order_type' => OrderType::General,
             'quantity' => 1,
-            'customer_image_path' => null,
             'status' => OrderStatus::Pending,
             'offered_price' => null,
             'notes' => fake()->optional(0.5)->sentence(),

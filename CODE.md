@@ -51,8 +51,9 @@ Exactly one vehicle source: customer_car_id or vehicle containing car_name_id,
 manufacturing_year, transmission_type, color_id and fuel_type. All manual fields
 are required. Saved cars must have available color/fuel references; otherwise
 return a localized 422 asking the owner to update the garage car. Manual details
-may set save_to_my_cars=true. Garage saves include color/fuel; only the plate can
-be absent. Existing regular garage-create validation remains unchanged.
+may set save_to_my_cars=true. Garage saves include color/fuel. Plate numbers have
+been removed from customer and provider cars across schema and API; customer-car
+photo support remains intact.
 
 Exactly one part source: component_id or component_name. The latter is custom
 text in any language, stored once. Catalog names come from the component relation
@@ -70,6 +71,14 @@ and admins. Vehicle and part references resolve after idempotent replay, inside
 the creation transaction. Retries cannot duplicate cars, orders, files or events.
 Color and fuel participate in the general submission fingerprint.
 
+Order creation accepts optional images[] uploads for both request types. Use the
+shared ImageRules and ImageStorageService limits; persist ordered metadata in
+order_images and load images alongside order relations in every order response.
+Image content and order participate in idempotency. Protected media URLs verify
+both the parent order and viewer access. Soft deletion retains files; instance
+force deletion records cleanup jobs atomically and deletes files after commit.
+Order scalar image columns and the old single-image route have been removed.
+
 Existing development data is disposable, as explicitly agreed with the user.
 The affected migrations define the desired fresh schema, with no legacy-model
 conversion, data-preservation loops or rollback restoration. Rebuild development
@@ -78,7 +87,7 @@ Keep updates scoped and complete across schema, validation, services, resources,
 seeders and tests. Do not reset any non-development database.
 
 See README.md for payloads, response fields and rebuild instructions. This slice
-contains no Flutter, offer/payment state, SMS or multi-image changes. Verify manual
+contains no Flutter, offer/payment state or SMS changes. Verify manual
 and saved vehicles, catalog/custom parts, localization, ownership, retry conflicts,
 rollback, snapshot stability, role-specific reads, fresh schema and demo seeding,
 then the complete Laravel suite.

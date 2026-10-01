@@ -108,20 +108,18 @@ class CustomerCarManagementTest extends TestCase
             ->patchJson('/api/customer/customer-cars/'.$car->id, [
                 'car_name_id' => $replacementVehicle['name']->id,
                 'manufacturing_year' => 2024,
-                'vehicle_plat_number' => 'HON-2024',
                 'color_id' => $replacementVehicle['color']->id,
                 'fuel_type' => $replacementVehicle['fuel']->id,
             ])
             ->assertOk()
             ->assertJsonPath('data.company.name', 'Honda')
             ->assertJsonPath('data.manufacturing_year', 2024)
-            ->assertJsonPath('data.vehicle_plat_number', 'HON-2024');
+            ->assertJsonMissingPath('data.vehicle_plat_number');
 
         $this->assertDatabaseHas('customer_cars', [
             'id' => $car->id,
             'car_name_id' => $replacementVehicle['name']->id,
             'manufacturing_year' => 2024,
-            'vehicle_plat_number' => 'HON-2024',
             'color_id' => $replacementVehicle['color']->id,
             'fuel_type' => $replacementVehicle['fuel']->id,
         ]);
@@ -186,7 +184,6 @@ class CustomerCarManagementTest extends TestCase
         $invalidPayload = [
             'car_name_id' => $deletedName->id,
             'manufacturing_year' => 2022,
-            'vehicle_plat_number' => 'OLD-422',
             'color_id' => $deletedColor->id,
             'fuel_type' => $deletedFuel->id,
         ];
@@ -243,7 +240,6 @@ class CustomerCarManagementTest extends TestCase
             'color_id' => $vehicle['color']->id,
             'fuel_type' => $vehicle['fuel']->id,
             'manufacturing_year' => 2022,
-            'vehicle_plat_number' => 'CAR-2022',
         ]);
     }
 

@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
@@ -49,10 +50,12 @@ class CustomerCarMediaTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('success', true)
+            ->assertJsonMissingPath('data.vehicle_plat_number')
             ->assertJsonPath('data.pictures.0.mime_type', 'image/png')
             ->assertJsonPath('data.pictures.0.sort_order', 0);
 
         $car = CustomerCar::query()->findOrFail($response->json('data.id'));
+        $this->assertFalse(Schema::hasColumn('customer_cars', 'vehicle_plat_number'));
         $picture = $car->pictures()->firstOrFail();
         $pictureData = $response->json('data.pictures.0');
 
@@ -561,7 +564,6 @@ class CustomerCarMediaTest extends TestCase
         return [
             'car_name_id' => CarName::factory()->create()->id,
             'manufacturing_year' => 2022,
-            'vehicle_plat_number' => 'ABC-1234',
             'color_id' => Color::factory()->create()->id,
             'fuel_type' => FuelType::factory()->create()->id,
             ...$overrides,

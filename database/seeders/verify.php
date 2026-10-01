@@ -156,7 +156,7 @@ try {
     }
 
     $mediaCount = 0;
-    foreach (['customer_car_pictures' => '', 'store_car_pictures' => '', 'store_pictures' => '', 'stores' => 'commercial_registration_', 'store_requests' => 'commercial_registration_', 'orders' => 'customer_image_'] as $table => $prefix) {
+    foreach (['customer_car_pictures' => '', 'store_car_pictures' => '', 'store_pictures' => '', 'stores' => 'commercial_registration_', 'store_requests' => 'commercial_registration_', 'order_images' => ''] as $table => $prefix) {
         $rows = DB::table($table)->whereNotNull($prefix.'disk')->get();
         $assert($rows->isNotEmpty(), "No images seeded for {$table}.");
         foreach ($rows as $row) {

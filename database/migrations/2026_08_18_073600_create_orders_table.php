@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->enum('order_type', ['general', 'specific']);
             $table->integer('quantity');
-            $table->string('customer_image', 255)->nullable();
             $table->enum('status', [
                 'pending',          // customer sent request, waiting store response.
                 'rejected',         // store rejected (just for specific order)

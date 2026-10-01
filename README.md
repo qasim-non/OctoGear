@@ -63,8 +63,8 @@ PATCH endpoint, then retry. Existing saved-car transmission can remain null.
 
 `save_to_my_cars` is optional, defaults to false, and is only allowed for manual
 vehicle details. Saving persists car name, year, transmission, color and fuel.
-A license plate is not required for this path; regular garage creation keeps its
-existing validation. Request snapshots never expose license plates.
+Customer and provider cars do not collect or store plate numbers. Customer-car
+photos remain supported through the existing private photo endpoints.
 
 Customer, provider and admin order responses include `vehicle_details`: vehicle
 IDs/names, year, transmission, `color_id`, localized `color_name`, `fuel_type` (ID),
@@ -82,9 +82,9 @@ request total through the existing payment stub.
 
 Identical same-key retries return the original request even if selected entries
 were later deleted. Changed payloads (including color/fuel) or retries of deleted
-orders return 409. Order, vehicle snapshot, optional garage save and existing
-single `customer_image` upload share a transaction; retries do not duplicate them
-or their notifications. Multi-image support remains a subsequent step.
+orders return 409. Order, vehicle snapshot, optional garage save and optional
+`images[]` uploads share a transaction; retries do not duplicate them or their
+notifications. Image bytes and their order participate in the retry fingerprint.
 
 ### Fresh database setup
 
@@ -131,7 +131,7 @@ No provider-car, order, payment, SMS, or Flutter changes are part of this step.
 Authenticated marketplace clients can read `GET /api/stores/{store}/cars/{car}`
 and its paginated `/components?page=1` child. Both enforce active-store visibility
 and nested ownership. Car list/detail responses use `MarketplaceStoreCarResource`
-to omit license plates, management flags, and creation timestamps; detail includes
+to omit management flags and creation timestamps; detail includes
 localized manufacturer and section-condition data. Provider management responses
 keep their existing resource.
 
@@ -168,7 +168,7 @@ their original disk so changing the upload default does not break older files.
 | `PUT /api/provider/store/{store}/cars/{car}` | `pictures[]` replaces gallery |
 | `PUT /api/provider/store/{store}` | `pictures[]` replaces gallery; `commercial_registration_picture` replaces registration |
 | `POST /api/provider/store-requests` and `/direct` | `commercial_registration_picture` |
-| `POST /api/customer/orders` | optional `customer_image` |
+| `POST /api/customer/orders` | optional `images[]` for general and specific requests |
 
 Send actual file parts, not local paths, URLs, or base64 strings. For multipart
 updates use HTTP `POST` with the form field `_method=PUT`; PHP then parses the
@@ -177,11 +177,19 @@ existing authorization requirements still apply. Omitting a gallery preserves
 it; a JSON update with `pictures: []` clears it.
 
 Gallery responses use `{id, url, mime_type, size_bytes, sort_order}` objects.
-The scalar `customer_image` and `commercial_registration_picture` response fields
-contain a protected URL or null. Send the same bearer token when loading images.
+Orders return an ordered `images` array (empty when no files were submitted).
+The `commercial_registration_picture` response field contains a protected URL or
+null. Send the same bearer token when loading images.
 Store galleries follow marketplace access; registration documents require the
 owner or an active administrator; order images follow order access rules.
 Customer-car photo routes and their existing response format are unchanged.
+
+Order images live in `order_images`; orders have no scalar image columns.
+Submit zero to five images on creation (subject to the configured limits above)
+and read them at `GET /api/media/orders/{order}/images/{orderImage}`. The image
+must belong to that order, and the viewer must have access to the order. This
+step does not add image editing endpoints. The old `customer_image` input is
+rejected with a message directing clients to `images[]`.
 
 Uploads are cleaned up if database persistence fails. Replacement deletions
 are recorded in `pending_image_deletions` in the same database transaction and
@@ -197,8 +205,10 @@ leaves their disk null because they do not identify verified stored files. Such
 records are not exposed as working image URLs; upload the real images through
 the relevant API to replace them. No remote URL is downloaded automatically.
 
-Soft deletion retains private files. Instance force deletion on image-owning
-models performs file cleanup before removing metadata. Bulk/raw database
+Soft deletion retains private files. Force-deleting an order queues its image
+cleanup in the deletion transaction and removes files only after commit. Failed
+file deletions remain queued for retry. Other image-owning models retain their
+existing cleanup behavior. Bulk/raw database
 deletions and unrelated foreign-key cascades bypass Eloquent events; any future
 account/reference-data purge must explicitly clean its dependent media through
 the feature services before deleting records.

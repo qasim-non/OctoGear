@@ -85,7 +85,7 @@ Rerunning preserves existing demo edits and does not reset passwords, stock, pay
 - 10 generic automotive part photos.
 - 2 documents clearly marked as demo/sample and invalid for official use.
 
-Cars use Saudi-style plates with fictional identifiers. Images are synthetic illustrations, not evidence of a real vehicle, real business, official registration, OEM part number, or guaranteed part fitment. Photos are reused across fixtures to keep the generation count within the requested budget. Car records use the pictured make, model, year, color, and sample plate; repeated plates across different demo owners reflect this deliberate reuse.
+Images are synthetic illustrations, not evidence of a real vehicle, real business, official registration, OEM part number, or guaranteed part fitment. Photos are reused across fixtures to keep the generation count within the requested budget. Car records use the pictured make, model, year and color. Plate numbers are not stored in car records or asset metadata. Demo cars are identified by owner/store and catalog car name, with distinct car names per owner/store so reruns reuse the same records.
 
 The first three intact photos were edited only to replace their initially blank plates with Saudi-style plates. Original pre-edit renders are not included in this directory or the seed manifest. No more images need to be generated when running a seeder.
 
@@ -100,7 +100,7 @@ Coverage:
 | `store_pictures` | One or two gallery photos on some stores |
 | `stores.commercial_registration_*` | Clearly marked sample document |
 | `store_requests.commercial_registration_*` | Independent copy of sample document |
-| `orders.customer_image_*` | Part photos attached to general and specific requests |
+| `order_images` | Optional galleries on general and specific requests; general requests demonstrate multiple photos |
 
 **Neither `components` nor `store_car_components` currently has an image field or picture relation.** To keep this change confined to seeders, their ten part photos are saved and used as order attachments. Adding component-gallery support requires a separately authorised schema/API change. No image paths are hidden in unrelated text fields.
 

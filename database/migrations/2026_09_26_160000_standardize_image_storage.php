@@ -23,9 +23,9 @@ return new class extends Migration
             });
         }
 
-        foreach (['stores', 'store_requests', 'orders'] as $name) {
-            $prefix = $name === 'orders' ? 'customer_image' : 'commercial_registration';
-            $oldColumn = $name === 'orders' ? 'customer_image' : 'commercial_registration_picture';
+        foreach (['stores', 'store_requests'] as $name) {
+            $prefix = 'commercial_registration';
+            $oldColumn = 'commercial_registration_picture';
             Schema::table($name, function (Blueprint $table) use ($oldColumn, $prefix) {
                 $table->renameColumn($oldColumn, $prefix.'_path');
             });
@@ -39,9 +39,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (['stores', 'store_requests', 'orders'] as $name) {
-            $prefix = $name === 'orders' ? 'customer_image' : 'commercial_registration';
-            $oldColumn = $name === 'orders' ? 'customer_image' : 'commercial_registration_picture';
+        foreach (['stores', 'store_requests'] as $name) {
+            $prefix = 'commercial_registration';
+            $oldColumn = 'commercial_registration_picture';
             Schema::table($name, function (Blueprint $table) use ($oldColumn, $prefix) {
                 $table->dropColumn([$prefix.'_disk', $prefix.'_mime_type', $prefix.'_size_bytes']);
                 $table->renameColumn($prefix.'_path', $oldColumn);

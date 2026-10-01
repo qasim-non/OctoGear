@@ -48,7 +48,7 @@ final class DemoImages
     {
         $identity = [$foreignKey => $ownerId, 'sort_order' => $sortOrder];
         $existing = DB::table($table)->where($identity)->orderBy('id')->first();
-        if ($existing?->deleted_at !== null) {
+        if (($existing->deleted_at ?? null) !== null) {
             return;
         }
 

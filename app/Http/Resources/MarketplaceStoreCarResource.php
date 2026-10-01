@@ -10,7 +10,7 @@ class MarketplaceStoreCarResource extends StoreCarResource
     public function toArray(Request $request): array
     {
         $data = parent::toArray($request);
-        unset($data['vehicle_plat_number'], $data['can_manage'], $data['created_at']);
+        unset($data['can_manage'], $data['created_at']);
 
         $company = $this->carName?->carCompany;
         $data['company'] = $company ? [

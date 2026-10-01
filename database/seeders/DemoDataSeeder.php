@@ -171,15 +171,18 @@ class DemoDataSeeder extends Seeder
         $intact = $this->carAssets(false);
         $damaged = $this->carAssets(true);
         $cars = [];
+        $carNames = [];
         foreach (range(0, 2) as $position) {
             $broken = $position === 0 || ($position === 2 && $storeIndex % 2 === 0);
             $pool = $broken ? $damaged : $intact;
-            $asset = $pool[($storeIndex + $position) % count($pool)];
-            $profile = $this->profile($asset);
-            $plate = $asset['plate'];
-            $id = SeedRecords::once('stores_cars', ['store_id' => $storeId, 'vehicle_plat_number' => $plate], [
+            $assetIndex = $storeIndex + $position;
+            do {
+                $asset = $pool[$assetIndex++ % count($pool)];
+                $profile = $this->profile($asset);
+            } while (in_array($profile['car_name_id'], $carNames, true));
+            $carNames[] = $profile['car_name_id'];
+            $id = SeedRecords::once('stores_cars', ['store_id' => $storeId, 'car_name_id' => $profile['car_name_id']], [
                 'manufacturing_year' => 2024,
-                'car_name_id' => $profile['car_name_id'],
                 'color_id' => $profile['color_id'],
                 'fuel_type' => $profile['fuel_type'],
             ]);
@@ -235,9 +238,9 @@ class DemoDataSeeder extends Seeder
                 $profile = $this->profile($asset);
                 $id = SeedRecords::once('customer_cars', [
                     'customer_id' => $customer['id'],
-                    'vehicle_plat_number' => $asset['plate'],
+                    'car_name_id' => $profile['car_name_id'],
                 ], [
-                    'manufacturing_year' => 2024, 'car_name_id' => $profile['car_name_id'],
+                    'manufacturing_year' => 2024,
                     'color_id' => $profile['color_id'], 'fuel_type' => $profile['fuel_type'],
                 ]);
                 if (($index + $position) % 4 !== 0) {
@@ -324,7 +327,10 @@ class DemoDataSeeder extends Seeder
                     ]);
                 }
                 if (($index + $offset) % 4 !== 0) {
-                    $this->images->attachment('orders', $orderId, 'customer_image_', $part['image']);
+                    $this->images->picture('order_images', 'order_id', $orderId, $part['image'], 0);
+                    if ($type === 'general') {
+                        $this->images->picture('order_images', 'order_id', $orderId, 'part-mirror.png', 1);
+                    }
                 }
 
                 // Keep changes made by a tester on reruns: transactions are fixtures only once.

@@ -23,7 +23,9 @@ class StoreOrderRequest extends BaseRequest
             'order_type' => ['required', Rule::in(['general', 'specific'])],
             'quantity' => ['required', 'integer', 'min:1', 'max:2147483647'],
             'idempotency_key' => ['nullable', 'uuid'],
-            'customer_image' => ['nullable', ...ImageRules::file()],
+            'customer_image' => ['prohibited'],
+            'images' => ['sometimes', 'array', 'list', 'max:'.config('images.max_files')],
+            'images.*' => ImageRules::file(),
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
 
@@ -58,6 +60,15 @@ class StoreOrderRequest extends BaseRequest
     public function messages(): array
     {
         $messages = [
+            'customer_image.prohibited' => __('auth.validation.order_images.use_images'),
+            'images.array' => __('auth.validation.order_images.array'),
+            'images.list' => __('auth.validation.order_images.array'),
+            'images.max' => __('auth.validation.order_images.max', ['max' => config('images.max_files')]),
+            'images.*.file' => __('auth.validation.pictures.file'),
+            'images.*.image' => __('auth.validation.pictures.image'),
+            'images.*.mimes' => __('auth.validation.pictures.mimes'),
+            'images.*.max' => __('auth.validation.order_images.file_max', ['max' => config('images.max_file_size_kb')]),
+            'images.*.dimensions' => __('auth.validation.pictures.dimensions'),
             'idempotency_key.required' => __('auth.validation.idempotency_key.required'),
             'idempotency_key.uuid' => __('auth.validation.idempotency_key.uuid'),
             'vehicle.transmission_type.string' => __('auth.validation.transmission_type.invalid'),

@@ -95,7 +95,7 @@ class StoreCarMediaTest extends TestCase
         $car = $service->create($store, $this->payload(['pictures' => [$this->image()]]));
         $oldPicture = $car->pictures()->firstOrFail();
 
-        $service->update($car, ['vehicle_plat_number' => 'CHANGED']);
+        $service->update($car, ['manufacturing_year' => 2023]);
         $this->assertSame($oldPicture->id, $car->pictures()->firstOrFail()->id);
         Storage::disk('images_local')->assertExists($oldPicture->path);
 
@@ -122,7 +122,7 @@ class StoreCarMediaTest extends TestCase
             $this->actingAs($provider, 'sanctum')
                 ->post("/api/provider/store/{$store->id}/cars/{$car->id}", [
                     '_method' => 'PUT',
-                    'vehicle_plat_number' => 'ROLLED-BACK',
+                    'manufacturing_year' => 2023,
                     'pictures' => [$this->image()],
                 ], ['Accept' => 'application/json'])->assertStatus(500);
         } finally {
@@ -130,7 +130,7 @@ class StoreCarMediaTest extends TestCase
         }
 
         $this->assertSame($oldPicture->id, $car->fresh()->pictures()->firstOrFail()->id);
-        $this->assertNotSame('ROLLED-BACK', $car->fresh()->vehicle_plat_number);
+        $this->assertSame(2022, $car->fresh()->manufacturing_year);
         $this->assertSame([$oldPicture->path], Storage::disk('images_local')->allFiles());
     }
 
@@ -220,7 +220,6 @@ class StoreCarMediaTest extends TestCase
         return [
             'car_name_id' => CarName::factory()->create()->id,
             'manufacturing_year' => 2022,
-            'vehicle_plat_number' => 'ABC-1234',
             'color_id' => Color::factory()->create()->id,
             'fuel_type' => FuelType::factory()->create()->id,
             'sections' => [['section_id' => CarSection::factory()->create()->id, 'condition' => 'okay']],

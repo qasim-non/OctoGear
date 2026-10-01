@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('customer_cars', function (Blueprint $table) {
             $table->id();
             $table->integer('manufacturing_year');
-            $table->string('vehicle_plat_number', 50)->nullable();
             $table->foreignId('car_name_id')->constrained('cars_names', 'id')->onDelete('cascade');
             $table->foreignId('color_id')->constrained('colors', 'id')->onDelete('cascade');
             $table->foreignId('customer_id')->constrained('users', 'id')->onDelete('cascade');

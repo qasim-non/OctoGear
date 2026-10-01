@@ -16,7 +16,6 @@ class CustomerCar extends Model
 
     protected $fillable = [
         'manufacturing_year',
-        'vehicle_plat_number',
         'car_name_id',
         'color_id',
         'customer_id',

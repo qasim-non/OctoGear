@@ -14,7 +14,6 @@ class StoreCarResource extends JsonResource
         return [
             'id' => $this->id,
             'manufacturing_year' => $this->manufacturing_year,
-            'vehicle_plat_number' => $this->vehicle_plat_number,
             'car_name' => $this->whenLoaded('carName', fn () => [
                 'id' => $this->carName->id,
                 'name' => $locale === 'en' ? $this->carName->name_en : $this->carName->name_ar,

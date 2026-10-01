@@ -12,6 +12,7 @@ use App\Models\StoresCar;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -63,7 +64,6 @@ class ProviderStoreCarTest extends TestCase
         $payload = [
             'car_name_id' => $carName->id,
             'manufacturing_year' => 2020,
-            'vehicle_plat_number' => '1234-567',
             'color_id' => $color->id,
             'fuel_type' => $fuel->id,
             'pictures' => [$this->image(), $this->image()],
@@ -76,12 +76,13 @@ class ProviderStoreCarTest extends TestCase
             ->post("/api/provider/store/{$store->id}/cars", $payload, ['Accept' => 'application/json'])
             ->assertStatus(201)
             ->assertJsonPath('data.manufacturing_year', 2020)
-            ->assertJsonPath('data.vehicle_plat_number', '1234-567');
+            ->assertJsonMissingPath('data.vehicle_plat_number');
 
         $this->assertDatabaseHas('stores_cars', [
             'store_id' => $store->id,
-            'vehicle_plat_number' => '1234-567',
+            'car_name_id' => $carName->id,
         ]);
+        $this->assertFalse(Schema::hasColumn('stores_cars', 'vehicle_plat_number'));
         $this->assertSame(2, StoreCarPicture::where('car_id', StoresCar::where('store_id', $store->id)->first()->id)->count());
 
         $carId = StoresCar::where('store_id', $store->id)->first()->id;
@@ -105,7 +106,6 @@ class ProviderStoreCarTest extends TestCase
             ->postJson("/api/provider/store/{$otherStore->id}/cars", [
                 'car_name_id' => $carName->id,
                 'manufacturing_year' => 2020,
-                'vehicle_plat_number' => '1234-567',
                 'color_id' => $color->id,
                 'fuel_type' => $fuel->id,
                 'sections' => [
@@ -127,7 +127,6 @@ class ProviderStoreCarTest extends TestCase
             ->postJson("/api/provider/store/{$store->id}/cars", [
                 'car_name_id' => $carName->id,
                 'manufacturing_year' => 2020,
-                'vehicle_plat_number' => '1234-567',
                 'color_id' => $color->id,
                 'fuel_type' => $fuel->id,
             ])
@@ -148,7 +147,6 @@ class ProviderStoreCarTest extends TestCase
             ->postJson("/api/provider/store/{$store->id}/cars", [
                 'car_name_id' => $carName->id,
                 'manufacturing_year' => 2020,
-                'vehicle_plat_number' => '1234-567',
                 'color_id' => $color->id,
                 'fuel_type' => $fuel->id,
                 'sections' => [
@@ -167,7 +165,7 @@ class ProviderStoreCarTest extends TestCase
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/store/{$store->id}/cars", [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['car_name_id', 'manufacturing_year', 'vehicle_plat_number', 'color_id', 'fuel_type', 'sections']);
+            ->assertJsonValidationErrors(['car_name_id', 'manufacturing_year', 'color_id', 'fuel_type', 'sections']);
     }
 
     public function test_provider_can_view_a_store_car(): void
@@ -202,12 +200,12 @@ class ProviderStoreCarTest extends TestCase
 
         $this->actingAs($provider, 'sanctum')
             ->putJson("/api/provider/store/{$store->id}/cars/{$car->id}", [
-                'vehicle_plat_number' => '9999-999',
+                'manufacturing_year' => 2025,
             ])
             ->assertOk()
-            ->assertJsonPath('data.vehicle_plat_number', '9999-999');
+            ->assertJsonPath('data.manufacturing_year', 2025);
 
-        $this->assertDatabaseHas('stores_cars', ['id' => $car->id, 'vehicle_plat_number' => '9999-999']);
+        $this->assertDatabaseHas('stores_cars', ['id' => $car->id, 'manufacturing_year' => 2025]);
     }
 
     public function test_update_replaces_pictures(): void

@@ -18,6 +18,7 @@ class ProviderPaidOrderResource extends JsonResource
             'order_type' => $this->order_type->value,
             'quantity' => $this->when($this->isSpecific(), $this->quantity),
             'status' => $this->status->value,
+            'images' => OrderImageResource::collection($this->whenLoaded('images')),
             'gross_amount' => $this->resource->gross_amount ?? 0,
             'commission' => $this->resource->commission ?? 0,
             'net_amount' => $this->resource->net_amount ?? 0,

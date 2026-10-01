@@ -63,6 +63,12 @@ return [
     */
 
     'validation' => [
+        'order_images' => [
+            'use_images' => 'Upload request photos using images[].',
+            'array' => 'Images must be a list of uploaded files.',
+            'max' => 'You may attach up to :max images to a request.',
+            'file_max' => 'Each image must not exceed :max KB.',
+        ],
         'general_order' => [
             'invalid_reference' => 'The selected item is unavailable. Please choose an available item.',
             'vehicle_choice' => 'Choose one of your cars or enter vehicle details, but not both.',
@@ -146,10 +152,6 @@ return [
             'min' => 'Manufacturing year must be at least :min.',
             'max' => 'Manufacturing year must not exceed :max.',
         ],
-        'vehicle_plat_number' => [
-            'required' => 'Plate number is required.',
-            'max' => 'Plate number must not exceed 50 characters.',
-        ],
         'color_id' => [
             'required' => 'Color is required.',
             'integer' => 'Color must be a valid ID.',
@@ -198,10 +200,6 @@ return [
             'required' => 'Quantity is required.',
             'integer' => 'Quantity must be a valid number.',
             'min' => 'Quantity must be at least :min.',
-        ],
-        'customer_image' => [
-            'string' => 'Customer image must be a string.',
-            'max' => 'Customer image must not exceed 255 characters.',
         ],
         'store_car_component_id' => [
             'required' => 'Car component is required for specific orders.',

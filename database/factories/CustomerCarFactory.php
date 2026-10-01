@@ -6,7 +6,7 @@ use App\Models\CustomerCar;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\CustomerCar>
+ * @extends Factory<CustomerCar>
  */
 class CustomerCarFactory extends Factory
 {
@@ -16,7 +16,6 @@ class CustomerCarFactory extends Factory
     {
         return [
             'manufacturing_year' => fake()->numberBetween(2005, 2025),
-            'vehicle_plat_number' => fake()->numerify('####-###'),
             'car_name_id' => null,
             'color_id' => null,
             'customer_id' => null,

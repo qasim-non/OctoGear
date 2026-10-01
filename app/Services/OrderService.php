@@ -39,6 +39,9 @@ class OrderService
         $created = false;
         $key = $data['idempotency_key'] ?? null;
         $type = $data['order_type'] instanceof OrderType ? $data['order_type']->value : $data['order_type'];
+        $imageFingerprint = array_map(fn ($file) => [
+            hash_file('sha256', $file->getRealPath()), $file->getMimeType(), $file->getSize(),
+        ], array_values($data['images'] ?? []));
         $fingerprintData = $type === OrderType::General->value ? [
             $type,
             (int) ($data['customer_car_id'] ?? 0),
@@ -51,14 +54,13 @@ class OrderService
             (int) ($data['component_id'] ?? 0),
             trim($data['component_name'] ?? ''),
             trim($data['description'] ?? ''),
-            isset($data['customer_image']) ? hash_file('sha256', $data['customer_image']->getRealPath()) : null,
+            $imageFingerprint,
         ] : [
             $type,
             (int) ($data['store_car_component_id'] ?? 0),
-            0, // Preserve the existing specific-request fingerprint layout.
             (int) $data['quantity'],
             trim($data['notes'] ?? ''),
-            isset($data['customer_image']) ? hash_file('sha256', $data['customer_image']->getRealPath()) : null,
+            $imageFingerprint,
         ];
         $fingerprint = $key === null ? null : hash('sha256', json_encode($fingerprintData, JSON_THROW_ON_ERROR));
 
@@ -101,18 +103,13 @@ class OrderService
                     $this->generalDetails->attach($order, $customer, $data);
                 }
 
-                if (isset($data['customer_image'])) {
+                foreach (array_values($data['images'] ?? []) as $position => $file) {
                     $image = $this->images->store(
-                        $data['customer_image'],
+                        $file,
                         "orders/{$customer->id}/{$order->id}",
                         $storedFiles,
                     );
-                    $order->update([
-                        'customer_image_disk' => $image['disk'],
-                        'customer_image_path' => $image['path'],
-                        'customer_image_mime_type' => $image['mime_type'],
-                        'customer_image_size_bytes' => $image['size_bytes'],
-                    ]);
+                    $order->images()->create([...$image, 'sort_order' => $position]);
                 }
 
                 $created = true;

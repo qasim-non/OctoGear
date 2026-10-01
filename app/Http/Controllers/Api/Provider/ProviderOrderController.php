@@ -80,7 +80,7 @@ class ProviderOrderController extends Controller
         $storeIds = $user->stores()->pluck('id');
 
         $orders = Order::query()
-            ->with(['customer', 'vehicleDetails', 'component', 'acceptedStore', 'storeCarComponent.storeCar.store'])
+            ->with(['customer', 'vehicleDetails', 'images', 'component', 'acceptedStore', 'storeCarComponent.storeCar.store'])
             ->whereIn('status', [OrderStatus::Paid])
             ->where(function ($q) use ($user, $storeIds) {
                 $q->whereIn('accepted_store_id', $storeIds)
@@ -123,7 +123,7 @@ class ProviderOrderController extends Controller
     private function generalRelations($user): array
     {
         return [
-            'vehicleDetails', 'component',
+            'vehicleDetails', 'images', 'component',
             'offers' => fn ($q) => $q
                 ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
                 ->with('store'),
@@ -134,6 +134,7 @@ class ProviderOrderController extends Controller
     private function specificRelations(): array
     {
         return [
+            'images',
             'storeCarComponent.storeCar.store',
             'acceptedStore',
         ];
@@ -192,6 +193,6 @@ class ProviderOrderController extends Controller
 
         $order = $this->orders->reject($order);
 
-        return $this->success(new OrderResource($order));
+        return $this->success(new OrderResource($order->loadMissing('images')));
     }
 }

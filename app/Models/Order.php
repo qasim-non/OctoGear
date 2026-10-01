@@ -11,18 +11,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Order extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes {
+        forceDelete as private forceDeleteRecord;
+    }
 
     protected $fillable = [
         'order_type',
         'quantity',
-        'customer_image_disk',
-        'customer_image_path',
-        'customer_image_mime_type',
-        'customer_image_size_bytes',
         'status',
         'offered_price',
         'requested_unit_price',
@@ -40,8 +40,6 @@ class Order extends Model
         'deleted_at',
         'idempotency_key',
         'idempotency_fingerprint',
-        'customer_image_disk',
-        'customer_image_path',
     ];
 
     protected function casts(): array
@@ -50,7 +48,6 @@ class Order extends Model
             'order_type' => OrderType::class,
             'status' => OrderStatus::class,
             'quantity' => 'integer',
-            'customer_image_size_bytes' => 'integer',
             'offered_price' => 'integer',
             'requested_unit_price' => 'integer',
             'created_at' => 'datetime',
@@ -59,28 +56,24 @@ class Order extends Model
         ];
     }
 
-    protected static function booted(): void
+    public function forceDelete()
     {
-        static::forceDeleting(function (Order $order): void {
-            app(ImageStorageService::class)->delete($order->customerImage());
+        // Retain cleanup jobs atomically with deletion; remove physical files
+        // only after commit. Storage failures can then be retried safely.
+        return DB::transaction(function () {
+            $files = $this->images()->get()->map->fileMetadata()->all();
+            $deleted = $this->forceDeleteRecord();
+            if ($deleted) {
+                app(ImageStorageService::class)->deleteAfterCommit($files);
+            }
+
+            return $deleted;
         });
     }
 
-    public function customerImage(): array
+    public function images(): HasMany
     {
-        return [
-            'disk' => $this->customer_image_disk,
-            'path' => $this->customer_image_path,
-            'mime_type' => $this->customer_image_mime_type,
-            'size_bytes' => $this->customer_image_size_bytes,
-        ];
-    }
-
-    public function customerImageUrl(): ?string
-    {
-        return filled($this->customer_image_disk) && filled($this->customer_image_path)
-            ? route('media.order-image.show', ['order' => $this->id], false)
-            : null;
+        return $this->hasMany(OrderImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
     /*

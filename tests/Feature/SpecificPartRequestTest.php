@@ -50,14 +50,14 @@ class SpecificPartRequestTest extends TestCase
     {
         $this->actingAs(User::factory()->customer()->create(), 'sanctum');
         $headers = ['Idempotency-Key' => (string) Str::uuid(), 'Accept' => 'application/json'];
-        $first = $this->post('/api/customer/orders', [...$this->payload(), 'customer_image' => $this->photo()], $headers)->assertCreated();
+        $first = $this->post('/api/customer/orders', [...$this->payload(), 'images' => [$this->photo()]], $headers)->assertCreated();
         $this->part->update(['stock_quantity' => 0]);
         $this->part->storeCar->store->update(['status' => StoreStatus::Inactive]);
-        $this->post('/api/customer/orders', [...$this->payload(), 'customer_image' => $this->photo()], $headers)
+        $this->post('/api/customer/orders', [...$this->payload(), 'images' => [$this->photo()]], $headers)
             ->assertCreated()->assertJsonPath('data.id', $first->json('data.id'));
         $this->assertDatabaseCount('orders', 1);
         $this->assertCount(1, Storage::disk('images_local')->allFiles());
-        $this->get($first->json('data.customer_image'))->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->get($first->json('data.images.0.url'))->assertOk()->assertHeader('Content-Type', 'image/png');
         $this->assertArrayNotHasKey('idempotency_key', Order::first()->toArray());
         Event::assertDispatchedTimes(OrderCreated::class, 1);
     }
@@ -127,8 +127,8 @@ class SpecificPartRequestTest extends TestCase
         }
         $this->postJson('/api/customer/orders', [...$this->payload(), 'notes' => str_repeat('a', 1001)])
             ->assertUnprocessable()->assertJsonValidationErrors('notes');
-        $this->post('/api/customer/orders', [...$this->payload(), 'customer_image' => UploadedFile::fake()->create('secret.txt', 1)])
-            ->assertUnprocessable()->assertJsonValidationErrors('customer_image');
+        $this->post('/api/customer/orders', [...$this->payload(), 'images' => [UploadedFile::fake()->create('secret.txt', 1)]])
+            ->assertUnprocessable()->assertJsonValidationErrors('images.0');
         $this->assertDatabaseCount('orders', 0);
     }
 

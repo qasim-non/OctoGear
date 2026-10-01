@@ -202,7 +202,7 @@ class GeneralOrderDetailsTest extends TestCase
         $this->assertNotNull($carId);
         $this->getJson('/api/customer/customer-cars/'.$carId)->assertOk()
             ->assertJsonPath('data.transmission_type', 'automatic')
-            ->assertJsonPath('data.vehicle_plat_number', null)->assertJsonPath('data.color.id', $payload['vehicle']['color_id'])
+            ->assertJsonMissingPath('data.vehicle_plat_number')->assertJsonPath('data.color.id', $payload['vehicle']['color_id'])
             ->assertJsonPath('data.fuel_type.id', $payload['vehicle']['fuel_type'])->assertJsonPath('data.car_name.name', 'Camry');
         $this->getJson('/api/customer/customer-cars')->assertOk()->assertJsonCount(1, 'data');
         $this->postJson('/api/customer/orders', $payload)->assertCreated()->assertJsonPath('data.id', $first->json('data.id'));
@@ -304,8 +304,8 @@ class GeneralOrderDetailsTest extends TestCase
         Storage::fake('images_local');
         $this->customer();
         $payload = [...$this->payload(), 'save_to_my_cars' => true,
-            'customer_image' => UploadedFile::fake()->createWithContent('mirror.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAF/gL+9/3K8QAAAABJRU5ErkJggg=='))];
-        DB::unprepared("CREATE TRIGGER fail_general_image BEFORE UPDATE ON orders WHEN NEW.customer_image_path IS NOT NULL BEGIN SELECT RAISE(ABORT, 'Simulated failure'); END;");
+            'images' => [UploadedFile::fake()->createWithContent('mirror.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAF/gL+9/3K8QAAAABJRU5ErkJggg=='))]];
+        DB::unprepared("CREATE TRIGGER fail_general_image BEFORE INSERT ON order_images BEGIN SELECT RAISE(ABORT, 'Simulated failure'); END;");
         try {
             $this->post('/api/customer/orders', $payload)->assertStatus(500);
         } finally {

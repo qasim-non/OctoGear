@@ -12,7 +12,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "1234 DRB",
       "file": "car-camry-white-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: white 2024 Toyota Camry, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '1234 DRB', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark.",
       "edit_prompt": "Use case: precise-object-edit. Edit only the blank license plate on the main car in this photograph. Replace it with a realistic white Saudi civilian license plate: Arabic letters and numerals above Latin '1234 DRB', thin black dividing lines, narrow KSA emblem band on the right. Fictional sample identifier. Keep the car, paint, camera angle, lighting, background and all other details unchanged. Plate text clear and naturally integrated into the photograph."
@@ -26,7 +25,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "1234 DRB",
       "file": "car-camry-white-rear.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: white 2024 Toyota Camry, rear three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '1234 DRB', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark.",
       "edit_prompt": "Use case: precise-object-edit. Edit only the blank license plate on the main car in this photograph. Replace it with a realistic white Saudi civilian license plate: Arabic letters and numerals above Latin '1234 DRB', thin black dividing lines, narrow KSA emblem band on the right. Fictional sample identifier. Keep the car, paint, camera angle, lighting, background and all other details unchanged. Plate text clear and naturally integrated into the photograph."
@@ -40,7 +38,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "2345 HJD",
       "file": "car-corolla-silver-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: silver 2024 Toyota Corolla, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '2345 HJD', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark.",
       "edit_prompt": "Use case: precise-object-edit. Edit only the blank license plate on the main car in this photograph. Replace it with a realistic white Saudi civilian license plate: Arabic letters and numerals above Latin '2345 HJD', thin black dividing lines, narrow KSA emblem band on the right. Fictional sample identifier. Keep the car, paint, camera angle, lighting, background and all other details unchanged. Plate text clear and naturally integrated into the photograph."
@@ -54,7 +51,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "3456 BDR",
       "file": "car-rav4-blue-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: blue 2024 Toyota RAV4, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '3456 BDR', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -67,7 +63,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "4567 RHD",
       "file": "car-civic-red-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: red 2024 Honda Civic, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '4567 RHD', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -80,7 +75,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "5678 JBR",
       "file": "car-accord-gray-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: gray 2024 Honda Accord, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '5678 JBR', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -93,7 +87,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "6789 DHB",
       "file": "car-altima-black-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: black 2024 Nissan Altima, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '6789 DHB', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -106,7 +99,6 @@
       "year": 2024,
       "damaged": false,
       "damaged_section": null,
-      "plate": "7891 BRJ",
       "file": "car-elantra-white-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: white 2024 Hyundai Elantra, front three-quarter view, intact and parked in a Saudi industrial parking lot. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '7891 BRJ', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see vehicle and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -119,7 +111,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Front",
-      "plate": "1123 DRB",
       "file": "salvage-camry-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: white 2024 Toyota Camry, front three-quarter view, crumpled hood and broken front bumper after a moderate front collision, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '1123 DRB', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -132,7 +123,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Rear",
-      "plate": "2234 HJD",
       "file": "salvage-corolla-rear.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: silver 2024 Toyota Corolla, rear three-quarter view, creased rear bumper and dented trunk after a moderate rear collision, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '2234 HJD', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -145,7 +135,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Right Side",
-      "plate": "3345 BDR",
       "file": "salvage-rav4-right.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: blue 2024 Toyota RAV4, right side three-quarter view, deeply dented right doors and scraped right fender after a sideswipe, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '3345 BDR', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -158,7 +147,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Front",
-      "plate": "4456 RHD",
       "file": "salvage-civic-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: red 2024 Honda Civic, front three-quarter view, broken front bumper and one damaged headlight after a moderate front collision, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '4456 RHD', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -171,7 +159,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Rear",
-      "plate": "5567 JBR",
       "file": "salvage-accord-rear.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: gray 2024 Honda Accord, rear three-quarter view, dented trunk and cracked rear bumper, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '5567 JBR', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -184,7 +171,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Left Side",
-      "plate": "6678 DHB",
       "file": "salvage-altima-left.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: black 2024 Nissan Altima, right side three-quarter view, dented right doors with realistic scrape marks, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '6678 DHB', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark.",
       "review_notes": "The rendered image shows left-side damage. Fixture metadata follows the observed damage."
@@ -198,7 +184,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Front",
-      "plate": "7789 BRJ",
       "file": "salvage-elantra-front.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: white 2024 Hyundai Elantra, front three-quarter view, crumpled hood edge and cracked front bumper, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '7789 BRJ', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark."
     },
@@ -211,7 +196,6 @@
       "year": 2024,
       "damaged": true,
       "damaged_section": "Right Side",
-      "plate": "8891 HRD",
       "file": "salvage-sportage-right.png",
       "prompt": "Use case: photorealistic-natural. One clear realistic ordinary smartphone photograph for a synthetic KSA used-parts marketplace: green 2024 Kia Sportage, left side three-quarter view, dented left doors and scraped left fender, parked in a tidy Saudi vehicle salvage yard. Correct vehicle proportions, believable physical details, natural daylight. Show a clearly visible standard white Saudi civilian license plate with Arabic letters and numerals above Latin transliteration '8891 HRD', correct Saudi plate layout and narrow KSA band; identifiers are fictional demo data. Normal resolution, crisp enough to see damage and plate, no excessive detail or cinematic styling. No people, no injuries, no captions, no watermark.",
       "review_notes": "The rendered image shows right-side damage. Fixture metadata follows the observed damage."
