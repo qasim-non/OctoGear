@@ -12,6 +12,6 @@ class NotifyProviderOfCompletion
 {
     public function handle(OrderCompleted $event): void
     {
-        $event->order->acceptedStore?->owner?->notify(new OrderCompletedNotification($event->order));
+        $event->order->fulfillmentStore()?->owner?->notify(new OrderCompletedNotification($event->order));
     }
 }

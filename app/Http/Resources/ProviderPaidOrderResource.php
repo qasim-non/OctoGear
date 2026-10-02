@@ -40,10 +40,6 @@ class ProviderPaidOrderResource extends JsonResource
 
     private function sellerStore()
     {
-        if ($this->relationLoaded('acceptedStore') && $this->acceptedStore) {
-            return $this->acceptedStore;
-        }
-
-        return $this->storeCarComponent?->storeCar?->store;
+        return $this->fulfillmentStore();
     }
 }

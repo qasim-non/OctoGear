@@ -12,16 +12,16 @@ use App\Models\User;
 class OrderOfferPolicy
 {
     /**
-     * Offers only matter while the order is still being decided
-     * (pending or awaiting payment). Once the order is paid, completed,
-     * cancelled or rejected, the offer window is closed and offers must
-     * not be exposed or mutated.
+     * Keep the purchase and competing offers readable after payment and
+     * completion. Mutation permissions are checked separately below.
      */
     private function offersAreVisible(Order $order): bool
     {
         return in_array($order->status, [
             OrderStatus::Pending,
             OrderStatus::AwaitingPayment,
+            OrderStatus::Paid,
+            OrderStatus::Completed,
         ], true);
     }
 
@@ -47,7 +47,8 @@ class OrderOfferPolicy
 
     public function view(User $user, OrderOffer $offer): bool
     {
-        if (! $this->offersAreVisible($offer->order)) {
+        $order = $offer->order;
+        if (! $order || ! $this->offersAreVisible($order)) {
             return false;
         }
 

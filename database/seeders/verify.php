@@ -139,11 +139,11 @@ try {
             $notSelected = $offers->where('status', 'not_selected');
             $assert($accepted->count() === 1
                 && $accepted->first()->id === $order->accepted_offer_id
-                && $accepted->first()->store_id === $order->accepted_store_id
+                && $accepted->first()->store_id === DB::table('order_offers')->where('id', $order->accepted_offer_id)->value('store_id')
                 && $accepted->first()->price === $order->offered_price
                 && $notSelected->count() === $offers->count() - 1, 'General order accepted offer mismatch.');
         } else {
-            $assert($order->accepted_store_id === null && $order->accepted_offer_id === null, 'Unaccepted general order has a winning offer.');
+            $assert($order->accepted_offer_id === null, 'Unaccepted general order has a winning offer.');
         }
         $payment = DB::table('payments')->where('order_id', $order->id)->first();
         $assert(($payment !== null) === in_array($order->status, ['paid', 'completed'], true), 'Order/payment state mismatch.');
@@ -156,7 +156,7 @@ try {
     }
     foreach (DB::table('ratings')->get() as $rating) {
         $order = DB::table('orders')->where('id', $rating->order_id)->first();
-        $owner = $order->accepted_store_id;
+        $owner = DB::table('order_offers')->where('id', $order->accepted_offer_id)->value('store_id');
         if ($order->order_type === 'specific') {
             $owner = DB::table('store_car_components')->join('stores_cars', 'stores_cars.id', '=', 'store_car_components.store_car_id')->where('store_car_components.id', $order->store_car_component_id)->value('stores_cars.store_id');
         }

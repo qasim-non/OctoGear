@@ -33,14 +33,14 @@ class SpecificPartRequestTest extends TestCase
     {
         $customer = User::factory()->customer()->create();
         $response = $this->actingAs($customer, 'sanctum')->postJson('/api/customer/orders', [
-            ...$this->payload(), 'offered_price' => 1, 'accepted_store_id' => 999,
+            ...$this->payload(), 'offered_price' => 1, 'accepted_offer_id' => 999,
             'customer_id' => 999, 'status' => 'paid',
         ])->assertCreated()->assertJsonPath('data.status', 'pending')
             ->assertJsonPath('data.quantity', 2)->assertJsonPath('data.offered_price', null);
         $order = Order::findOrFail($response->json('data.id'));
         $this->assertSame($customer->id, $order->customer_id);
         $this->assertSame($this->part->storeCar->store_id, $order->store->id);
-        $this->assertNull($order->accepted_store_id);
+        $this->assertNull($order->accepted_offer_id);
         $this->assertSame(3, $this->part->fresh()->stock_quantity);
         $this->assertDatabaseCount('payments', 0);
         Event::assertDispatchedTimes(OrderCreated::class, 1);

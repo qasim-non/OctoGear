@@ -36,10 +36,13 @@ class OrderResource extends JsonResource
             ]),
             'offers' => $this->whenLoaded('offers', fn () => OrderOfferResource::collection($this->offers)
             ),
-            'accepted_store' => $this->whenLoaded('acceptedStore', fn () => [
-                'id' => $this->acceptedStore->id,
-                'name' => $this->acceptedStore->name,
-            ]),
+            'accepted_store' => $this->when(
+                $this->relationLoaded('acceptedOffer') || $this->relationLoaded('storeCarComponent'),
+                fn () => $this->fulfillmentStore() ? [
+                    'id' => $this->fulfillmentStore()->id,
+                    'name' => $this->fulfillmentStore()->name,
+                ] : null,
+            ),
             'created_at' => $this->created_at,
         ];
     }

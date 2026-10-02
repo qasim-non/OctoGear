@@ -16,6 +16,7 @@ class GeneralOrderMigrationTest extends TestCase
         foreach (['model_id', 'component_name_ar', 'component_name_en'] as $column) {
             $this->assertFalse(Schema::hasColumn('orders', $column));
         }
+        $this->assertFalse(Schema::hasColumn('orders', 'accepted_store_id'));
         $this->assertTrue(Schema::hasColumns('order_vehicle_details', [
             'color_id', 'fuel_type', 'color_name_en', 'color_name_ar', 'fuel_type_en', 'fuel_type_ar',
         ]));

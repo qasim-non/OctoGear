@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\CarCompany;
@@ -12,6 +13,7 @@ use App\Models\Color;
 use App\Models\Component;
 use App\Models\FuelType;
 use App\Models\Order;
+use App\Models\OrderOffer;
 use App\Models\Rating;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
@@ -336,7 +338,6 @@ class CustomerSearchTest extends TestCase
             'offered_price' => 450,
             'quantity' => 2,
             'store_car_component_id' => $component->id,
-            'accepted_store_id' => $store->id,
         ]);
 
         $this->actingAs($customer, 'sanctum')
@@ -354,20 +355,20 @@ class CustomerSearchTest extends TestCase
         $store = $this->makeStore(['name' => 'Store A']);
         $customer = $this->authCustomer();
 
-        Order::factory()->create([
+        $completed = Order::factory()->create([
             'customer_id' => $customer->id,
             'order_type' => OrderType::General,
             'status' => OrderStatus::Completed,
             'quantity' => 3,
-            'accepted_store_id' => $store->id,
         ]);
+        $completedOffer = OrderOffer::factory()->create(['order_id' => $completed->id, 'store_id' => $store->id, 'status' => OfferStatus::Accepted]);
+        $completed->update(['accepted_offer_id' => $completedOffer->id]);
 
         Order::factory()->create([
             'customer_id' => $customer->id,
             'order_type' => OrderType::General,
             'status' => OrderStatus::Paid, // should NOT be counted
             'quantity' => 5,
-            'accepted_store_id' => $store->id,
         ]);
 
         $response = $this->actingAs($customer, 'sanctum')
@@ -421,13 +422,14 @@ class CustomerSearchTest extends TestCase
         $store = $this->makeStore(['name' => 'Store A']);
         $customer = $this->authCustomer();
 
-        Order::factory()->create([
+        $completed = Order::factory()->create([
             'customer_id' => $customer->id,
             'order_type' => OrderType::General,
             'status' => OrderStatus::Completed,
             'quantity' => 2,
-            'accepted_store_id' => $store->id,
         ]);
+        $offer = OrderOffer::factory()->create(['order_id' => $completed->id, 'store_id' => $store->id, 'status' => OfferStatus::Accepted]);
+        $completed->update(['accepted_offer_id' => $offer->id]);
 
         $response = $this->actingAs($customer, 'sanctum')
             ->getJson("/api/stores/{$store->id}");

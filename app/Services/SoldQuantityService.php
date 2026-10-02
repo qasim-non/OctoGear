@@ -11,14 +11,14 @@ class SoldQuantityService
     /**
      * Returns a query that matches completed orders belonging to a store
      * via either:
-     *   1. accepted_store_id (general orders / accepted offers)
+     *   1. accepted offer → store (general orders)
      *   2. store_car_component → store_car → store (specific orders)
      */
     private function completedOrdersForStore(Builder $query, int $storeId): void
     {
         $query->where('status', OrderStatus::Completed)
             ->where(function ($q) use ($storeId) {
-                $q->where('accepted_store_id', $storeId)
+                $q->whereHas('acceptedOffer', fn ($offer) => $offer->where('store_id', $storeId))
                     ->orWhereIn('store_car_component_id', function ($sub) use ($storeId) {
                         $sub->select('id')
                             ->from('store_car_components')
@@ -52,7 +52,7 @@ class SoldQuantityService
      *     SELECT COALESCE(SUM(orders.quantity), 0)
      *     FROM orders
      *     WHERE orders.status = 'completed'
-     *       AND (orders.accepted_store_id = stores.id
+     *       AND (EXISTS (an accepted offer belonging to stores.id)
      *            OR orders.store_car_component_id IN (...))
      *   ) AS sold_quantity
      *   FROM stores ...
@@ -62,7 +62,12 @@ class SoldQuantityService
         $query = Order::query();
         $query->where('status', OrderStatus::Completed)
             ->where(function ($q) {
-                $q->whereColumn('accepted_store_id', 'stores.id')
+                $q->whereExists(function ($offer) {
+                    $offer->selectRaw('1')
+                        ->from('order_offers')
+                        ->whereColumn('order_offers.id', 'orders.accepted_offer_id')
+                        ->whereColumn('order_offers.store_id', 'stores.id');
+                })
                     ->orWhereIn('store_car_component_id', function ($sub) {
                         $sub->select('id')
                             ->from('store_car_components')

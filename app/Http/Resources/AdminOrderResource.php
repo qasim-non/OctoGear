@@ -39,10 +39,13 @@ class AdminOrderResource extends JsonResource
                     'name' => $this->storeCarComponent->storeCar?->store?->name,
                 ],
             ] : null),
-            'accepted_store' => $this->whenLoaded('acceptedStore', fn () => $this->acceptedStore ? [
-                'id' => $this->acceptedStore->id,
-                'name' => $this->acceptedStore->name,
-            ] : null),
+            'accepted_store' => $this->when(
+                $this->relationLoaded('acceptedOffer') || $this->relationLoaded('storeCarComponent'),
+                fn () => $this->fulfillmentStore() ? [
+                    'id' => $this->fulfillmentStore()->id,
+                    'name' => $this->fulfillmentStore()->name,
+                ] : null,
+            ),
             'payment' => $this->whenLoaded('payment', fn () => $this->payment ? [
                 'id' => $this->payment->id,
                 'amount' => $this->payment->amount,

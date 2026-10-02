@@ -31,7 +31,6 @@ class Order extends Model
         'store_car_component_id',
         'component_id',
         'component_name',
-        'accepted_store_id',
         'accepted_offer_id',
         'idempotency_key',
         'idempotency_fingerprint',
@@ -63,6 +62,10 @@ class Order extends Model
         // only after commit. Storage failures can then be retried safely.
         return DB::transaction(function () {
             $files = $this->images()->get()->map->fileMetadata()->all();
+            $offerFiles = $this->offers()->withTrashed()->with('images')->get()
+                ->flatMap(fn (OrderOffer $offer) => $offer->images->map->fileMetadata())
+                ->all();
+            $files = [...$files, ...$offerFiles];
             $deleted = $this->forceDeleteRecord();
             if ($deleted) {
                 app(ImageStorageService::class)->deleteAfterCommit($files);
@@ -138,14 +141,17 @@ class Order extends Model
         return $this->hasMany(OrderOffer::class);
     }
 
-    public function acceptedStore(): BelongsTo
-    {
-        return $this->belongsTo(Store::class, 'accepted_store_id');
-    }
-
     public function acceptedOffer(): BelongsTo
     {
         return $this->belongsTo(OrderOffer::class, 'accepted_offer_id')->withTrashed();
+    }
+
+    /** Resolve the store responsible for fulfilling this order. */
+    public function fulfillmentStore(): ?Store
+    {
+        return $this->isGeneral()
+            ? $this->acceptedOffer?->store
+            : $this->storeCarComponent?->storeCar?->store;
     }
 
     public function payment(): HasOne

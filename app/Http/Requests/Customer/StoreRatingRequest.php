@@ -39,7 +39,7 @@ class StoreRatingRequest extends BaseRequest
                 return;
             }
 
-            if ((int) $this->store_id !== $order->accepted_store_id) {
+            if ((int) $this->store_id !== $order->fulfillmentStore()?->id) {
                 $validator->errors()->add('store_id', __('auth.validation.rating.store_mismatch'));
 
                 return;

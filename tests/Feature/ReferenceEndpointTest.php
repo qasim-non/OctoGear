@@ -35,7 +35,43 @@ class ReferenceEndpointTest extends TestCase
 
         $this->getJson('/api/reference/companies')
             ->assertOk()
-            ->assertJsonCount(2, 'data');
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_large_reference_catalogs_are_searchable_and_paginated(): void
+    {
+        $companyIds = DB::table('cars_companies')->insertGetId([
+            'name_en' => 'Toyota', 'name_ar' => 'تويوتا', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('cars_companies')->insert([
+            'name_en' => 'Honda', 'name_ar' => 'هوندا', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->getJson('/api/reference/companies?search=toy&per_page=1', ['Accept-Language' => 'en'])
+            ->assertOk()->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.name', 'Toyota');
+
+        $nameId = DB::table('cars_names')->insertGetId([
+            'name_en' => 'Camry', 'name_ar' => 'كامري', 'car_company_id' => $companyIds, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('cars_names')->insert([
+            'name_en' => 'Corolla', 'name_ar' => 'كورولا', 'car_company_id' => $companyIds, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->getJson("/api/reference/companies/{$companyIds}/names?search=cam", ['Accept-Language' => 'en'])
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.name', 'Camry');
+
+        $sectionId = DB::table('car_sections')->insertGetId([
+            'name_en' => 'Engine', 'name_ar' => 'المحرك', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('components')->insert([
+            ['name_en' => 'Piston', 'name_ar' => 'المكبس', 'section_id' => $sectionId, 'created_at' => now(), 'updated_at' => now()],
+            ['name_en' => 'Spark Plug', 'name_ar' => 'شمعة الإشعال', 'section_id' => $sectionId, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        $this->getJson('/api/reference/components?search=spark&section_id='.$sectionId, ['Accept-Language' => 'en'])
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.name', 'Spark Plug');
+        $this->getJson("/api/reference/sections/{$sectionId}/components?per_page=1&page=2")
+            ->assertOk()->assertJsonPath('meta.total', 2)->assertJsonCount(1, 'data');
+        $this->getJson('/api/reference/components?per_page=51')->assertUnprocessable();
     }
 
     public function test_company_names_returns_names_for_a_company(): void

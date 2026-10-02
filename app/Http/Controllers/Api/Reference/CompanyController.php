@@ -3,28 +3,37 @@
 namespace App\Http\Controllers\Api\Reference;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reference\ReferenceCatalogRequest;
 use App\Http\Resources\ReferenceResource;
 use App\Models\CarCompany;
-use App\Models\CarName;
-use Illuminate\Support\Facades\Cache;
 
 class CompanyController extends Controller
 {
-    public function index()
+    public function index(ReferenceCatalogRequest $request)
     {
-        $companies = Cache::remember('ref:companies', now()->addDay(), fn () =>
-            CarCompany::select('id', 'name_en', 'name_ar')->get()
-        );
+        $filters = $request->validated();
+        $companies = CarCompany::query()
+            ->select('id', 'name_en', 'name_ar')
+            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($names) => $names->where('name_en', 'like', "%{$search}%")
+                ->orWhere('name_ar', 'like', "%{$search}%")
+            ))
+            ->orderBy('name_en')->orderBy('id')
+            ->paginate($filters['per_page'] ?? 20);
 
-        return $this->success(ReferenceResource::collection($companies));
+        return $this->paginated($companies->through(fn ($company) => (new ReferenceResource($company))->resolve($request)));
     }
 
-    public function names(CarCompany $company)
+    public function names(ReferenceCatalogRequest $request, CarCompany $company)
     {
-        $names = Cache::remember("ref:company:{$company->id}:names", now()->addDay(), fn () =>
-            $company->carNames()->select('id', 'name_en', 'name_ar')->get()
-        );
+        $filters = $request->validated();
+        $names = $company->carNames()
+            ->select('id', 'name_en', 'name_ar')
+            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($names) => $names->where('name_en', 'like', "%{$search}%")
+                ->orWhere('name_ar', 'like', "%{$search}%")
+            ))
+            ->orderBy('name_en')->orderBy('id')
+            ->paginate($filters['per_page'] ?? 20);
 
-        return $this->success(ReferenceResource::collection($names));
+        return $this->paginated($names->through(fn ($name) => (new ReferenceResource($name))->resolve($request)));
     }
 }

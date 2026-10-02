@@ -7,8 +7,9 @@ use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Order;
 use App\Models\OrderOffer;
-use App\Models\Payment;
 use App\Models\Store;
+use App\Models\StoreCarComponent;
+use App\Models\StoresCar;
 use App\Models\User;
 use App\Notifications\OrderPaidNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,12 +37,11 @@ class CustomerPaymentTest extends TestCase
     private function orderAwaitingPaymentFor(User $customer): Order
     {
         return Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::Specific,
-            'status'            => OrderStatus::AwaitingPayment,
-            'offered_price'     => 450,
-            'quantity'          => 1,
-            'accepted_store_id' => $this->createStoreWithOwner()->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::AwaitingPayment,
+            'offered_price' => 450,
+            'quantity' => 1,
         ]);
     }
 
@@ -53,7 +53,7 @@ class CustomerPaymentTest extends TestCase
         $response = $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_123',
+                'card_token' => 'tok_test_123',
             ]);
 
         $response->assertOk()
@@ -64,19 +64,19 @@ class CustomerPaymentTest extends TestCase
         $this->assertArrayHasKey('accepted_store', $orderData);
 
         $this->assertDatabaseHas('payments', [
-            'order_id'       => $order->id,
+            'order_id' => $order->id,
             'payment_method' => 'credit_card',
             'payment_status' => 'paid',
-            'amount'         => 450,
+            'amount' => 450,
         ]);
 
         $this->assertDatabaseHas('orders', [
-            'id'     => $order->id,
+            'id' => $order->id,
             'status' => OrderStatus::Paid->value,
         ]);
     }
 
-    public function test_paying_deletes_all_offers_for_the_order(): void
+    public function test_paying_preserves_offers_for_the_order(): void
     {
         $customer = $this->authCustomer();
         $store = $this->createStoreWithOwner();
@@ -90,10 +90,10 @@ class CustomerPaymentTest extends TestCase
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_123',
+                'card_token' => 'tok_test_123',
             ])->assertOk();
 
-        $this->assertSoftDeleted('order_offers', ['id' => $other->id]);
+        $this->assertDatabaseHas('order_offers', ['id' => $other->id, 'deleted_at' => null]);
     }
 
     public function test_credit_card_is_required_for_card_payment(): void
@@ -117,7 +117,7 @@ class CustomerPaymentTest extends TestCase
         $response = $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'cash',
-                'card_token'     => 'tok_test_123',
+                'card_token' => 'tok_test_123',
             ]);
 
         $response->assertStatus(422);
@@ -131,13 +131,13 @@ class CustomerPaymentTest extends TestCase
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_1',
+                'card_token' => 'tok_test_1',
             ])->assertOk();
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_2',
+                'card_token' => 'tok_test_2',
             ])->assertStatus(400)
             ->assertJsonPath('success', false);
     }
@@ -150,7 +150,7 @@ class CustomerPaymentTest extends TestCase
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_1',
+                'card_token' => 'tok_test_1',
             ])->assertOk();
 
         $response = $this->actingAs($customer, 'sanctum')
@@ -159,7 +159,7 @@ class CustomerPaymentTest extends TestCase
         $response->assertOk();
 
         $this->assertDatabaseHas('orders', [
-            'id'     => $order->id,
+            'id' => $order->id,
             'status' => OrderStatus::Completed->value,
         ]);
     }
@@ -185,20 +185,20 @@ class CustomerPaymentTest extends TestCase
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_1',
+                'card_token' => 'tok_test_1',
             ])->assertStatus(400)
             ->assertJsonPath('success', false);
 
         // A rejected charge persists a "failed" audit row; order is unchanged.
         $this->assertDatabaseHas('payments', [
-            'order_id'       => $order->id,
+            'order_id' => $order->id,
             'payment_method' => 'credit_card',
             'payment_status' => 'failed',
-            'amount'         => 450,
+            'amount' => 450,
         ]);
 
         $this->assertDatabaseHas('orders', [
-            'id'     => $order->id,
+            'id' => $order->id,
             'status' => OrderStatus::AwaitingPayment->value,
         ]);
     }
@@ -210,18 +210,20 @@ class CustomerPaymentTest extends TestCase
         $customer = $this->authCustomer();
 
         $order = Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::Specific,
-            'status'            => OrderStatus::AwaitingPayment,
-            'offered_price'     => 300,
-            'quantity'          => 1,
-            'accepted_store_id' => $store->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::AwaitingPayment,
+            'offered_price' => 300,
+            'quantity' => 1,
+            'store_car_component_id' => StoreCarComponent::factory()->create([
+                'store_car_id' => StoresCar::factory()->create(['store_id' => $store->id])->id,
+            ])->id,
         ]);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_1',
+                'card_token' => 'tok_test_1',
             ])->assertOk();
 
         $notification = DatabaseNotification::query()
@@ -237,32 +239,31 @@ class CustomerPaymentTest extends TestCase
         $customer = $this->authCustomer();
         $store = $this->createStoreWithOwner();
         $order = Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::General,
-            'status'            => OrderStatus::AwaitingPayment,
-            'offered_price'     => 30000,
-            'quantity'          => 37,
-            'accepted_store_id' => $store->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::AwaitingPayment,
+            'offered_price' => 30000,
+            'quantity' => 37,
         ]);
         $offer = OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $store->id,
-            'price'    => 30000,
-            'status'   => OfferStatus::Accepted,
+            'price' => 30000,
+            'status' => OfferStatus::Accepted,
         ]);
         $order->update(['accepted_offer_id' => $offer->id]);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
                 'payment_method' => 'credit_card',
-                'card_token'     => 'tok_test_1',
+                'card_token' => 'tok_test_1',
             ])
             ->assertOk()
             ->assertJsonPath('data.payment.amount', 30000);
 
         $this->assertDatabaseHas('payments', [
             'order_id' => $order->id,
-            'amount'   => 30000,
+            'amount' => 30000,
         ]);
     }
 }

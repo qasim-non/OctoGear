@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Order;
@@ -77,13 +78,15 @@ class CustomerOrderCancelTest extends TestCase
             'order_type' => OrderType::General,
             'status' => OrderStatus::AwaitingPayment,
             'offered_price' => 700,
-            'accepted_store_id' => $store->id,
         ]);
 
-        OrderOffer::factory()->create([
+        $offer = OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $store->id,
+            'price' => 700,
+            'status' => OfferStatus::Accepted,
         ]);
+        $order->update(['accepted_offer_id' => $offer->id]);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/cancel")
@@ -105,7 +108,6 @@ class CustomerOrderCancelTest extends TestCase
             'order_type' => OrderType::Specific,
             'status' => OrderStatus::Paid,
             'offered_price' => 450,
-            'accepted_store_id' => $store->id,
         ]);
 
         $offer = OrderOffer::factory()->create([

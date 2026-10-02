@@ -196,9 +196,7 @@ class PaymentService
 
                 $this->commitStock($order);
 
-                // The order is settled: its offers are no longer relevant,
-                // so remove them from the system.
-                $order->offers()->delete();
+                // Retain offers and their images as read-only purchase history.
             });
         } catch (\Throwable $e) {
             Log::critical('PAID-BUT-COMMIT-FAILED: reconcile order', [

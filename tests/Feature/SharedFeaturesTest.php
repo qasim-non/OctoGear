@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Order;
+use App\Models\OrderOffer;
 use App\Models\Rating;
 use App\Models\Store;
 use App\Models\User;
@@ -43,9 +46,11 @@ class SharedFeaturesTest extends TestCase
         $store = Store::factory()->create();
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
             'status' => OrderStatus::Completed,
-            'accepted_store_id' => $store->id,
         ]);
+        $offer = OrderOffer::factory()->create(['order_id' => $order->id, 'store_id' => $store->id, 'status' => OfferStatus::Accepted]);
+        $order->update(['accepted_offer_id' => $offer->id]);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson('/api/ratings', [
@@ -67,14 +72,18 @@ class SharedFeaturesTest extends TestCase
         $store = Store::factory()->create();
         $firstOrder = Order::factory()->create([
             'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
             'status' => OrderStatus::Completed,
-            'accepted_store_id' => $store->id,
         ]);
         $secondOrder = Order::factory()->create([
             'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
             'status' => OrderStatus::Completed,
-            'accepted_store_id' => $store->id,
         ]);
+        foreach ([$firstOrder, $secondOrder] as $order) {
+            $offer = OrderOffer::factory()->create(['order_id' => $order->id, 'store_id' => $store->id, 'status' => OfferStatus::Accepted]);
+            $order->update(['accepted_offer_id' => $offer->id]);
+        }
 
         $this->actingAs($customer, 'sanctum')
             ->postJson('/api/ratings', [

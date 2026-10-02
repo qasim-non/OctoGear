@@ -8,7 +8,9 @@ use App\Events\OfferCreated;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Order;
 use App\Models\OrderOffer;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Owns the offer lifecycle on an order.
@@ -23,6 +25,8 @@ use Illuminate\Support\Facades\DB;
  */
 class OrderOfferService
 {
+    public function __construct(private ImageStorageService $images) {}
+
     /**
      * Create an offer for a store on an order.
      *
@@ -31,18 +35,30 @@ class OrderOfferService
     public function create(Order $order, array $data): OrderOffer
     {
         $storeId = (int) $data['store_id'];
+        $imageFiles = array_values($data['images'] ?? []);
+        unset($data['images']);
+        $storedFiles = [];
 
-        $offer = DB::transaction(function () use ($order, $storeId, $data): OrderOffer {
-            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-            if (! $lockedOrder->isGeneral() || $lockedOrder->status !== OrderStatus::Pending) {
-                throw new BusinessRuleException('This order is no longer accepting offers.', 'auth.validation.order.cannot_accept_offer');
-            }
-            if ($lockedOrder->offers()->where('store_id', $storeId)->exists()) {
-                throw new BusinessRuleException('You have already submitted an offer on this order.', 'auth.validation.order.already_offered');
-            }
+        try {
+            $offer = DB::transaction(function () use ($order, $storeId, $data, $imageFiles, &$storedFiles): OrderOffer {
+                $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+                if (! $lockedOrder->isGeneral() || $lockedOrder->status !== OrderStatus::Pending) {
+                    throw new BusinessRuleException('This order is no longer accepting offers.', 'auth.validation.order.cannot_accept_offer');
+                }
+                if ($lockedOrder->offers()->where('store_id', $storeId)->exists()) {
+                    throw new BusinessRuleException('You have already submitted an offer on this order.', 'auth.validation.order.already_offered');
+                }
 
-            return $lockedOrder->offers()->create([...$data, 'store_id' => $storeId]);
-        });
+                $offer = $lockedOrder->offers()->create([...$data, 'store_id' => $storeId]);
+                $this->storeImages($offer, $imageFiles, $storedFiles);
+
+                return $offer;
+            });
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+
+            throw $exception;
+        }
 
         OfferCreated::dispatch($offer);
 
@@ -56,17 +72,34 @@ class OrderOfferService
      */
     public function update(OrderOffer $offer, array $data): OrderOffer
     {
-        return DB::transaction(function () use ($offer, $data): OrderOffer {
-            $order = Order::query()->lockForUpdate()->findOrFail($offer->order_id);
-            $lockedOffer = OrderOffer::query()->lockForUpdate()->findOrFail($offer->id);
-            if ($order->status !== OrderStatus::Pending || $lockedOffer->status !== OfferStatus::Pending) {
-                throw new BusinessRuleException('This offer cannot be edited.', 'auth.validation.order.cannot_edit_offer');
-            }
+        $replaceImages = array_key_exists('images', $data);
+        $imageFiles = array_values($data['images'] ?? []);
+        unset($data['images']);
+        $storedFiles = [];
 
-            $lockedOffer->update($data);
+        try {
+            return DB::transaction(function () use ($offer, $data, $replaceImages, $imageFiles, &$storedFiles): OrderOffer {
+                $order = Order::query()->lockForUpdate()->findOrFail($offer->order_id);
+                $lockedOffer = OrderOffer::query()->lockForUpdate()->findOrFail($offer->id);
+                if ($order->status !== OrderStatus::Pending || $lockedOffer->status !== OfferStatus::Pending) {
+                    throw new BusinessRuleException('This offer cannot be edited.', 'auth.validation.order.cannot_edit_offer');
+                }
 
-            return $lockedOffer;
-        });
+                $lockedOffer->update($data);
+                if ($replaceImages) {
+                    $oldFiles = $lockedOffer->images()->get()->map->fileMetadata()->all();
+                    $lockedOffer->images()->delete();
+                    $this->images->deleteAfterCommit($oldFiles);
+                    $this->storeImages($lockedOffer, $imageFiles, $storedFiles);
+                }
+
+                return $lockedOffer->refresh();
+            });
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+
+            throw $exception;
+        }
     }
 
     /**
@@ -103,5 +136,20 @@ class OrderOfferService
 
             return $lockedOffer;
         });
+    }
+
+    /** @param array<int, UploadedFile> $files
+     * @param  array<int, array{disk: string, path: string}>  $storedFiles
+     */
+    private function storeImages(OrderOffer $offer, array $files, array &$storedFiles): void
+    {
+        foreach ($files as $position => $file) {
+            $metadata = $this->images->store(
+                $file,
+                "offers/{$offer->order_id}/{$offer->id}",
+                $storedFiles,
+            );
+            $offer->images()->create([...$metadata, 'sort_order' => $position]);
+        }
     }
 }

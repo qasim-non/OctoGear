@@ -307,7 +307,6 @@ class DemoDataSeeder extends Seeder
                     'component_id' => $type === 'general' && $offset === 0 ? $part['component_id'] : null,
                     'component_name' => $type === 'general' && $offset !== 0 ? $part['name'] : null,
                     'store_car_component_id' => $type === 'specific' ? $part['id'] : null,
-                    'accepted_store_id' => $type === 'general' && $accepted ? $chosenStore['id'] : null,
                     'created_at' => now()->subDays(20 - $offset),
                     'updated_at' => now()->subDays(10 - $offset),
                 ]);

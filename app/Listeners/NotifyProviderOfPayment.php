@@ -12,6 +12,6 @@ class NotifyProviderOfPayment
 {
     public function handle(OrderPaid $event): void
     {
-        $event->order->acceptedStore?->owner?->notify(new OrderPaidNotification($event->order));
+        $event->order->fulfillmentStore()?->owner?->notify(new OrderPaidNotification($event->order));
     }
 }

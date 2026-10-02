@@ -37,9 +37,7 @@ class OrderPolicy
                 return true;
             }
 
-            return $user->stores()
-                ->where('id', $order->accepted_store_id)
-                ->exists();
+            return $order->acceptedOffer?->store?->user_id === $user->id;
         }
 
         $componentStoreUserId = $order->storeCarComponent?->storeCar?->store?->user_id;

@@ -109,6 +109,28 @@ selected. General payment charges the accepted offer total once, regardless of t
 internal quantity. Specific-order payment retains its existing price-times-quantity
 behavior. The buy route, payment stub and test SMS configuration are unchanged.
 
+Payment preserves all received offers and their photos. Customers can continue
+using `GET /api/customer/orders/{order}/offers` and
+`GET /api/customer/orders/{order}/offers/{offer}` after payment and completion;
+order history/detail responses also retain the offers. The accepted offer keeps
+its whole-request total, notes, photos and store details; other offers keep their
+`not_selected` or `rejected` status. These records are read-only after selection:
+providers cannot edit/delete them and customers cannot reject or switch offers.
+Photo URLs still require authentication and offer ownership authorization.
+
+Customer order history can be filtered with `order_type` and `status`, for
+example `GET /api/customer/orders?status=awaiting_payment&page=1`. Rejecting an
+individual offer changes that offer to `rejected` and leaves the overall request
+`pending`, so the customer can consider other offers.
+
+Provider offer creation accepts optional `images[]`; sending `images[]` on an
+offer update replaces the private gallery, while omitting it preserves existing
+photos. Large reference catalogs support `search`, `page`, and `per_page` (up to
+50) on cities, companies, company names, car models, and components. For example,
+use `GET /api/reference/components?search=wheel&section_id=1&page=1`; responses
+include the standard pagination `meta`. Small fixed selectors (fuel types,
+colors, and sections) remain complete lists.
+
 This is an API-only contract change; update Flutter to send the selected offer ID,
 display `awaiting_payment`, and use the returned total before enabling this flow.
 

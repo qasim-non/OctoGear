@@ -493,7 +493,7 @@ Notifications (`NewOrderNotification`, `NewOfferNotification`, `NewMessageNotifi
 - Controllers use eager loading (`with`/`whenLoaded`) and rely on resource
   `whenLoaded(...)` guards so no N+1 leaks from serialization.
 - Listing endpoints use `paginate` and the `paginated` response helper.
-- Resources use `whenLoaded` for nullable relations (`acceptedStore`,
+- Resources use `whenLoaded` for nullable relations (`acceptedOffer.store`,
   `storeCarComponent`, `offers`, `vehicleDetails`, etc.).
 - Locale-aware fields (e.g. `name_en`/`name_ar`) are selected per `Accept-Language`
   inside resources using `$request->header('Accept-Language', app()->getLocale())`.
@@ -529,11 +529,16 @@ GET  /reference/cities
 GET  /reference/companies
 GET  /reference/companies/{company}/names
 GET  /reference/names/{name}/models
+GET  /reference/components?search=&section_id=&page=&per_page=
 GET  /reference/fuel-types
 GET  /reference/colors
 GET  /reference/sections
 GET  /reference/sections/{section}/components
 ```
+Cities, companies, company names, models and components accept `search`, `page`
+and a bounded `per_page` (maximum 50), and return the standard `data` plus
+`meta` pagination envelope. Fuel types, colors and sections remain complete
+small selector lists. Component search can be scoped with `section_id`.
 
 ### CMS (public)
 ```
@@ -565,7 +570,8 @@ GET  /provider/orders/specific
 GET  /provider/orders/offers         (provider's own offers listing — unaffected by viewAny change)
 GET  /provider/orders/paid
 GET  /provider/orders/{order}
-POST /provider/orders/{order}/offer          PUT/DELETE /offer/{offer}
+POST /provider/orders/{order}/offer          (optional `images[]` uploads)
+PUT/DELETE /provider/orders/{order}/offer/{offer}
 POST /provider/orders/{order}/reject
 ```
 
@@ -573,7 +579,7 @@ POST /provider/orders/{order}/reject
 ```
 GET/PATCH /customer/profile
 GET/POST/PATCH/DELETE /customer/customer-cars[/{customerCar}]
-GET/POST /customer/orders   /orders/{order}
+GET/POST /customer/orders?order_type=&status=&page=   /orders/{order}
 POST /customer/orders/{order}/accept-offer
 POST /customer/orders/{order}/pay
 POST /customer/orders/{order}/received
@@ -581,6 +587,13 @@ POST /customer/orders/{order}/cancel
 GET /customer/orders/{order}/offers[/{offer}]        (OrderOfferController)
 POST /customer/orders/{order}/offers/{offer}/reject
 ```
+
+Offer photos use the private `offer_images` gallery. Supplying `images[]`
+during offer creation attaches optional ordered photos; supplying it on update
+replaces the gallery, while omission preserves current photos. URLs use
+authorized `/media/offers/{offer}/images/{image}` routes. An order stores only
+`accepted_offer_id`; the selected store is derived from that offer. Rejecting
+an individual offer changes only its offer status.
 
 ### Marketplace — shared read-only browsing (`auth:sanctum`, `user.active`, `auth.provider`)
 ```

@@ -31,7 +31,7 @@ class AdminOrderService
         $mobile = $filters['mobile'] ?? null;
 
         return Order::query()
-            ->with(['customer', 'vehicleDetails', 'images', 'component', 'acceptedStore'])
+            ->with(['customer', 'vehicleDetails', 'images', 'component', 'acceptedOffer.store', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images'])
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($type, fn ($query) => $query->where('order_type', $type))
             ->when($customer, fn ($query) => $query->whereHas(
@@ -52,9 +52,10 @@ class AdminOrderService
             'customer',
             'vehicleDetails', 'images', 'component',
             'storeCarComponent.storeCar.store',
-            'acceptedStore',
+            'acceptedOffer.store',
             'payment',
             'offers.store',
+            'offers.images',
         ]);
     }
 

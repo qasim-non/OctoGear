@@ -3,18 +3,23 @@
 namespace App\Http\Controllers\Api\Reference;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reference\ReferenceCatalogRequest;
 use App\Http\Resources\ReferenceResource;
 use App\Models\City;
-use Illuminate\Support\Facades\Cache;
 
 class CityController extends Controller
 {
-    public function index()
+    public function index(ReferenceCatalogRequest $request)
     {
-        $cities = Cache::remember('ref:cities', now()->addDay(), fn () =>
-            City::select('id', 'name_en', 'name_ar')->get()
-        );
+        $filters = $request->validated();
+        $cities = City::query()
+            ->select('id', 'name_en', 'name_ar')
+            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($names) => $names->where('name_en', 'like', "%{$search}%")
+                ->orWhere('name_ar', 'like', "%{$search}%")
+            ))
+            ->orderBy('name_en')->orderBy('id')
+            ->paginate($filters['per_page'] ?? 20);
 
-        return $this->success(ReferenceResource::collection($cities));
+        return $this->paginated($cities->through(fn ($city) => (new ReferenceResource($city))->resolve($request)));
     }
 }

@@ -47,7 +47,7 @@ class OrderOfferTest extends TestCase
         return $order;
     }
 
-    public function test_cannot_view_offers_for_a_paid_order(): void
+    public function test_can_view_offers_for_a_paid_order(): void
     {
         $customer = $this->authCustomer();
         $order = $this->orderWithOffer($customer, OrderStatus::Paid);
@@ -55,14 +55,14 @@ class OrderOfferTest extends TestCase
 
         $this->actingAs($customer, 'sanctum')
             ->getJson("/api/customer/orders/{$order->id}/offers")
-            ->assertForbidden();
+            ->assertOk()->assertJsonPath('data.0.id', $offer->id);
 
         $this->actingAs($customer, 'sanctum')
             ->getJson("/api/customer/orders/{$order->id}/offers/{$offer->id}")
-            ->assertForbidden();
+            ->assertOk()->assertJsonPath('data.id', $offer->id);
     }
 
-    public function test_cannot_view_offers_for_a_completed_order(): void
+    public function test_can_view_offers_for_a_completed_order(): void
     {
         $customer = $this->authCustomer();
         $order = $this->orderWithOffer($customer, OrderStatus::Completed);
@@ -70,11 +70,11 @@ class OrderOfferTest extends TestCase
 
         $this->actingAs($customer, 'sanctum')
             ->getJson("/api/customer/orders/{$order->id}/offers")
-            ->assertForbidden();
+            ->assertOk()->assertJsonPath('data.0.id', $offer->id);
 
         $this->actingAs($customer, 'sanctum')
             ->getJson("/api/customer/orders/{$order->id}/offers/{$offer->id}")
-            ->assertForbidden();
+            ->assertOk()->assertJsonPath('data.id', $offer->id);
     }
 
     public function test_cannot_reject_an_offer_on_a_paid_order(): void

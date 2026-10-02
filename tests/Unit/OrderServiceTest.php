@@ -74,7 +74,7 @@ class OrderServiceTest extends TestCase
         $this->assertSame(OrderStatus::AwaitingPayment, $order->status);
         $this->assertSame(999, (int) $order->offered_price);
         $this->assertSame($offer->id, $order->accepted_offer_id);
-        $this->assertSame($store->id, $order->accepted_store_id);
+        $this->assertSame($store->id, $order->acceptedOffer->store_id);
         $this->assertSame(OfferStatus::Accepted, $offer->fresh()->status);
         $this->assertSame(OfferStatus::NotSelected, $otherOffer->fresh()->status);
     }

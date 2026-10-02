@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Enums\OrderStatus;
 use App\Enums\OfferStatus;
+use App\Enums\OrderStatus;
 use App\Enums\OrderType;
+use App\Models\City;
 use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\Store;
@@ -25,8 +26,8 @@ class ProviderOrderTest extends TestCase
 
         $generalOrder = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -39,20 +40,20 @@ class ProviderOrderTest extends TestCase
     public function test_provider_can_filter_general_orders_by_city(): void
     {
         $provider = User::factory()->provider()->create();
-        $cityA = \App\Models\City::factory()->create();
-        $cityB = \App\Models\City::factory()->create();
+        $cityA = City::factory()->create();
+        $cityB = City::factory()->create();
         $customerA = User::factory()->customer()->create(['city_id' => $cityA->id]);
         $customerB = User::factory()->customer()->create(['city_id' => $cityB->id]);
 
         $orderA = Order::factory()->create([
             'customer_id' => $customerA->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
         Order::factory()->create([
             'customer_id' => $customerB->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -65,21 +66,21 @@ class ProviderOrderTest extends TestCase
     public function test_provider_defaults_general_orders_to_their_store_city(): void
     {
         $provider = User::factory()->provider()->create();
-        $cityA = \App\Models\City::factory()->create();
-        $cityB = \App\Models\City::factory()->create();
+        $cityA = City::factory()->create();
+        $cityB = City::factory()->create();
         Store::factory()->create(['user_id' => $provider->id, 'city_id' => $cityA->id]);
         $customerA = User::factory()->customer()->create(['city_id' => $cityA->id]);
         $customerB = User::factory()->customer()->create(['city_id' => $cityB->id]);
 
         $orderA = Order::factory()->create([
             'customer_id' => $customerA->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
         Order::factory()->create([
             'customer_id' => $customerB->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -105,8 +106,8 @@ class ProviderOrderTest extends TestCase
 
         Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Completed,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Completed,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -124,10 +125,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -146,10 +147,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -166,8 +167,8 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::AwaitingPayment,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::AwaitingPayment,
         ]);
 
         $offer = OrderOffer::factory()->create([
@@ -189,8 +190,8 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -206,8 +207,8 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Completed,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Completed,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -223,12 +224,15 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::General,
-            'status'            => OrderStatus::AwaitingPayment,
-            'accepted_store_id' => $winningStore->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::AwaitingPayment,
         ]);
 
+        $winningOffer = OrderOffer::factory()->create([
+            'order_id' => $order->id, 'store_id' => $winningStore->id, 'status' => OfferStatus::Accepted,
+        ]);
+        $order->update(['accepted_offer_id' => $winningOffer->id]);
         OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $myStore->id,
@@ -246,11 +250,14 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::General,
-            'status'            => OrderStatus::AwaitingPayment,
-            'accepted_store_id' => $winningStore->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::AwaitingPayment,
         ]);
+        $winningOffer = OrderOffer::factory()->create([
+            'order_id' => $order->id, 'store_id' => $winningStore->id, 'status' => OfferStatus::Accepted,
+        ]);
+        $order->update(['accepted_offer_id' => $winningOffer->id]);
 
         $this->actingAs($provider, 'sanctum')
             ->getJson("/api/provider/orders/{$order->id}")
@@ -266,20 +273,20 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $otherStore->id,
-            'price'    => 250,
+            'price' => 250,
         ]);
 
         $myOffer = OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $myStore->id,
-            'price'    => 500,
+            'price' => 500,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -299,10 +306,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -320,10 +327,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -340,10 +347,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -360,15 +367,15 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/orders/{$order->id}/offer", [
                 'store_id' => $store->id,
-                'price'    => 500,
-                'notes'    => 'Good quality part',
+                'price' => 500,
+                'notes' => 'Good quality part',
             ])
             ->assertStatus(201)
             ->assertJsonPath('data.price', 500)
@@ -384,14 +391,14 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/orders/{$order->id}/offer", [
                 'store_id' => $storeB->id,
-                'price'    => 700,
+                'price' => 700,
             ])
             ->assertStatus(201)
             ->assertJsonPath('data.store.id', $storeB->id);
@@ -410,14 +417,14 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/orders/{$order->id}/offer", [
                 'store_id' => $otherProviderStore->id,
-                'price'    => 500,
+                'price' => 500,
             ])
             ->assertStatus(422);
     }
@@ -431,16 +438,16 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/orders/{$order->id}/offer", [
                 'store_id' => $store->id,
-                'price'    => 500,
+                'price' => 500,
             ])
             ->assertStatus(403);
     }
@@ -453,8 +460,8 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         OrderOffer::factory()->create([
@@ -465,7 +472,7 @@ class ProviderOrderTest extends TestCase
         $this->actingAs($provider, 'sanctum')
             ->postJson("/api/provider/orders/{$order->id}/offer", [
                 'store_id' => $store->id,
-                'price'    => 500,
+                'price' => 500,
             ])
             ->assertStatus(400);
     }
@@ -478,14 +485,14 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $offer = OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $store->id,
-            'price'    => 400,
+            'price' => 400,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -503,8 +510,8 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $offer = OrderOffer::factory()->create([
@@ -525,8 +532,8 @@ class ProviderOrderTest extends TestCase
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Pending,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Pending,
         ]);
 
         $offer = OrderOffer::factory()->create([
@@ -550,10 +557,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -571,10 +578,10 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Pending,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Pending,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')
@@ -589,18 +596,17 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         $order = Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::General,
-            'status'            => OrderStatus::Paid,
-            'offered_price'     => 1000,
-            'quantity'          => 37,
-            'accepted_store_id' => $store->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Paid,
+            'offered_price' => 1000,
+            'quantity' => 37,
         ]);
         $offer = OrderOffer::factory()->create([
             'order_id' => $order->id,
             'store_id' => $store->id,
-            'price'    => 1000,
-            'status'   => OfferStatus::Accepted,
+            'price' => 1000,
+            'status' => OfferStatus::Accepted,
         ]);
         $order->update(['accepted_offer_id' => $offer->id]);
 
@@ -620,14 +626,20 @@ class ProviderOrderTest extends TestCase
         $otherStore = Store::factory()->create(['user_id' => User::factory()->provider()->create()->id]);
         $customer = User::factory()->customer()->create();
 
-        Order::factory()->create([
-            'customer_id'       => $customer->id,
-            'order_type'        => OrderType::General,
-            'status'            => OrderStatus::Paid,
-            'offered_price'     => 500,
-            'quantity'          => 1,
-            'accepted_store_id' => $otherStore->id,
+        $otherOrder = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::General,
+            'status' => OrderStatus::Paid,
+            'offered_price' => 500,
+            'quantity' => 1,
         ]);
+        $otherOffer = OrderOffer::factory()->create([
+            'order_id' => $otherOrder->id,
+            'store_id' => $otherStore->id,
+            'price' => 500,
+            'status' => OfferStatus::Accepted,
+        ]);
+        $otherOrder->update(['accepted_offer_id' => $otherOffer->id]);
 
         $this->actingAs($provider, 'sanctum')
             ->getJson('/api/provider/orders/paid')
@@ -644,12 +656,12 @@ class ProviderOrderTest extends TestCase
         $customer = User::factory()->customer()->create();
 
         Order::factory()->create([
-            'customer_id'             => $customer->id,
-            'order_type'              => OrderType::Specific,
-            'status'                  => OrderStatus::Completed,
-            'offered_price'           => 800,
-            'quantity'                => 1,
-            'store_car_component_id'  => $component->id,
+            'customer_id' => $customer->id,
+            'order_type' => OrderType::Specific,
+            'status' => OrderStatus::Completed,
+            'offered_price' => 800,
+            'quantity' => 1,
+            'store_car_component_id' => $component->id,
         ]);
 
         $this->actingAs($provider, 'sanctum')

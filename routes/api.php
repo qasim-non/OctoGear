@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Reference\CarSectionController;
 use App\Http\Controllers\Api\Reference\CityController;
 use App\Http\Controllers\Api\Reference\ColorController;
 use App\Http\Controllers\Api\Reference\CompanyController;
+use App\Http\Controllers\Api\Reference\ComponentController;
 use App\Http\Controllers\Api\Reference\FuelTypeController;
 use App\Http\Controllers\Api\Shared\ConversationController;
 use App\Http\Controllers\Api\Shared\NotificationController;
@@ -40,6 +41,7 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/stores/{store}/registration', [MediaController::class, 'storeRegistration'])->name('store-registration.show');
         Route::get('/store-requests/{storeRequest}/registration', [MediaController::class, 'storeRequestRegistration'])->name('store-request-registration.show');
         Route::get('/orders/{order}/images/{orderImage}', [MediaController::class, 'orderImage'])->name('order-images.show');
+        Route::get('/offers/{offer}/images/{offerImage}', [MediaController::class, 'offerImage'])->name('offer-images.show');
     });
 
     Route::prefix('auth')->group(function () {
@@ -58,6 +60,7 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/names/{name}/models', [CarNameController::class, 'models']);
         Route::get('/fuel-types', [FuelTypeController::class, 'index']);
         Route::get('/colors', [ColorController::class, 'index']);
+        Route::get('/components', [ComponentController::class, 'index']);
         Route::get('/sections', [CarSectionController::class, 'index']);
         Route::get('/sections/{section}/components', [CarSectionController::class, 'components']);
     });

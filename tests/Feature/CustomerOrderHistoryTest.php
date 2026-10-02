@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Events\OrderCreated;
 use App\Models\CarName;
@@ -32,6 +33,9 @@ class CustomerOrderHistoryTest extends TestCase
         $second = $this->getJson('/api/customer/orders?order_type=specific&page=2')->assertOk()->assertJsonCount(2, 'data');
         $this->assertEmpty(array_intersect(array_column($first->json('data'), 'id'), array_column($second->json('data'), 'id')));
         $this->getJson('/api/customer/orders?order_type=general')->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.order_type', 'general');
+        $this->getJson('/api/customer/orders?status=pending')->assertOk()->assertJsonPath('meta.total', 18);
+        $this->getJson('/api/customer/orders?status=completed')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/customer/orders?status=unknown')->assertUnprocessable();
         $this->getJson('/api/customer/orders')->assertOk()->assertJsonPath('meta.total', 18);
         $this->getJson('/api/customer/orders?order_type=other')->assertUnprocessable();
         $this->getJson('/api/customer/orders?page=0')->assertUnprocessable();
@@ -69,8 +73,10 @@ class CustomerOrderHistoryTest extends TestCase
             ->assertJsonPath('data.car_name', 'Sunny')->assertJsonPath('data.accepted_store', null)
             ->assertJsonPath('data.offers_count', 0)->assertJsonCount(0, 'data.offers');
         $store = Store::factory()->create();
-        OrderOffer::factory()->create(['order_id' => $order->id, 'store_id' => $store->id, 'price' => 15000]);
-        $order->update(['accepted_store_id' => $store->id, 'offered_price' => 15000, 'status' => OrderStatus::AwaitingPayment]);
+        $offer = OrderOffer::factory()->create([
+            'order_id' => $order->id, 'store_id' => $store->id, 'price' => 15000, 'status' => OfferStatus::Accepted,
+        ]);
+        $order->update(['accepted_offer_id' => $offer->id, 'offered_price' => 15000, 'status' => OrderStatus::AwaitingPayment]);
         $this->getJson('/api/customer/orders/'.$order->id)->assertOk()
             ->assertJsonPath('data.accepted_store.id', $store->id)->assertJsonPath('data.offers_count', 1)
             ->assertJsonPath('data.offers.0.price', 15000)->assertJsonPath('data.offered_price', 15000);

@@ -10,13 +10,14 @@ class OrderOfferResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'               => $this->id,
-            'price'            => $this->price,
-            'notes'            => $this->notes,
-            'status'           => $this->status?->value,
+            'id' => $this->id,
+            'price' => $this->price,
+            'notes' => $this->notes,
+            'status' => $this->status?->value,
             'rejection_reason' => $this->rejection_reason,
-            'store'    => $this->whenLoaded('store', fn () => [
-                'id'   => $this->store->id,
+            'images' => OfferImageResource::collection($this->whenLoaded('images')),
+            'store' => $this->whenLoaded('store', fn () => [
+                'id' => $this->store->id,
                 'name' => $this->store->name,
             ]),
             'created_at' => $this->created_at,

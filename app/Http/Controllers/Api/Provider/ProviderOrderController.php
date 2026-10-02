@@ -65,7 +65,7 @@ class ProviderOrderController extends Controller
         $user = auth()->user();
 
         $offers = OrderOffer::query()
-            ->with(['order.vehicleDetails', 'order.component', 'store'])
+            ->with(['order.vehicleDetails', 'order.component', 'store', 'images'])
             ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
             ->latest()
             ->paginate(15);
@@ -77,13 +77,11 @@ class ProviderOrderController extends Controller
     {
         $user = auth()->user();
 
-        $storeIds = $user->stores()->pluck('id');
-
         $orders = Order::query()
-            ->with(['customer', 'vehicleDetails', 'images', 'component', 'acceptedStore', 'storeCarComponent.storeCar.store'])
+            ->with(['customer', 'vehicleDetails', 'images', 'component', 'acceptedOffer.store', 'storeCarComponent.storeCar.store'])
             ->whereIn('status', [OrderStatus::Paid])
-            ->where(function ($q) use ($user, $storeIds) {
-                $q->whereIn('accepted_store_id', $storeIds)
+            ->where(function ($q) use ($user) {
+                $q->whereHas('acceptedOffer.store', fn ($store) => $store->where('user_id', $user->id))
                     ->orWhereHas(
                         'storeCarComponent.storeCar.store',
                         fn ($s) => $s->where('user_id', $user->id)
@@ -126,8 +124,8 @@ class ProviderOrderController extends Controller
             'vehicleDetails', 'images', 'component',
             'offers' => fn ($q) => $q
                 ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
-                ->with('store'),
-            'acceptedStore',
+                ->with(['store', 'images']),
+            'acceptedOffer.store',
         ];
     }
 
@@ -136,7 +134,7 @@ class ProviderOrderController extends Controller
         return [
             'images',
             'storeCarComponent.storeCar.store',
-            'acceptedStore',
+            'acceptedOffer.store',
         ];
     }
 
@@ -148,7 +146,7 @@ class ProviderOrderController extends Controller
 
         $offer = $this->offers->create($order, $request->validated());
 
-        $offer->load('store');
+        $offer->load(['store', 'images']);
 
         return $this->created(new OrderOfferResource($offer));
     }
@@ -165,7 +163,7 @@ class ProviderOrderController extends Controller
 
         $offer = $this->offers->update($offer, $request->validated());
 
-        $offer->load('store');
+        $offer->load(['store', 'images']);
 
         return $this->success(new OrderOfferResource($offer));
     }

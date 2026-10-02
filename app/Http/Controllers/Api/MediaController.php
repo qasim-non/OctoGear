@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\OfferImage;
 use App\Models\Order;
 use App\Models\OrderImage;
+use App\Models\OrderOffer;
 use App\Models\Store;
 use App\Models\StoreCarPicture;
 use App\Models\StorePicture;
@@ -71,6 +73,17 @@ class MediaController extends Controller
         }
 
         return $this->images->stream($orderImage->fileMetadata()) ?? $this->notFound();
+    }
+
+    public function offerImage(Request $request, OrderOffer $offer, OfferImage $offerImage)
+    {
+        $viewer = $this->viewer($request);
+        abort_unless($offerImage->order_offer_id === $offer->id, 404);
+        if ($viewer instanceof User) {
+            $this->authorize('view', $offer);
+        }
+
+        return $this->images->stream($offerImage->fileMetadata()) ?? $this->notFound();
     }
 
     private function viewer(Request $request): User|Admin

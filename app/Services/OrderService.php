@@ -182,14 +182,13 @@ class OrderService
             $lockedOrder->update([
                 'status' => OrderStatus::AwaitingPayment,
                 'accepted_offer_id' => $selected->id,
-                'accepted_store_id' => $selected->store_id,
                 'offered_price' => $selected->price,
             ]);
             $selected->update(['status' => OfferStatus::Accepted]);
-
-            foreach ($pendingOffers->where('id', '!=', $selected->id) as $otherOffer) {
-                $otherOffer->update(['status' => OfferStatus::NotSelected]);
-            }
+            $lockedOrder->offers()
+                ->where('id', '!=', $selected->id)
+                ->where('status', OfferStatus::Pending->value)
+                ->update(['status' => OfferStatus::NotSelected]);
 
             return $lockedOrder->refresh();
         });

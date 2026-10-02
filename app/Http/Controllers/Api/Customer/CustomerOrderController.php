@@ -27,9 +27,10 @@ class CustomerOrderController extends Controller
         $orders = auth()->user()
             ->orders()
             ->with($this->historyRelations())
-            ->with('offers.store')
+            ->with(['offers.store', 'offers.images'])
             ->withCount('offers')
             ->when($request->validated('order_type'), fn ($query, $type) => $query->where('order_type', $type))
+            ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->latest()
             ->orderByDesc('id')
             ->paginate(15);
@@ -50,7 +51,7 @@ class CustomerOrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->load([...$this->historyRelations(), 'offers' => fn ($query) => $query->with('store')->latest()->orderByDesc('id')]);
+        $order->load([...$this->historyRelations(), 'offers' => fn ($query) => $query->with(['store', 'images'])->latest()->orderByDesc('id')]);
         $order->loadCount('offers');
 
         return $this->success(new CustomerOrderResource($order));
@@ -59,7 +60,7 @@ class CustomerOrderController extends Controller
     private function historyRelations(): array
     {
         return ['vehicleDetails', 'images', 'component', 'storeCarComponent.component', 'storeCarComponent.storeCar.carName',
-            'storeCarComponent.storeCar.store', 'acceptedStore', 'payment'];
+            'storeCarComponent.storeCar.store', 'acceptedOffer.store', 'payment'];
     }
 
     public function acceptOffer(AcceptOfferRequest $request, Order $order)
@@ -70,7 +71,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->acceptOffer($order, $offer);
 
-        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images', 'acceptedOffer.store']);
 
         return $this->success(new OrderResource($order));
     }
@@ -81,7 +82,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->cancel($order);
 
-        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images', 'acceptedOffer.store']);
 
         return $this->success(new OrderResource($order));
     }
@@ -109,7 +110,7 @@ class CustomerOrderController extends Controller
             return $this->error($message);
         }
 
-        $order->refresh()->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'acceptedStore']);
+        $order->refresh()->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'acceptedOffer.store']);
 
         return $this->success([
             'payment' => new PaymentResource($payment),
@@ -123,7 +124,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->complete($order);
 
-        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'acceptedStore']);
+        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images', 'acceptedOffer.store']);
 
         return $this->success(new OrderResource($order));
     }

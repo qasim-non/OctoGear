@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Events\OrderCreated;
 use App\Models\Admin;
@@ -9,6 +10,7 @@ use App\Models\CarName;
 use App\Models\Color;
 use App\Models\FuelType;
 use App\Models\Order;
+use App\Models\OrderOffer;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
 use App\Models\User;
@@ -145,7 +147,10 @@ class OrderImagesTest extends TestCase
         $provider = User::factory()->provider()->create();
         $this->actingAs($provider, 'sanctum')->get($url)->assertOk();
         $winner = Store::factory()->create();
-        $order->update(['status' => OrderStatus::AwaitingPayment, 'accepted_store_id' => $winner->id]);
+        $offer = OrderOffer::factory()->create([
+            'order_id' => $order->id, 'store_id' => $winner->id, 'status' => OfferStatus::Accepted,
+        ]);
+        $order->update(['status' => OrderStatus::AwaitingPayment, 'accepted_offer_id' => $offer->id]);
         $this->getJson($url)->assertForbidden();
         $this->actingAs($winner->owner, 'sanctum')->get($url)->assertOk();
         $this->actingAs(Admin::factory()->create(), 'sanctum')->get($url)->assertOk();
