@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             $table->foreignId('accepted_store_id')->nullable()->constrained('stores', 'id')->onDelete('set null');
+            $table->foreignId('accepted_offer_id')->nullable()->constrained('order_offers')->nullOnDelete();
         });
     }
 
@@ -20,7 +21,8 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             $table->dropForeign(['accepted_store_id']);
-            $table->dropColumn('accepted_store_id');
+            $table->dropForeign(['accepted_offer_id']);
+            $table->dropColumn(['accepted_store_id', 'accepted_offer_id']);
         });
     }
 };

@@ -67,7 +67,7 @@ class CustomerOrderCancelTest extends TestCase
         ]);
     }
 
-    public function test_cancelling_a_negotiating_order_deletes_all_its_offers(): void
+    public function test_cancelling_an_order_awaiting_payment_deletes_all_its_offers(): void
     {
         $customer = $this->authCustomer();
         $store = $this->makeStore();
@@ -75,7 +75,7 @@ class CustomerOrderCancelTest extends TestCase
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
             'order_type' => OrderType::General,
-            'status' => OrderStatus::Negotiating,
+            'status' => OrderStatus::AwaitingPayment,
             'offered_price' => 700,
             'accepted_store_id' => $store->id,
         ]);

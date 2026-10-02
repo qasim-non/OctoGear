@@ -36,7 +36,7 @@ class AdminDashboardService
             'orders' => [
                 'total' => Order::count(),
                 'pending' => Order::where('status', OrderStatus::Pending)->count(),
-                'negotiating' => Order::where('status', OrderStatus::Negotiating)->count(),
+                'awaiting_payment' => Order::where('status', OrderStatus::AwaitingPayment)->count(),
                 'paid' => Order::where('status', OrderStatus::Paid)->count(),
                 'completed' => Order::where('status', OrderStatus::Completed)->count(),
                 'cancelled' => Order::where('status', OrderStatus::Cancelled)->count(),

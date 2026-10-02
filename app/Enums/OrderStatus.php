@@ -8,13 +8,13 @@ namespace App\Enums;
  * Used in: orders.status column
  *
  * Lifecycle:
- *   pending → negotiating → paid → completed
+ *   pending → awaiting_payment → paid → completed
  *       ↓          ↓
  *   rejected   cancelled
  *
  * - Pending: Customer sent the order, waiting for store response
  * - Rejected: Store rejected the order (specific orders only)
- * - Negotiating: Store accepted but price is being discussed
+ * - Awaiting payment: Customer selected a store's final total offer
  * - Paid: Customer paid for the component
  * - Completed: Customer received the component
  * - Cancelled: Customer cancelled the order
@@ -23,7 +23,7 @@ enum OrderStatus: string
 {
     case Pending = 'pending';
     case Rejected = 'rejected';
-    case Negotiating = 'negotiating';
+    case AwaitingPayment = 'awaiting_payment';
     case Paid = 'paid';
     case Completed = 'completed';
     case Cancelled = 'cancelled';
@@ -37,15 +37,15 @@ enum OrderStatus: string
     public function canTransitionTo(self $newStatus): bool
     {
         return match ($this) {
-            // Pending → can be accepted (→ negotiating), rejected, or cancelled
+            // Pending → customer can select an offer, or cancel.
             self::Pending => in_array($newStatus, [
-                self::Negotiating,
+                self::AwaitingPayment,
                 self::Rejected,
                 self::Cancelled,
             ]),
 
-            // Negotiating → can be paid, or cancelled
-            self::Negotiating => in_array($newStatus, [
+            // An unpaid request can be paid or cancelled.
+            self::AwaitingPayment => in_array($newStatus, [
                 self::Paid,
                 self::Cancelled,
             ]),
@@ -65,7 +65,7 @@ enum OrderStatus: string
      */
     public function isActive(): bool
     {
-        return !in_array($this, [
+        return ! in_array($this, [
             self::Rejected,
             self::Completed,
             self::Cancelled,
@@ -80,7 +80,7 @@ enum OrderStatus: string
         return match ($this) {
             self::Pending => 'Pending',
             self::Rejected => 'Rejected',
-            self::Negotiating => 'Negotiating',
+            self::AwaitingPayment => 'Awaiting payment',
             self::Paid => 'Paid',
             self::Completed => 'Completed',
             self::Cancelled => 'Cancelled',

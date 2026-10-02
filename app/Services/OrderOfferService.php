@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Enums\OfferStatus;
+use App\Enums\OrderStatus;
 use App\Events\OfferCreated;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Order;
 use App\Models\OrderOffer;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Owns the offer lifecycle on an order.
@@ -30,14 +32,17 @@ class OrderOfferService
     {
         $storeId = (int) $data['store_id'];
 
-        if ($order->offers()->where('store_id', $storeId)->exists()) {
-            throw new BusinessRuleException('You have already submitted an offer on this order.', 'auth.validation.order.already_offered');
-        }
+        $offer = DB::transaction(function () use ($order, $storeId, $data): OrderOffer {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if (! $lockedOrder->isGeneral() || $lockedOrder->status !== OrderStatus::Pending) {
+                throw new BusinessRuleException('This order is no longer accepting offers.', 'auth.validation.order.cannot_accept_offer');
+            }
+            if ($lockedOrder->offers()->where('store_id', $storeId)->exists()) {
+                throw new BusinessRuleException('You have already submitted an offer on this order.', 'auth.validation.order.already_offered');
+            }
 
-        $offer = $order->offers()->create([
-            ...$data,
-            'store_id' => $storeId,
-        ]);
+            return $lockedOrder->offers()->create([...$data, 'store_id' => $storeId]);
+        });
 
         OfferCreated::dispatch($offer);
 
@@ -51,13 +56,17 @@ class OrderOfferService
      */
     public function update(OrderOffer $offer, array $data): OrderOffer
     {
-        if ($offer->status !== OfferStatus::Pending) {
-            throw new BusinessRuleException('This offer cannot be edited.', 'auth.validation.order.cannot_edit_offer');
-        }
+        return DB::transaction(function () use ($offer, $data): OrderOffer {
+            $order = Order::query()->lockForUpdate()->findOrFail($offer->order_id);
+            $lockedOffer = OrderOffer::query()->lockForUpdate()->findOrFail($offer->id);
+            if ($order->status !== OrderStatus::Pending || $lockedOffer->status !== OfferStatus::Pending) {
+                throw new BusinessRuleException('This offer cannot be edited.', 'auth.validation.order.cannot_edit_offer');
+            }
 
-        $offer->update($data);
+            $lockedOffer->update($data);
 
-        return $offer;
+            return $lockedOffer;
+        });
     }
 
     /**
@@ -67,11 +76,15 @@ class OrderOfferService
      */
     public function delete(OrderOffer $offer): void
     {
-        if ($offer->status !== OfferStatus::Pending) {
-            throw new BusinessRuleException('This offer cannot be deleted.', 'auth.validation.order.cannot_delete_offer');
-        }
+        DB::transaction(function () use ($offer): void {
+            $order = Order::query()->lockForUpdate()->findOrFail($offer->order_id);
+            $lockedOffer = OrderOffer::query()->lockForUpdate()->findOrFail($offer->id);
+            if ($order->status !== OrderStatus::Pending || $lockedOffer->status !== OfferStatus::Pending) {
+                throw new BusinessRuleException('This offer cannot be deleted.', 'auth.validation.order.cannot_delete_offer');
+            }
 
-        $offer->delete();
+            $lockedOffer->delete();
+        });
     }
 
     /**
@@ -79,11 +92,16 @@ class OrderOfferService
      */
     public function reject(OrderOffer $offer, ?string $reason): OrderOffer
     {
-        $offer->update([
-            'status' => OfferStatus::Rejected,
-            'rejection_reason' => $reason,
-        ]);
+        return DB::transaction(function () use ($offer, $reason): OrderOffer {
+            $order = Order::query()->lockForUpdate()->findOrFail($offer->order_id);
+            $lockedOffer = OrderOffer::query()->lockForUpdate()->findOrFail($offer->id);
+            if ($order->status !== OrderStatus::Pending || $lockedOffer->status !== OfferStatus::Pending) {
+                throw new BusinessRuleException('This offer can no longer be rejected.', 'auth.validation.order.cannot_accept_offer');
+            }
 
-        return $offer;
+            $lockedOffer->update(['status' => OfferStatus::Rejected, 'rejection_reason' => $reason]);
+
+            return $lockedOffer;
+        });
     }
 }

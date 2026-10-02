@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Order;
@@ -32,22 +33,22 @@ class CustomerPaymentTest extends TestCase
         return Store::factory()->create(['user_id' => $owner->id]);
     }
 
-    private function negotiatingOrderFor(User $customer): Order
+    private function orderAwaitingPaymentFor(User $customer): Order
     {
         return Order::factory()->create([
             'customer_id'       => $customer->id,
             'order_type'        => OrderType::Specific,
-            'status'            => OrderStatus::Negotiating,
+            'status'            => OrderStatus::AwaitingPayment,
             'offered_price'     => 450,
             'quantity'          => 1,
             'accepted_store_id' => $this->createStoreWithOwner()->id,
         ]);
     }
 
-    public function test_customer_can_pay_for_a_negotiating_order_with_a_credit_card(): void
+    public function test_customer_can_pay_for_an_order_awaiting_payment(): void
     {
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $response = $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
@@ -79,7 +80,7 @@ class CustomerPaymentTest extends TestCase
     {
         $customer = $this->authCustomer();
         $store = $this->createStoreWithOwner();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $other = OrderOffer::factory()->create([
             'order_id' => $order->id,
@@ -98,7 +99,7 @@ class CustomerPaymentTest extends TestCase
     public function test_credit_card_is_required_for_card_payment(): void
     {
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $response = $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
@@ -111,7 +112,7 @@ class CustomerPaymentTest extends TestCase
     public function test_cash_is_not_allowed_on_customer_payment(): void
     {
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $response = $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
@@ -125,7 +126,7 @@ class CustomerPaymentTest extends TestCase
     public function test_cannot_pay_twice(): void
     {
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
@@ -144,7 +145,7 @@ class CustomerPaymentTest extends TestCase
     public function test_customer_can_confirm_receipt_after_payment(): void
     {
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
@@ -166,7 +167,7 @@ class CustomerPaymentTest extends TestCase
     public function test_cannot_confirm_receipt_before_payment(): void
     {
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/received")
@@ -179,7 +180,7 @@ class CustomerPaymentTest extends TestCase
         config(['payments.driver' => 'moyasar']);
 
         $customer = $this->authCustomer();
-        $order = $this->negotiatingOrderFor($customer);
+        $order = $this->orderAwaitingPaymentFor($customer);
 
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/pay", [
@@ -198,7 +199,7 @@ class CustomerPaymentTest extends TestCase
 
         $this->assertDatabaseHas('orders', [
             'id'     => $order->id,
-            'status' => OrderStatus::Negotiating->value,
+            'status' => OrderStatus::AwaitingPayment->value,
         ]);
     }
 
@@ -211,7 +212,7 @@ class CustomerPaymentTest extends TestCase
         $order = Order::factory()->create([
             'customer_id'       => $customer->id,
             'order_type'        => OrderType::Specific,
-            'status'            => OrderStatus::Negotiating,
+            'status'            => OrderStatus::AwaitingPayment,
             'offered_price'     => 300,
             'quantity'          => 1,
             'accepted_store_id' => $store->id,
@@ -229,5 +230,39 @@ class CustomerPaymentTest extends TestCase
 
         $this->assertNotNull($notification);
         $this->assertSame(OrderPaidNotification::class, $notification->type);
+    }
+
+    public function test_general_order_payment_uses_accepted_offer_total_once(): void
+    {
+        $customer = $this->authCustomer();
+        $store = $this->createStoreWithOwner();
+        $order = Order::factory()->create([
+            'customer_id'       => $customer->id,
+            'order_type'        => OrderType::General,
+            'status'            => OrderStatus::AwaitingPayment,
+            'offered_price'     => 30000,
+            'quantity'          => 37,
+            'accepted_store_id' => $store->id,
+        ]);
+        $offer = OrderOffer::factory()->create([
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+            'price'    => 30000,
+            'status'   => OfferStatus::Accepted,
+        ]);
+        $order->update(['accepted_offer_id' => $offer->id]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->postJson("/api/customer/orders/{$order->id}/pay", [
+                'payment_method' => 'credit_card',
+                'card_token'     => 'tok_test_1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.payment.amount', 30000);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'amount'   => 30000,
+        ]);
     }
 }

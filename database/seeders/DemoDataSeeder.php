@@ -284,8 +284,8 @@ class DemoDataSeeder extends Seeder
             $otherSeller = $localStores[1];
             $car = $seller['cars'][1]; // Intact donor; selected parts have usable stock.
             $part = $car['components'][$index % count($this->parts)];
-            $specificStatus = ['pending', 'negotiating', 'paid', 'rejected', 'cancelled'][$index % 5];
-            $generalStatus = ['pending', 'negotiating', 'paid', 'cancelled', 'pending'][$index % 5];
+            $specificStatus = ['pending', 'awaiting_payment', 'paid', 'rejected', 'cancelled'][$index % 5];
+            $generalStatus = ['pending', 'awaiting_payment', 'paid', 'cancelled', 'pending'][$index % 5];
             $scenarios = [
                 ['general', $generalStatus, $seller, 'general-open'],
                 ['specific', $specificStatus, $seller, 'specific-open'],
@@ -295,7 +295,7 @@ class DemoDataSeeder extends Seeder
 
             foreach ($scenarios as $offset => [$type, $status, $chosenStore, $label]) {
                 $notes = sprintf('[DEMO:%02d:%s] %s', $index + 1, $label, $part['name']);
-                $accepted = in_array($status, ['negotiating', 'paid', 'completed'], true);
+                $accepted = in_array($status, ['awaiting_payment', 'paid', 'completed'], true);
                 $identity = ['customer_id' => $customer['id'], 'notes' => $notes];
                 $isNew = ! DB::table('orders')->where($identity)->exists();
                 $price = $type === 'specific' || $accepted ? $part['price'] : null;
@@ -336,14 +336,21 @@ class DemoDataSeeder extends Seeder
                 // Keep changes made by a tester on reruns: transactions are fixtures only once.
                 if ($isNew) {
                     if ($type === 'general' && $status !== 'cancelled') {
+                        $acceptedOfferId = null;
                         foreach (array_slice($localStores, 0, 2) as $candidate) {
                             $winner = $accepted && $candidate['id'] === $chosenStore['id'];
-                            SeedRecords::once('order_offers', ['order_id' => $orderId, 'store_id' => $candidate['id']], [
+                            $offerId = SeedRecords::once('order_offers', ['order_id' => $orderId, 'store_id' => $candidate['id']], [
                                 'price' => $part['price'] + ($winner || ! $accepted ? 0 : 2500),
                                 'notes' => 'عرض تجريبي لقطعة مطابقة بعد التحقق من رقمها.',
-                                'status' => ! $accepted ? 'pending' : ($winner ? 'accepted' : 'rejected'),
+                                'status' => ! $accepted ? 'pending' : ($winner ? 'accepted' : 'not_selected'),
                                 'rejection_reason' => $accepted && ! $winner ? 'تم اختيار عرض آخر في السيناريو التجريبي.' : null,
                             ]);
+                            if ($winner) {
+                                $acceptedOfferId = $offerId;
+                            }
+                        }
+                        if ($acceptedOfferId !== null) {
+                            DB::table('orders')->where('id', $orderId)->update(['accepted_offer_id' => $acceptedOfferId]);
                         }
                     }
                     if (in_array($status, ['paid', 'completed'], true)) {

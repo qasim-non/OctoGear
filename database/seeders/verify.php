@@ -134,16 +134,24 @@ try {
         $offers = DB::table('order_offers')->where('order_id', $order->id)->get();
         if ($order->order_type === 'specific') {
             $assert($offers->isEmpty() && $order->store_car_component_id !== null, 'Specific order has bids or lacks inventory.');
-        } elseif (in_array($order->status, ['negotiating', 'paid', 'completed'], true)) {
+        } elseif (in_array($order->status, ['awaiting_payment', 'paid', 'completed'], true)) {
             $accepted = $offers->where('status', 'accepted');
-            $assert($accepted->count() === 1 && $accepted->first()->store_id === $order->accepted_store_id && $accepted->first()->price === $order->offered_price, 'General order accepted offer mismatch.');
+            $notSelected = $offers->where('status', 'not_selected');
+            $assert($accepted->count() === 1
+                && $accepted->first()->id === $order->accepted_offer_id
+                && $accepted->first()->store_id === $order->accepted_store_id
+                && $accepted->first()->price === $order->offered_price
+                && $notSelected->count() === $offers->count() - 1, 'General order accepted offer mismatch.');
         } else {
-            $assert($order->accepted_store_id === null, 'Unaccepted general order has a winning store.');
+            $assert($order->accepted_store_id === null && $order->accepted_offer_id === null, 'Unaccepted general order has a winning offer.');
         }
         $payment = DB::table('payments')->where('order_id', $order->id)->first();
         $assert(($payment !== null) === in_array($order->status, ['paid', 'completed'], true), 'Order/payment state mismatch.');
         if ($payment) {
-            $assert($payment->amount === $order->offered_price * $order->quantity && $payment->payment_status === 'paid', 'Payment amount/status mismatch.');
+            $expectedAmount = $order->order_type === 'general'
+                ? DB::table('order_offers')->where('id', $order->accepted_offer_id)->value('price')
+                : $order->offered_price * $order->quantity;
+            $assert($payment->amount === $expectedAmount && $payment->payment_status === 'paid', 'Payment amount/status mismatch.');
         }
     }
     foreach (DB::table('ratings')->get() as $rating) {
@@ -235,7 +243,7 @@ try {
     config(['database.seed_test_data' => false]);
     DB::table('users')->where('mobile', '+966500000100')->update(['full_name' => 'Edited demo customer']);
     $pending = DB::table('orders')->where('order_type', 'specific')->where('status', 'pending')->first();
-    DB::table('orders')->where('id', $pending->id)->update(['status' => 'negotiating']);
+    DB::table('orders')->where('id', $pending->id)->update(['status' => 'awaiting_payment']);
     $editedState = $state();
     $seed('Database\\Seeders\\DemoDataSeeder');
     $assert($state() === $editedState, 'Rerun reset tester edits.');

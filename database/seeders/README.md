@@ -64,7 +64,7 @@ The dataset contains:
 | Ratings | 30 |
 | Conversations / messages | 30 / 120 |
 
-Orders include general and specific requests across pending, negotiating, paid, completed, rejected, and cancelled states. Bids belong only to general orders; accepted offers match their orders. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. Offers and conversations use active stores in the customer's city.
+Orders include general and specific requests across pending, awaiting-payment, paid, completed, rejected, and cancelled states. Bids belong only to general orders; each selected offer is linked from the order and competing pending offers are marked not selected. General offer prices are whole-request totals; specific-order payments retain their existing quantity behavior. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. Offers and conversations use active stores in the customer's city.
 
 The 30 general requests split between 15 catalog selections (`component_id` only)
 and 15 custom part names (`component_name` only). Each has a vehicle snapshot with

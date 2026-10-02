@@ -10,7 +10,7 @@ class OrderIndexRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', Rule::in(['pending', 'rejected', 'negotiating', 'paid', 'completed', 'cancelled'])],
+            'status' => ['nullable', Rule::in(['pending', 'rejected', 'awaiting_payment', 'paid', 'completed', 'cancelled'])],
             'type' => ['nullable', Rule::in(['general', 'specific'])],
             'customer' => ['nullable', 'string', 'max:100'],
             'mobile' => ['nullable', 'string', 'max:20'],

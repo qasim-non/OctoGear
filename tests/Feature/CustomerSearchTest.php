@@ -332,7 +332,7 @@ class CustomerSearchTest extends TestCase
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
             'order_type' => OrderType::Specific,
-            'status' => OrderStatus::Negotiating,
+            'status' => OrderStatus::AwaitingPayment,
             'offered_price' => 450,
             'quantity' => 2,
             'store_car_component_id' => $component->id,

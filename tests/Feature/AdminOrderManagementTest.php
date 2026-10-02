@@ -54,12 +54,18 @@ class AdminOrderManagementTest extends TestCase
     {
         $this->makeOrder($this->customer(), ['status' => OrderStatus::Pending]);
         $this->makeOrder($this->customer(), ['status' => OrderStatus::Paid]);
+        $awaitingPayment = $this->makeOrder($this->customer(), ['status' => OrderStatus::AwaitingPayment]);
 
         $this->actingAs($this->authAdmin(), 'sanctum')
             ->getJson('/api/admin/orders?status=paid')
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.status', 'paid');
+
+        $this->actingAs($this->authAdmin(), 'sanctum')
+            ->getJson('/api/admin/orders?status=awaiting_payment')
+            ->assertOk()->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $awaitingPayment->id);
     }
 
     public function test_admin_can_filter_orders_by_type(): void

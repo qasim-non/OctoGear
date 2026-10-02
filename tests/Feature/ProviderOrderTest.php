@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\OrderStatus;
+use App\Enums\OfferStatus;
 use App\Enums\OrderType;
 use App\Models\Order;
 use App\Models\OrderOffer;
@@ -166,7 +167,7 @@ class ProviderOrderTest extends TestCase
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
             'order_type'  => OrderType::General,
-            'status'      => OrderStatus::Negotiating,
+            'status'      => OrderStatus::AwaitingPayment,
         ]);
 
         $offer = OrderOffer::factory()->create([
@@ -224,7 +225,7 @@ class ProviderOrderTest extends TestCase
         $order = Order::factory()->create([
             'customer_id'       => $customer->id,
             'order_type'        => OrderType::General,
-            'status'            => OrderStatus::Negotiating,
+            'status'            => OrderStatus::AwaitingPayment,
             'accepted_store_id' => $winningStore->id,
         ]);
 
@@ -247,7 +248,7 @@ class ProviderOrderTest extends TestCase
         $order = Order::factory()->create([
             'customer_id'       => $customer->id,
             'order_type'        => OrderType::General,
-            'status'            => OrderStatus::Negotiating,
+            'status'            => OrderStatus::AwaitingPayment,
             'accepted_store_id' => $winningStore->id,
         ]);
 
@@ -592,18 +593,25 @@ class ProviderOrderTest extends TestCase
             'order_type'        => OrderType::General,
             'status'            => OrderStatus::Paid,
             'offered_price'     => 1000,
-            'quantity'          => 2,
+            'quantity'          => 37,
             'accepted_store_id' => $store->id,
         ]);
+        $offer = OrderOffer::factory()->create([
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+            'price'    => 1000,
+            'status'   => OfferStatus::Accepted,
+        ]);
+        $order->update(['accepted_offer_id' => $offer->id]);
 
         $this->actingAs($provider, 'sanctum')
             ->getJson('/api/provider/orders/paid')
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $order->id)
-            ->assertJsonPath('data.0.gross_amount', 2000)
-            ->assertJsonPath('data.0.commission', 100)
-            ->assertJsonPath('data.0.net_amount', 1900);
+            ->assertJsonPath('data.0.gross_amount', 1000)
+            ->assertJsonPath('data.0.commission', 50)
+            ->assertJsonPath('data.0.net_amount', 950);
     }
 
     public function test_provider_does_not_see_other_providers_paid_orders(): void

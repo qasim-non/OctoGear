@@ -145,7 +145,7 @@ class OrderImagesTest extends TestCase
         $provider = User::factory()->provider()->create();
         $this->actingAs($provider, 'sanctum')->get($url)->assertOk();
         $winner = Store::factory()->create();
-        $order->update(['status' => OrderStatus::Negotiating, 'accepted_store_id' => $winner->id]);
+        $order->update(['status' => OrderStatus::AwaitingPayment, 'accepted_store_id' => $winner->id]);
         $this->getJson($url)->assertForbidden();
         $this->actingAs($winner->owner, 'sanctum')->get($url)->assertOk();
         $this->actingAs(Admin::factory()->create(), 'sanctum')->get($url)->assertOk();

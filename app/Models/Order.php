@@ -32,6 +32,7 @@ class Order extends Model
         'component_id',
         'component_name',
         'accepted_store_id',
+        'accepted_offer_id',
         'idempotency_key',
         'idempotency_fingerprint',
     ];
@@ -140,6 +141,11 @@ class Order extends Model
     public function acceptedStore(): BelongsTo
     {
         return $this->belongsTo(Store::class, 'accepted_store_id');
+    }
+
+    public function acceptedOffer(): BelongsTo
+    {
+        return $this->belongsTo(OrderOffer::class, 'accepted_offer_id')->withTrashed();
     }
 
     public function payment(): HasOne

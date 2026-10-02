@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Enums\StoreStatus;
@@ -21,7 +22,7 @@ use Throwable;
  *
  * All order business rules live here rather than in the controllers:
  *  - creation (+ side-effect event)
- *  - accepting an offer (status -> Negotiating)
+ *  - selecting a provider offer (status -> AwaitingPayment)
  *  - cancellation (status -> Cancelled, plus offer cleanup)
  *  - receipt confirmation (status -> Completed)
  *  - provider rejection of a specific order
@@ -154,22 +155,44 @@ class OrderService
         return $component;
     }
 
-    /**
-     * Accept a specific offer, moving the order to the negotiating stage.
-     */
+    /** Select one final total offer and close every competing offer atomically. */
     public function acceptOffer(Order $order, OrderOffer $offer): Order
     {
-        if (! $order->status->canTransitionTo(OrderStatus::Negotiating)) {
-            throw new BusinessRuleException('Cannot accept offer for this order.', 'auth.validation.order.cannot_accept_offer');
-        }
+        return DB::transaction(function () use ($order, $offer): Order {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if ($lockedOrder->isGeneral() && $lockedOrder->status === OrderStatus::AwaitingPayment) {
+                if ((int) $lockedOrder->accepted_offer_id === (int) $offer->id) {
+                    return $lockedOrder;
+                }
+                throw new BusinessRuleException('Another offer was already selected.', 'auth.validation.order.cannot_accept_offer', statusCode: 409);
+            }
+            if (! $lockedOrder->isGeneral() || ! $lockedOrder->status->canTransitionTo(OrderStatus::AwaitingPayment)) {
+                throw new BusinessRuleException('Cannot accept offer for this order.', 'auth.validation.order.cannot_accept_offer', statusCode: 409);
+            }
 
-        $order->update([
-            'status' => OrderStatus::Negotiating,
-            'offered_price' => $offer->price,
-            'accepted_store_id' => $offer->store_id,
-        ]);
+            $pendingOffers = $lockedOrder->offers()
+                ->where('status', OfferStatus::Pending->value)
+                ->lockForUpdate()
+                ->get();
+            $selected = $pendingOffers->firstWhere('id', $offer->id);
+            if (! $selected || (int) $selected->order_id !== (int) $lockedOrder->id) {
+                throw new BusinessRuleException('Cannot accept offer for this order.', 'auth.validation.order.cannot_accept_offer', statusCode: 409);
+            }
 
-        return $order;
+            $lockedOrder->update([
+                'status' => OrderStatus::AwaitingPayment,
+                'accepted_offer_id' => $selected->id,
+                'accepted_store_id' => $selected->store_id,
+                'offered_price' => $selected->price,
+            ]);
+            $selected->update(['status' => OfferStatus::Accepted]);
+
+            foreach ($pendingOffers->where('id', '!=', $selected->id) as $otherOffer) {
+                $otherOffer->update(['status' => OfferStatus::NotSelected]);
+            }
+
+            return $lockedOrder->refresh();
+        });
     }
 
     /**
@@ -177,16 +200,16 @@ class OrderService
      */
     public function cancel(Order $order): Order
     {
-        if (! $order->status->canTransitionTo(OrderStatus::Cancelled)) {
-            throw new BusinessRuleException('This order cannot be cancelled.', 'auth.validation.order.cannot_cancel');
-        }
+        return DB::transaction(function () use ($order): Order {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if (! $lockedOrder->status->canTransitionTo(OrderStatus::Cancelled)) {
+                throw new BusinessRuleException('This order cannot be cancelled.', 'auth.validation.order.cannot_cancel');
+            }
+            $lockedOrder->update(['status' => OrderStatus::Cancelled]);
+            $lockedOrder->offers()->delete();
 
-        DB::transaction(function () use ($order) {
-            $order->update(['status' => OrderStatus::Cancelled]);
-            $order->offers()->delete();
+            return $lockedOrder->refresh();
         });
-
-        return $order;
     }
 
     /**

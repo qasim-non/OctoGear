@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -37,15 +38,20 @@ use RuntimeException;
 class PaymentService
 {
     /**
-     * The total amount due for an order (in the smallest currency unit).
+     * The whole accepted offer total for general requests; specific purchases
+     * continue to multiply their unit price by requested quantity.
      */
     public function amountFor(Order $order): int
     {
+        if ($order->isGeneral()) {
+            return (int) ($order->acceptedOffer?->price ?? 0);
+        }
+
         return ($order->offered_price ?? 0) * max(1, (int) $order->quantity);
     }
 
     /**
-     * The platform commission on an order's gross amount.
+     * The platform commission on the order's gross total.
      */
     public function commissionFor(Order $order): int
     {
@@ -135,6 +141,13 @@ class PaymentService
         }
 
         if (! $order->status->canTransitionTo(OrderStatus::Paid)) {
+            throw new RuntimeException('This order cannot be paid right now.');
+        }
+
+        if ($order->isGeneral()
+            && (! $order->acceptedOffer
+                || $order->acceptedOffer->order_id !== $order->id
+                || $order->acceptedOffer->status !== OfferStatus::Accepted)) {
             throw new RuntimeException('This order cannot be paid right now.');
         }
 

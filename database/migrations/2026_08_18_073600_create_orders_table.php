@@ -18,7 +18,7 @@ return new class extends Migration
             $table->enum('status', [
                 'pending',          // customer sent request, waiting store response.
                 'rejected',         // store rejected (just for specific order)
-                'negotiating',      // store/customer discussing price (Store accept it but waiting for customer) < in general order this mean customer choose the store but they discuss
+                'awaiting_payment', // customer selected the store's final offer and must pay
                 'paid',             // customer paid
                 'completed',        // customer received component
                 'cancelled',        // customer cancelled

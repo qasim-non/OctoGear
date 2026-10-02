@@ -1,7 +1,7 @@
 # OctoGear (YARDY) - API Code Guide
 
-> Latest verification (2026-10-02): **366 passed / 2,108 assertions** after
-> the request color/fuel and component-name cleanup. Historical sections describe their
+> Latest verification (2026-10-02): **373 passed / 2,239 assertions** after
+> the request gallery, offer-selection, and whole-request payment updates. Historical sections describe their
 > respective implementation slices.
 
 ## Project Overview
@@ -61,8 +61,8 @@ with soft-deleted history included; renames appear on earlier orders. Referenced
 catalog components cannot be hard deleted. No bilingual part-name copies are
 stored on orders. Load component alongside vehicleDetails for order responses.
 Description is optional; general quantity, model_id, notes and store inventory
-IDs are prohibited input. The internal quantity remains one until the later
-payment schema step; general API responses omit it.
+IDs are prohibited input. An internal quantity of one remains for schema
+compatibility only; it does not multiply general offer or payment totals.
 
 order_vehicle_details stores the submitted vehicle, year, transmission and
 bilingual color/fuel labels. Reference IDs may become null after hard deletion;
@@ -87,17 +87,16 @@ Keep updates scoped and complete across schema, validation, services, resources,
 seeders and tests. Do not reset any non-development database.
 
 See README.md for payloads, response fields and rebuild instructions. This slice
-contains no Flutter, offer/payment state or SMS changes. Verify manual
-and saved vehicles, catalog/custom parts, localization, ownership, retry conflicts,
-rollback, snapshot stability, role-specific reads, fresh schema and demo seeding,
-then the complete Laravel suite.
+contains no Flutter or SMS changes. Verify manual and saved vehicles,
+catalog/custom parts, localization, ownership, retry conflicts, rollback, order
+images, offer acceptance, general totals, fresh schema and demo seeding, then the
+complete Laravel suite.
 
-Verification (2026-10-02): all 366 tests passed (2,108 assertions), targeted Pint
-passed, and the local MySQL `octogear` database was rebuilt and seeded successfully.
-The build contains 60 demo orders and 30 complete vehicle snapshots; general
-requests split evenly between catalog IDs and custom names. Removed a MySQL-only
-column-positioning dependency on `model_id` from the accepted-store migration.
-The obsolete order name/model columns and legacy snapshot metadata are absent.
+Verification (2026-10-02): the prior request/vehicle slice passed 366 tests. The
+request-image and offer/payment changes passed 373 tests / 2,239 assertions,
+targeted Pint, isolated SQLite seeder verification, and a fresh local MySQL
+migration/seed run. General offers lock one selected total, record competitors as
+not selected, and charge that total once.
 
 ## Architecture Rules (governing conventions)
 
@@ -135,7 +134,7 @@ OctoGear-api/
 │  │  ├─ UserType.php           # customer | service provider
 │  │  ├─ UserStatus.php         # unblocked | blocked
 │  │  ├─ OrderType.php          # general | specific
-│  │  ├─ OrderStatus.php        # pending | rejected | negotiating | paid | completed | cancelled
+│  │  ├─ OrderStatus.php        # pending | rejected | awaiting_payment | paid | completed | cancelled
 │  │  ├─ PaymentMethod.php      # cash | credit_card
 │  │  ├─ PaymentStatus.php      # pending | paid | failed | refunded
 │  │  ├─ StoreStatus.php        # active | inactive
@@ -363,7 +362,8 @@ Offer creation, update, deletion and rejection with state-machine guards
 (`reject`, `cannot_*` keys listed above).
 
 ### PaymentService
-- `amountFor(order)` = `offered_price` × `quantity`.
+- `amountFor(order)` uses the selected offer's price once for general requests;
+  specific orders retain `offered_price` × `quantity`.
 - `commissionFor(amount)` = 5% commission (`config/payments.commission_rate`).
 - Gateway driver: `config/payments.driver` defaults to **"stub"**
   (`PAYMENT_DRIVER` env). Provides a `charge()` that is **not** DB-rollbackable.
@@ -417,21 +417,24 @@ is thin wiring only — it maps the returned models/cursors onto `*Resource` cla
 ## State Machines
 
 ### OrderStatus (`App\Enums\OrderStatus`)
-`pending | rejected | negotiating | paid | completed | cancelled`
+`pending | rejected | awaiting_payment | paid | completed | cancelled`
 
 Transitions enforced in `OrderService`/`OrderOfferService`:
-- **pending** — awaiting offers (customer may cancel if no accepted offer; provider may
-  reject with a reason).
-- **negotiating** — an offer was accepted but not yet paid; customer may cancel here.
+- **pending** — general requests await offers; customers may cancel, and providers
+  may reject only their targeted specific orders.
+- **awaiting_payment** — the customer selected the final whole-request offer total;
+  that offer is linked by `accepted_offer_id`, pending competitors become
+  `not_selected`, and the customer may pay or cancel.
 - **paid** — payment recorded (`OrderPaid` event → `NotifyProviderOfPayment`).
 - **completed** — customer confirms received (`OrderCompleted` event →
   `NotifyProviderOfCompletion` + `SoldQuantityService` update).
 - **cancelled / rejected** — terminal states.
 
 ### OfferStatus (`App\Enums\OfferStatus`)
-Guards in `OrderOfferService` prevent editing/deleting offers once an order is accepted
-or the offer is in a locked state (`already_offered`, `cannot_edit_offer`,
-`cannot_delete_offer`).
+Guards in `OrderOfferService` serialize offer changes against customer selection.
+Accepted offers stay `accepted`; offers still pending when another is chosen become
+`not_selected`; customer refusals remain `rejected`. Offers cannot be changed after
+selection.
 
 ---
 

@@ -35,7 +35,7 @@ class AdminDashboardTest extends TestCase
                 'data' => [
                     'users' => ['total', 'customers', 'providers', 'blocked'],
                     'stores' => ['total', 'active', 'inactive', 'pending_requests'],
-                    'orders' => ['total', 'pending', 'negotiating', 'paid', 'completed', 'cancelled'],
+                    'orders' => ['total', 'pending', 'awaiting_payment', 'paid', 'completed', 'cancelled'],
                     'revenue',
                     'ratings' => ['total', 'average'],
                 ],

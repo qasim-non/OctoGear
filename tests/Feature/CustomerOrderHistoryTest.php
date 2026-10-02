@@ -70,7 +70,7 @@ class CustomerOrderHistoryTest extends TestCase
             ->assertJsonPath('data.offers_count', 0)->assertJsonCount(0, 'data.offers');
         $store = Store::factory()->create();
         OrderOffer::factory()->create(['order_id' => $order->id, 'store_id' => $store->id, 'price' => 15000]);
-        $order->update(['accepted_store_id' => $store->id, 'offered_price' => 15000, 'status' => OrderStatus::Negotiating]);
+        $order->update(['accepted_store_id' => $store->id, 'offered_price' => 15000, 'status' => OrderStatus::AwaitingPayment]);
         $this->getJson('/api/customer/orders/'.$order->id)->assertOk()
             ->assertJsonPath('data.accepted_store.id', $store->id)->assertJsonPath('data.offers_count', 1)
             ->assertJsonPath('data.offers.0.price', 15000)->assertJsonPath('data.offered_price', 15000);

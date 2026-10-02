@@ -17,6 +17,7 @@ class OrderResource extends JsonResource
             'quantity' => $this->when($this->isSpecific(), $this->quantity),
             'images' => OrderImageResource::collection($this->whenLoaded('images')),
             'status' => $this->status->value,
+            'accepted_offer_id' => $this->accepted_offer_id,
             'offered_price' => $this->offered_price,
             'notes' => $this->notes,
             'description' => $this->when($this->isGeneral(), $this->notes),

@@ -48,7 +48,7 @@ class OrderServiceTest extends TestCase
         Event::assertDispatched(OrderCreated::class);
     }
 
-    public function test_accept_offer_moves_order_to_negotiating(): void
+    public function test_accept_offer_moves_order_to_awaiting_payment(): void
     {
         $customer = User::factory()->customer()->create();
         $store = Store::factory()->create();
@@ -62,12 +62,21 @@ class OrderServiceTest extends TestCase
             'store_id' => $store->id,
             'price' => 999,
         ]);
+        $otherOffer = OrderOffer::factory()->create([
+            'order_id' => $order->id,
+            'store_id' => Store::factory()->create()->id,
+            'price' => 1300,
+        ]);
 
         app(OrderService::class)->acceptOffer($order, $offer);
 
-        $this->assertSame(OrderStatus::Negotiating, $order->status);
+        $order->refresh();
+        $this->assertSame(OrderStatus::AwaitingPayment, $order->status);
         $this->assertSame(999, (int) $order->offered_price);
+        $this->assertSame($offer->id, $order->accepted_offer_id);
         $this->assertSame($store->id, $order->accepted_store_id);
+        $this->assertSame(OfferStatus::Accepted, $offer->fresh()->status);
+        $this->assertSame(OfferStatus::NotSelected, $otherOffer->fresh()->status);
     }
 
     public function test_accept_offer_rejects_illegal_transition(): void
@@ -102,6 +111,7 @@ class OrderServiceTest extends TestCase
 
         app(OrderService::class)->cancel($order);
 
+        $order->refresh();
         $this->assertSame(OrderStatus::Cancelled, $order->status);
         $this->assertSame(0, $order->offers()->count());
     }

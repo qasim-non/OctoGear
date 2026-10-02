@@ -76,9 +76,8 @@ and its corresponding reference becomes null. The private
 
 General input rejects `quantity`, `model_id`, `notes` and
 `store_car_component_id`. Use optional `description`, currently stored in `notes`.
-General responses omit quantity. New general rows use an internal quantity of one
-until the separate payment schema step, keeping their accepted offer as the whole
-request total through the existing payment stub.
+General responses omit quantity. General rows retain an internal quantity of one
+for current schema compatibility; it does not affect offer or payment totals.
 
 Identical same-key retries return the original request even if selected entries
 were later deleted. Changed payloads (including color/fuel) or retries of deleted
@@ -101,10 +100,17 @@ Demo requests cover both catalog selections and custom part names, with complete
 vehicle color/fuel snapshots. Do not apply this reset to a database whose data
 must be retained. See `database/seeders/README.md` for demo accounts.
 
-This is an API-only contract change; update Flutter in its later implementation
-step before enabling the new general-request flow. Offer selection/status changes,
-multiple photos and payment schema cleanup are still separate steps. The existing
-buy route, payment stub and test SMS configuration are unchanged.
+When a customer selects an offer, the order records its `accepted_offer_id`, moves
+to `awaiting_payment`, and keeps the selected offer's whole-request price. That
+offer becomes `accepted`; pending competitors become `not_selected`, which records
+that the customer chose another offer without claiming they explicitly refused it.
+Offer selection is atomic, and provider price changes are closed once an offer is
+selected. General payment charges the accepted offer total once, regardless of the
+internal quantity. Specific-order payment retains its existing price-times-quantity
+behavior. The buy route, payment stub and test SMS configuration are unchanged.
+
+This is an API-only contract change; update Flutter to send the selected offer ID,
+display `awaiting_payment`, and use the returned total before enabling this flow.
 
 ## Customer-car transmission
 

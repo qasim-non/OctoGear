@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Order;
@@ -12,7 +13,7 @@ class OrderOfferPolicy
 {
     /**
      * Offers only matter while the order is still being decided
-     * (pending or negotiating). Once the order is paid, completed,
+     * (pending or awaiting payment). Once the order is paid, completed,
      * cancelled or rejected, the offer window is closed and offers must
      * not be exposed or mutated.
      */
@@ -20,7 +21,7 @@ class OrderOfferPolicy
     {
         return in_array($order->status, [
             OrderStatus::Pending,
-            OrderStatus::Negotiating,
+            OrderStatus::AwaitingPayment,
         ], true);
     }
 
@@ -50,7 +51,8 @@ class OrderOfferPolicy
             return false;
         }
 
-        return $this->isProvider($user, $offer) || $this->isOrderCustomer($user, $offer);
+        return ($user->isProvider() && $this->isProvider($user, $offer))
+            || $this->isOrderCustomer($user, $offer);
     }
 
     public function create(User $user, Order $order): bool
@@ -68,7 +70,7 @@ class OrderOfferPolicy
 
     public function update(User $user, OrderOffer $offer): bool
     {
-        if (! $this->offersAreVisible($offer->order)) {
+        if ($offer->order?->status !== OrderStatus::Pending || $offer->status !== OfferStatus::Pending) {
             return false;
         }
 
@@ -77,7 +79,9 @@ class OrderOfferPolicy
 
     public function delete(User $user, OrderOffer $offer): bool
     {
-        return $this->isProvider($user, $offer);
+        return $offer->order?->status === OrderStatus::Pending
+            && $offer->status === OfferStatus::Pending
+            && $this->isProvider($user, $offer);
     }
 
     public function restore(User $user, OrderOffer $offer): bool

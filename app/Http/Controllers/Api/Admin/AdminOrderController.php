@@ -30,7 +30,7 @@ class AdminOrderController extends Controller
 
     public function cancel(Order $order)
     {
-        $this->service->cancel($order);
+        $order = $this->service->cancel($order);
 
         return $this->success(
             new AdminOrderResource($this->service->show($order)),
