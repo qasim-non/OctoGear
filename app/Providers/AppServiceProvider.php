@@ -71,8 +71,8 @@ class AppServiceProvider extends ServiceProvider
             $mobile = $request->input('mobile');
 
             return [
-                Limit::perMinute(3)->by('mobile:'.$mobile),
-                Limit::perMinute(3)->by('ip:'.$request->ip()),
+                Limit::perMinute(6)->by('mobile:'.$mobile),
+                Limit::perMinute(6)->by('ip:'.$request->ip()),
             ];
         });
 

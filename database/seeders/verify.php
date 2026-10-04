@@ -90,8 +90,8 @@ try {
     $assert(DB::table('cars_companies')->count() >= 100, 'Expected expanded Saudi make coverage.');
     $assert(DB::table('cars_names')->count() >= 1800, 'Expected current and historical nameplates.');
     $cities = json_decode(file_get_contents(__DIR__.'/data/saudi-cities.json'), true, flags: JSON_THROW_ON_ERROR);
-    $assert(count($cities['cities']) === 4581 && count(array_unique(array_column($cities['cities'], 'region_id'))) === 13, 'Saudi locality snapshot is incomplete.');
-    $assert(DB::table('cities')->where('country_id', 91)->count() === 4581, 'Saudi localities were lost through duplicate names.');
+    $assert(count($cities['cities']) === 34 && count(array_unique(array_column($cities['cities'], 'name_en'))) === 34, 'Expected the 34 approved Saudi cities without duplicates.');
+    $assert(DB::table('cities')->where('country_id', 91)->count() === 34, 'Expected only the approved cities on a fresh database.');
     $cityNames = DB::table('cities')->where('country_id', 91)->pluck('name_ar', 'name_en')->all();
     foreach ($cities['cities'] as $city) {
         $assert(($cityNames[$city['name_en']] ?? null) === $city['name_ar'], 'Missing bilingual locality: '.$city['name_en']);

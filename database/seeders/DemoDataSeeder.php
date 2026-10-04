@@ -86,7 +86,7 @@ class DemoDataSeeder extends Seeder
 
     private function users(): array
     {
-        $cities = ['Riyadh', 'Jeddah', 'Dammam', 'Makkah', 'Al Madinah'];
+        $cities = ['Riyadh', 'Jeddah', 'Dammam', 'Makkah', 'Madinah'];
         $names = ['أحمد', 'خالد', 'محمد', 'عبدالله', 'عمر', 'سعد', 'يوسف', 'فهد', 'ناصر', 'علي', 'سلمان', 'حسن', 'بدر', 'ماجد', 'وليد', 'نورة', 'سارة', 'ريم', 'عبدالعزيز', 'تركي', 'هند', 'فيصل', 'مريم', 'إبراهيم', 'أمل'];
         $customers = [];
         $providers = [];

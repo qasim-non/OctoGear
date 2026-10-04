@@ -27,7 +27,7 @@ Run seeders as one deployment job, not concurrently. They do not truncate tables
 
 ## Permanent data
 
-- 92 countries, 4,581 Saudi cities/localities across all 13 regions, 5 fuel types, and 12 colors.
+- 92 countries, 34 owner-approved Saudi cities, 5 fuel types, and 12 colors.
 - 103 car marques, including discontinued marques useful for spare parts.
 - Committed NHTSA vPIC snapshots: 52 marques with explicitly returned model years, and 54 marques with all returned historical nameplates, filtered to passenger cars, SUVs/MPVs, and trucks. These are combined with Saudi new/used-market and regional manufacturer catalogues. Motorcycles and incomplete chassis are excluded.
 - 1,978 distinct car names and 2,399 model entries, plus 12 sections and 176 bilingual component types.
@@ -42,7 +42,7 @@ Vehicle data sources and retrieval dates are stored next to the data:
 - `data/model-arabic.json` — display transliterations; unlisted model codes retain their original designation.
 - `Support/refresh-vehicle-catalogue.ps1` — optional maintainer script to refresh the year-specific NHTSA snapshot. Add `-AllYears` to refresh the historical snapshot. Ordinary seeding makes no network requests.
 
-The city snapshot is derived from [homaily/Saudi-Arabia-Regions-Cities-and-Districts](https://github.com/homaily/Saudi-Arabia-Regions-Cities-and-Districts), whose data was collected from the Saudi National Address map. `data/saudi-cities.json` includes every one of its 4,581 locality records, source IDs, region names and retrieval metadata. The source's GPL-2.0 license is included as `data/saudi-cities-LICENSE.txt`. This includes villages and settlements, not only incorporated cities. The 46 existing seed names are retained so existing IDs are reused. Repeated names are qualified with region and source ID because the existing database has no city-region column; distinct places are never silently merged. This is complete coverage of that published snapshot, not a claim that it is a live government register.
+`data/saudi-cities.json` contains exactly the 34 bilingual city pairs supplied by the owner. `ReferenceDataSeeder` reads this list directly; there is no separate runtime city allowlist. Demo users reference the same city names, including `Madinah`. Seeding adds or updates these cities but does not delete older database rows; a fresh database contains only this city list. Updating existing data is an operator-managed step.
 
 Vehicle coverage includes current, discontinued and imported nameplates; it cannot establish every privately imported vehicle or every historical trim in Saudi Arabia. A market listing does not imply current official Saudi distribution. The year-specific NHTSA snapshot asserts only the returned year (2024 for current marques and selected historical years for discontinued ones). Historical and regional entries without a verified model year use the nameplate alone in `models`; no year range or part compatibility is invented. Overlapping sources are merged case-insensitively before writing, preserving the original catalogue spelling and explicit Arabic translations. Country is the marque's country of origin, not the current owner's country or the vehicle's assembly plant.
 
@@ -114,4 +114,4 @@ Coverage:
 
 ## Verification
 
-`verify.php` uses an isolated SQLite connection even when the project's configured database is MySQL. It checks all 4,581 bilingual localities, coverage of all 13 regions, representative Saudi/historical nameplates, case-insensitive catalogue duplicates, non-sequential reference IDs, production idempotence, operator content preservation, demo counts, per-customer orders and offers, foreign keys, order/offer/payment/rating consistency, image coverage and metadata, reuse of exactly the existing 36 source assets, rerun stability, missing-file repair and older-offer gallery backfill, rollback cleanup after a simulated storage failure, and production guards. Its temporary image directory is removed afterward.
+`verify.php` uses an isolated SQLite connection even when the project's configured database is MySQL. It checks the 34 approved bilingual cities, representative Saudi/historical nameplates, case-insensitive catalogue duplicates, non-sequential reference IDs, production idempotence, operator content preservation, demo counts, per-customer orders and offers, foreign keys, order/offer/payment/rating consistency, image coverage and metadata, reuse of exactly the existing 36 source assets, rerun stability, missing-file repair and older-offer gallery backfill, rollback cleanup after a simulated storage failure, and production guards. Its temporary image directory is removed afterward.
