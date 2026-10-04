@@ -17,6 +17,20 @@ class GeneralOrderDetailsService
     /** Called inside the order transaction, after checking for a submission replay. */
     public function attach(Order $order, User $customer, array $data): void
     {
+        $this->attachVehicle($order, $customer, $data);
+        $this->attachComponent($order, $data);
+    }
+
+    /** Called inside the locked order-update transaction; never modifies the garage. */
+    public function replaceVehicle(Order $order, array $vehicle): void
+    {
+        $order->vehicleDetails()->delete();
+        $this->attachVehicle($order, $order->customer, ['vehicle' => $vehicle]);
+    }
+
+    /** Creation may select/save a garage car; updates only pass inline vehicle details. */
+    private function attachVehicle(Order $order, User $customer, array $data): void
+    {
         if (isset($data['customer_car_id'])) {
             $car = $customer->customerCars()->lockForUpdate()->find($data['customer_car_id']);
             if (! $car) {
@@ -77,6 +91,10 @@ class GeneralOrderDetailsService
             'company_name_ar' => $name?->carCompany?->name_ar,
         ]);
 
+    }
+
+    public function attachComponent(Order $order, array $data): void
+    {
         if (isset($data['component_id'])) {
             $component = Component::with('section')->find($data['component_id']);
             if (! $component || ! $component->section) {
@@ -84,10 +102,12 @@ class GeneralOrderDetailsService
             }
             $order->update([
                 'component_id' => $component->id,
+                'component_name' => null,
             ]);
         } else {
             $order->update([
                 'component_name' => $data['component_name'],
+                'component_id' => null,
             ]);
         }
     }

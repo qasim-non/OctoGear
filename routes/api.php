@@ -164,6 +164,8 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/orders', [CustomerOrderController::class, 'index']);
         Route::post('/orders', [CustomerOrderController::class, 'store']); // Done
         Route::get('/orders/{order}', [CustomerOrderController::class, 'show']);
+        Route::patch('/orders/{order}', [CustomerOrderController::class, 'update']);
+        Route::delete('/orders/{order}', [CustomerOrderController::class, 'destroy']);
         Route::post('/orders/{order}/accept-offer', [CustomerOrderController::class, 'acceptOffer']);
         Route::post('/orders/{order}/pay', [CustomerOrderController::class, 'pay']);
         Route::post('/orders/{order}/received', [CustomerOrderController::class, 'received']);

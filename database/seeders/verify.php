@@ -87,7 +87,21 @@ try {
     $seed('Database\\Seeders\\ProductionDataSeeder');
     $referenceState = $state();
     $referenceCounts = $counts();
-    $assert(DB::table('cars_companies')->count() >= 70, 'Expected broad make coverage.');
+    $assert(DB::table('cars_companies')->count() >= 100, 'Expected expanded Saudi make coverage.');
+    $assert(DB::table('cars_names')->count() >= 1800, 'Expected current and historical nameplates.');
+    $cities = json_decode(file_get_contents(__DIR__.'/data/saudi-cities.json'), true, flags: JSON_THROW_ON_ERROR);
+    $assert(count($cities['cities']) === 4581 && count(array_unique(array_column($cities['cities'], 'region_id'))) === 13, 'Saudi locality snapshot is incomplete.');
+    $assert(DB::table('cities')->where('country_id', 91)->count() === 4581, 'Saudi localities were lost through duplicate names.');
+    $cityNames = DB::table('cities')->where('country_id', 91)->pluck('name_ar', 'name_en')->all();
+    foreach ($cities['cities'] as $city) {
+        $assert(($cityNames[$city['name_en']] ?? null) === $city['name_ar'], 'Missing bilingual locality: '.$city['name_en']);
+    }
+    foreach (['Toyota' => 'Prado', 'Ford' => 'Crown Victoria', 'Chevrolet' => 'Caprice', 'Chery' => 'Tiggo 9', 'KGM' => 'Torres', 'Hongqi' => 'H9', 'Changan' => 'Alsvin', 'Geely' => 'Emgrand'] as $make => $model) {
+        $assert(DB::table('cars_names')->join('cars_companies', 'cars_companies.id', '=', 'cars_names.car_company_id')
+            ->where('cars_companies.name_en', $make)->where('cars_names.name_en', $model)->exists(), "Missing {$make} {$model}.");
+    }
+    $assert(DB::table('cars_names')->selectRaw('car_company_id, LOWER(name_en) as normalized_name, COUNT(*) as total')
+        ->groupBy('car_company_id')->groupByRaw('LOWER(name_en)')->havingRaw('COUNT(*) > 1')->get()->isEmpty(), 'Overlapping sources created duplicate names.');
     $hondaId = DB::table('cars_companies')->where('name_en', 'Honda')->value('id');
     $assert(! DB::table('cars_names')->where('car_company_id', $hondaId)->whereIn('name_en', ['Gold Wing', 'Grom', 'CBR1000RR'])->exists(), 'Motorcycles leaked into the car catalogue.');
     $assert(DB::table('users')->count() === 0 && DB::table('admin')->count() === 0, 'Production seeding created fixture accounts.');
@@ -122,7 +136,7 @@ try {
 
     $seed('Database\\Seeders\\DemoDataSeeder');
     $firstCounts = $counts();
-    foreach (['users' => 30, 'admin' => 5, 'stores' => 15, 'customer_cars' => 30, 'stores_cars' => 45, 'store_car_components' => 450, 'orders' => 60, 'ratings' => 30, 'conversations' => 30, 'messages' => 120, 'store_requests' => 25] as $table => $expected) {
+    foreach (['users' => 40, 'admin' => 5, 'stores' => 15, 'customer_cars' => 39, 'stores_cars' => 45, 'store_car_components' => 450, 'orders' => 100, 'ratings' => 50, 'conversations' => 50, 'messages' => 200, 'store_requests' => 25] as $table => $expected) {
         $assert($firstCounts[$table] === $expected, "{$table}: expected {$expected}, found {$firstCounts[$table]}");
     }
     $assert(DB::select('PRAGMA foreign_key_check') === [], 'Foreign-key integrity failed.');
@@ -130,6 +144,13 @@ try {
         $assert(DB::table($table)->count() === 0, "Unexpected operational data: {$table}");
     }
     $assert(DB::table('store_car_components')->where('stock_quantity', '<', 0)->count() === 0, 'Negative inventory.');
+    foreach (DB::table('users')->where('type', 'customer')->get() as $customer) {
+        $orders = DB::table('orders')->where('customer_id', $customer->id)->pluck('id');
+        $assert($orders->count() === 4, 'A demo customer is missing orders.');
+        $assert(DB::table('order_offers')->whereIn('order_id', $orders)->count() >= 2, 'A demo customer has no competing offers.');
+    }
+    $assert(DB::table('users')->where('type', 'customer')->whereNotIn('id', DB::table('customer_cars')->select('customer_id'))->count() === 4, 'Missing customers without saved cars.');
+    $assert(DB::table('order_offers')->whereNotIn('id', DB::table('offer_images')->select('order_offer_id'))->count() === 0, 'A demo offer is missing its picture.');
     foreach (DB::table('orders')->get() as $order) {
         $offers = DB::table('order_offers')->where('order_id', $order->id)->get();
         if ($order->order_type === 'specific') {
@@ -164,7 +185,7 @@ try {
     }
 
     $mediaCount = 0;
-    foreach (['customer_car_pictures' => '', 'store_car_pictures' => '', 'store_pictures' => '', 'stores' => 'commercial_registration_', 'store_requests' => 'commercial_registration_', 'order_images' => ''] as $table => $prefix) {
+    foreach (['customer_car_pictures' => '', 'store_car_pictures' => '', 'store_pictures' => '', 'stores' => 'commercial_registration_', 'store_requests' => 'commercial_registration_', 'order_images' => '', 'offer_images' => ''] as $table => $prefix) {
         $rows = DB::table($table)->whereNotNull($prefix.'disk')->get();
         $assert($rows->isNotEmpty(), "No images seeded for {$table}.");
         foreach ($rows as $row) {
@@ -186,6 +207,7 @@ try {
     sort($files);
     $assert(count($files) === $mediaCount, 'Private files are shared between records or orphaned.');
     $usedHashes = array_map(fn ($file) => hash('sha256', Storage::disk('seed_verification')->get($file)), $files);
+    $assert(count(array_unique($usedHashes)) === 36, 'Demo must reuse the existing 36 assets without generating new pictures.');
     foreach (app(DemoImages::class)->manifest() as $asset) {
         $assert(in_array(hash_file('sha256', __DIR__.'/assets/images/'.$asset['file']), $usedHashes, true), 'Unused seed image: '.$asset['file']);
     }
@@ -197,9 +219,15 @@ try {
     // A missing private copy is repaired from the committed seed asset.
     $picture = DB::table('customer_car_pictures')->first();
     Storage::disk($picture->disk)->delete($picture->path);
+    $offerPicture = DB::table('offer_images')->first();
+    Storage::disk($offerPicture->disk)->delete($offerPicture->path);
+    // Simulate a pre-gallery demo offer: rerunning must backfill the missing row.
+    DB::table('offer_images')->where('id', $offerPicture->id)->delete();
     $seed('Database\\Seeders\\DemoDataSeeder');
     $repaired = DB::table('customer_car_pictures')->where('id', $picture->id)->first();
     $assert($repaired->path !== $picture->path && Storage::disk($repaired->disk)->exists($repaired->path), 'Missing private image was not repaired.');
+    $repairedOffer = DB::table('offer_images')->where('order_offer_id', $offerPicture->order_offer_id)->first();
+    $assert($repairedOffer !== null && Storage::disk($repairedOffer->disk)->exists($repairedOffer->path), 'Existing demo offer gallery was not backfilled.');
     $assert(count(Storage::disk('seed_verification')->allFiles()) === count($files), 'Repair leaked private files.');
 
     $guardState = $state();

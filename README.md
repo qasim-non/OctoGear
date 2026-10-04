@@ -85,6 +85,21 @@ orders return 409. Order, vehicle snapshot, optional garage save and optional
 `images[]` uploads share a transaction; retries do not duplicate them or their
 notifications. Image bytes and their order participate in the retry fingerprint.
 
+### Editing a customer order
+
+`PATCH /api/customer/orders/{order}` requires the current `edit_token`.
+An editable general request accepts optional `description`, a part source
+(`component_id` or `component_name`), and a complete `vehicle` object with the
+five manual fields shown above. `customer_car_id` and `save_to_my_cars` are
+prohibited during updates. Saved-car selection remains supported on POST creation.
+
+Omitting `vehicle` preserves the existing snapshot and its saved-car reference.
+Providing `vehicle` replaces only the order snapshot with request-specific
+details; it does not edit, create or delete a garage car. The replacement has no
+`customer_car_id`. Existing ownership, edit eligibility, concurrency-token and
+transaction checks remain in force. Specific orders accept quantity/notes edits
+and cannot change vehicle details.
+
 ### Fresh database setup
 
 Development data is disposable. These migrations define the current schema,

@@ -134,28 +134,12 @@ class ReferenceDataSeeder extends Seeder
     {
         $countryId = DB::table('countries')->where('name_en', 'Saudi Arabia')->value('id');
 
-        $cities = [
-            ['Riyadh', 'الرياض'], ['Al Kharj', 'الخرج'], ['Al Majmaah', 'المجمعة'],
-            ['Al Zulfi', 'الزلفي'], ['Ad Dilam', 'الدلم'], ['Jeddah', 'جدة'],
-            ['Makkah', 'مكة المكرمة'], ['At Taif', 'الطائف'], ['Rabigh', 'رابغ'],
-            ['Al Qunfudhah', 'القنفذة'], ['Al Madinah', 'المدينة المنورة'],
-            ['Yanbu', 'ينبع'], ['Al Ula', 'العلا'], ['Dammam', 'الدمام'],
-            ['Al Dhahran', 'الظهران'], ['Al Khobar', 'الخبر'], ['Al Jubail', 'الجبيل'],
-            ['Al Hofuf', 'الهفوف'], ['Qatif', 'القطيف'], ['Ras Tanura', 'رأس تنورة'],
-            ['Abha', 'أبها'], ['Khamis Mushait', 'خميس مشيط'], ['Bishah', 'بيشة'],
-            ['Muhayil', 'محايل'], ['Tabuk', 'تبوك'], ['Al Wajh', 'الوجه'],
-            ['Haql', 'حقل'], ['Hail', 'حائل'], ['Baqaa', 'بقعاء'],
-            ['Najran', 'نجران'], ['Sharorah', 'شرورة'], ['Jazan', 'جازان'],
-            ['Samtah', 'صامطة'], ['Sabya', 'صبيا'], ['Abu Arish', 'أبو عريش'],
-            ['Buraidah', 'بريدة'], ['Unaizah', 'عنيزة'], ['Al Rass', 'الرس'],
-            ['Sakaka', 'سكاكا'], ['Arar', 'عرعر'], ['Domat Al Jandal', 'دومة الجندل'],
-            ['Al Baha', 'الباحة'], ['Al Mandaq', 'المندق'], ['Rafha', 'رفحة'],
-            ['Turaif', 'طريف'], ['Jubbah', 'جبة'],
-        ];
+        $snapshot = json_decode(file_get_contents(__DIR__.'/data/saudi-cities.json'), true, flags: JSON_THROW_ON_ERROR);
+        $cities = $snapshot['cities'];
 
         $rows = array_map(fn ($c) => [
-            'name_en' => $c[0],
-            'name_ar' => $c[1],
+            'name_en' => $c['name_en'],
+            'name_ar' => $c['name_ar'],
             'country_id' => $countryId,
             'created_at' => $now,
             'updated_at' => $now,

@@ -7,13 +7,16 @@ use App\Http\Requests\Customer\AcceptOfferRequest;
 use App\Http\Requests\Customer\CustomerOrdersRequest;
 use App\Http\Requests\Customer\PayOrderRequest;
 use App\Http\Requests\Customer\StoreOrderRequest;
+use App\Http\Requests\Customer\UpdateOrderRequest;
 use App\Http\Resources\CustomerOrderResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\CustomerOrderManagement;
 use App\Services\OrderService;
 use App\Services\PaymentService;
+use Illuminate\Http\Request;
 use RuntimeException;
 
 class CustomerOrderController extends Controller
@@ -29,6 +32,10 @@ class CustomerOrderController extends Controller
             ->with($this->historyRelations())
             ->with(['offers.store', 'offers.images'])
             ->withCount('offers')
+            ->withExists([
+                'offers as has_offer_history' => fn ($query) => $query->withTrashed(),
+                'payment as has_payment_history' => fn ($query) => $query->withTrashed(),
+            ])
             ->when($request->validated('order_type'), fn ($query, $type) => $query->where('order_type', $type))
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->latest()
@@ -53,8 +60,29 @@ class CustomerOrderController extends Controller
 
         $order->load([...$this->historyRelations(), 'offers' => fn ($query) => $query->with(['store', 'images'])->latest()->orderByDesc('id')]);
         $order->loadCount('offers');
+        $order->loadExists([
+            'offers as has_offer_history' => fn ($query) => $query->withTrashed(),
+            'payment as has_payment_history' => fn ($query) => $query->withTrashed(),
+        ]);
 
         return $this->success(new CustomerOrderResource($order));
+    }
+
+    public function update(UpdateOrderRequest $request, Order $order, CustomerOrderManagement $management)
+    {
+        $this->authorize('update', $order);
+        $order = $management->update($order, $request->validated());
+
+        return $this->show($order);
+    }
+
+    public function destroy(Request $request, Order $order, CustomerOrderManagement $management)
+    {
+        $this->authorize('delete', $order);
+        $data = $request->validate(['edit_token' => ['required', 'string', 'size:64']]);
+        $management->delete($order, $data['edit_token']);
+
+        return $this->success(['id' => $order->id, 'deleted' => true]);
     }
 
     private function historyRelations(): array

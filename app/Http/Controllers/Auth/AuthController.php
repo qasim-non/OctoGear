@@ -19,9 +19,10 @@ class AuthController extends Controller
 
     public function sendOtp(SendOtpRequest $request)
     {
-        $this->authService->sendOtp($request->validated('mobile'));
+        $testOtp = $this->authService->sendOtp($request->validated('mobile'));
 
-        return $this->success(null, __('auth.otp.sent'));
+        return $this->success($testOtp === null ? null : ['test_otp' => $testOtp], __('auth.otp.sent'))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function verifyOtp(VerifyOtpRequest $request)

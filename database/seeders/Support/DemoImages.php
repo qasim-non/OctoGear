@@ -14,6 +14,8 @@ final class DemoImages
 {
     private array $storedFiles = [];
 
+    private array $assetCopies = [];
+
     public function __construct(private ImageStorageService $images) {}
 
     public function manifest(): array
@@ -90,23 +92,41 @@ final class DemoImages
     {
         $this->images->cleanup($this->storedFiles);
         $this->storedFiles = [];
+        $this->assetCopies = [];
     }
 
     public function committed(): void
     {
         $this->storedFiles = [];
+        $this->assetCopies = [];
     }
 
     private function metadata(array $existing, string $asset, string $directory, ?string $disk = null): array
     {
         if (! empty($existing['disk']) && ! empty($existing['path'])
             && Storage::disk($existing['disk'])->exists($existing['path'])) {
-            return array_intersect_key($existing, array_flip(['disk', 'path', 'mime_type', 'size_bytes']));
+            $metadata = array_intersect_key($existing, array_flip(['disk', 'path', 'mime_type', 'size_bytes']));
+            // Only reuse a known matching photo, never a tester's replacement
+            // image of a different car or part.
+            if (! isset($this->assetCopies[$asset])
+                && hash('sha256', Storage::disk($existing['disk'])->get($existing['path'])) === hash_file('sha256', $this->source($asset))) {
+                $this->assetCopies[$asset] = $metadata;
+            }
+
+            return $metadata;
+        }
+
+        $copy = $this->assetCopies[$asset] ?? null;
+        if ($copy && ($disk === null || $disk === config('images.disk'))
+            && Storage::disk($copy['disk'])->exists($copy['path'])) {
+            // Reuse bytes already referenced by the database, with an
+            // independent file so deleting one owner cannot break another.
+            return $this->images->copy($copy, $directory, $this->storedFiles);
         }
 
         $file = new UploadedFile($this->source($asset), $asset, test: true);
 
-        return $this->images->store($file, $directory, $this->storedFiles, $disk);
+        return $this->assetCopies[$asset] = $this->images->store($file, $directory, $this->storedFiles, $disk);
     }
 
     private function source(string $asset): string

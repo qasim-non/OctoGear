@@ -1,0 +1,1137 @@
+{
+  "retrieved_at": "2026-10-03",
+  "scope": "Saudi-market new and used nameplate catalogues plus manufacturer regional catalogues. Includes historical/imported cars for spare parts; a listing is not proof of current official Saudi distribution. Names only, without inferred model years or compatibility. Brand country denotes marque origin.",
+  "makes": [
+    {
+      "name_en": "Exeed",
+      "name_ar": "إكسيد",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/exeed",
+      "year": null,
+      "models": [
+        "LX",
+        "VX",
+        "ES",
+        "ET",
+        "RX",
+        "TXL"
+      ]
+    },
+    {
+      "name_en": "Bestune",
+      "name_ar": "بيستون",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/bestune",
+      "year": null,
+      "models": [
+        "B70",
+        "T33",
+        "T77 Pro",
+        "B70S",
+        "T55",
+        "T99"
+      ]
+    },
+    {
+      "name_en": "Hongqi",
+      "name_ar": "هونشي",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/hongqi",
+      "year": null,
+      "models": [
+        "Ousado",
+        "E-HS3",
+        "E-HS9",
+        "E-QM5",
+        "H5",
+        "H7",
+        "H9",
+        "HS3",
+        "HS5",
+        "HS7",
+        "L5"
+      ]
+    },
+    {
+      "name_en": "Dongfeng",
+      "name_ar": "دونغ فينغ",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/dongfeng",
+      "year": null,
+      "models": [
+        "A30",
+        "A60 Max",
+        "AX7",
+        "AX7 Mache",
+        "AX4",
+        "Mage",
+        "Shine"
+      ]
+    },
+    {
+      "name_en": "Forthing",
+      "name_ar": "فورثينغ",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/forthing",
+      "year": null,
+      "models": [
+        "Friday EV",
+        "U-Tour",
+        "T5 Evo",
+        "S7 EV",
+        "V9"
+      ]
+    },
+    {
+      "name_en": "JMC",
+      "name_ar": "جي إم سي الصينية",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/jmc",
+      "year": null,
+      "models": [
+        "Vigus",
+        "Carrying Plus 2800",
+        "Carrying Plus 3360",
+        "Conquer 3815",
+        "Co-Star",
+        "Grand Avenue"
+      ]
+    },
+    {
+      "name_en": "JAC",
+      "name_ar": "جاك",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/jac",
+      "year": null,
+      "models": [
+        "T8",
+        "S7 Pro",
+        "N-Series",
+        "Sunray",
+        "E30X",
+        "J7 Sportback",
+        "JS4",
+        "JS6",
+        "M4",
+        "S7",
+        "S3",
+        "J4"
+      ]
+    },
+    {
+      "name_en": "Great Wall",
+      "name_ar": "جريت وول",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/great-wall",
+      "year": null,
+      "models": [
+        "Wingle 5",
+        "King Kong",
+        "POER",
+        "Wingle 7",
+        "Wingle"
+      ]
+    },
+    {
+      "name_en": "Maxus",
+      "name_ar": "ماكسوس",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/maxus",
+      "year": null,
+      "models": [
+        "T70",
+        "D90 Pro",
+        "G50",
+        "D60",
+        "G10 Cargo",
+        "T60",
+        "V80 Cargo Van",
+        "T90",
+        "V90",
+        "G10 9-Seater",
+        "V80 18-Seater",
+        "G10 7-Seater",
+        "D90",
+        "G90",
+        "G50 Plus",
+        "D60 MAX",
+        "D90 MAX"
+      ]
+    },
+    {
+      "name_en": "Zeekr",
+      "name_ar": "زيكر",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/zeekr",
+      "year": null,
+      "models": [
+        "001",
+        "X",
+        "7X",
+        "007",
+        "9X",
+        "009"
+      ]
+    },
+    {
+      "name_en": "Omoda",
+      "name_ar": "أومودا",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/omoda",
+      "year": null,
+      "models": [
+        "C5"
+      ]
+    },
+    {
+      "name_en": "Jaecoo",
+      "name_ar": "جايكو",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/jaecoo",
+      "year": null,
+      "models": [
+        "J7",
+        "J8"
+      ]
+    },
+    {
+      "name_en": "Soueast",
+      "name_ar": "ساوإيست",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/soueast",
+      "year": null,
+      "models": [
+        "S06",
+        "DX3",
+        "S07",
+        "S09"
+      ]
+    },
+    {
+      "name_en": "Kaiyi",
+      "name_ar": "كايي",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/kaiyi",
+      "year": null,
+      "models": [
+        "E5",
+        "X3",
+        "X3 Pro",
+        "X7"
+      ]
+    },
+    {
+      "name_en": "ROX",
+      "name_ar": "روكس",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/rox",
+      "year": null,
+      "models": [
+        "01",
+        "Adamas"
+      ]
+    },
+    {
+      "name_en": "Voyah",
+      "name_ar": "فوياه",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/voyah",
+      "year": null,
+      "models": [
+        "Dream",
+        "Free"
+      ]
+    },
+    {
+      "name_en": "MHERO",
+      "name_ar": "إم هيرو",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/mhero",
+      "year": null,
+      "models": [
+        "2",
+        "1"
+      ]
+    },
+    {
+      "name_en": "Borgward",
+      "name_ar": "بورجوارد",
+      "country": "Germany",
+      "source": "https://ksa.yallamotor.com/new-cars/borgward",
+      "year": null,
+      "models": [
+        "BX7 TS",
+        "BX5",
+        "BX7"
+      ]
+    },
+    {
+      "name_en": "Foton",
+      "name_ar": "فوتون",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/foton",
+      "year": null,
+      "models": [
+        "View",
+        "Tunland"
+      ]
+    },
+    {
+      "name_en": "Tata",
+      "name_ar": "تاتا",
+      "country": "India",
+      "source": "https://ksa.yallamotor.com/new-cars/tata",
+      "year": null,
+      "models": [
+        "Xenon"
+      ]
+    },
+    {
+      "name_en": "Mahindra",
+      "name_ar": "ماهيندرا",
+      "country": "India",
+      "source": "https://ksa.yallamotor.com/new-cars/mahindra",
+      "year": null,
+      "models": [
+        "Scorpio Pickup",
+        "XUV500"
+      ]
+    },
+    {
+      "name_en": "Deepal",
+      "name_ar": "ديبال",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/deepal",
+      "year": null,
+      "models": [
+        "S07",
+        "S05"
+      ]
+    },
+    {
+      "name_en": "Avatr",
+      "name_ar": "أفاتر",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/avatr",
+      "year": null,
+      "models": [
+        "11",
+        "12"
+      ]
+    },
+    {
+      "name_en": "Zotye",
+      "name_ar": "زوتي",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/zotye",
+      "year": null,
+      "models": [
+        "E200",
+        "T300",
+        "T600 Sport",
+        "T700"
+      ]
+    },
+    {
+      "name_en": "Lynk & Co",
+      "name_ar": "لينك آند كو",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/lynk-co",
+      "year": null,
+      "models": [
+        "03",
+        "09",
+        "01",
+        "05",
+        "06",
+        "900"
+      ]
+    },
+    {
+      "name_en": "Opel",
+      "name_ar": "أوبل",
+      "country": "Germany",
+      "source": "https://ksa.yallamotor.com/new-cars/opel",
+      "year": null,
+      "models": [
+        "Crossland",
+        "Crossland X",
+        "Grandland X",
+        "Vivaro",
+        "Zafira Life"
+      ]
+    },
+    {
+      "name_en": "Bugatti",
+      "name_ar": "بوجاتي",
+      "country": "France",
+      "source": "https://ksa.yallamotor.com/new-cars/bugatti",
+      "year": null,
+      "models": [
+        "Centodieci",
+        "Chiron"
+      ]
+    },
+    {
+      "name_en": "Abarth",
+      "name_ar": "أبارث",
+      "country": "Italy",
+      "source": "https://ksa.yallamotor.com/new-cars/abarth",
+      "year": null,
+      "models": [
+        "500e",
+        "595",
+        "695"
+      ]
+    },
+    {
+      "name_en": "INEOS",
+      "name_ar": "إينيوس",
+      "country": "United Kingdom",
+      "source": "https://ksa.yallamotor.com/new-cars/ineos",
+      "year": null,
+      "models": [
+        "Grenadier Station Wagon",
+        "Grenadier Quartermaster"
+      ]
+    },
+    {
+      "name_en": "Toyota",
+      "name_ar": "تويوتا",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/toyota",
+      "year": null,
+      "models": [
+        "Urban Cruiser",
+        "Land Cruiser",
+        "Yaris Sedan",
+        "Hilux",
+        "Corolla",
+        "RAV4"
+      ]
+    },
+    {
+      "name_en": "Nissan",
+      "name_ar": "نيسان",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/nissan",
+      "year": null,
+      "models": [
+        "Micra",
+        "Civilian",
+        "Navara",
+        "Patrol",
+        "Sunny",
+        "Altima",
+        "X-Trail",
+        "Pickup",
+        "Pathfinder",
+        "Xterra",
+        "Kicks",
+        "Armada",
+        "Sentra",
+        "Urvan",
+        "Nissan Z",
+        "Maxima"
+      ]
+    },
+    {
+      "name_en": "Hyundai",
+      "name_ar": "هيونداي",
+      "country": "South Korea",
+      "source": "https://ksa.yallamotor.com/new-cars/hyundai",
+      "year": null,
+      "models": [
+        "Accent",
+        "Palisade",
+        "Creta",
+        "Stargazer",
+        "Elantra",
+        "Sonata",
+        "Tucson",
+        "Santa Fe",
+        "Azera",
+        "H1",
+        "Venue",
+        "Kona",
+        "i10",
+        "Staria",
+        "Veloster",
+        "Veracruz",
+        "Elantra HD",
+        "Avante",
+        "Grand Santa Fe",
+        "Grand i10"
+      ]
+    },
+    {
+      "name_en": "Kia",
+      "name_ar": "كيا",
+      "country": "South Korea",
+      "source": "https://ksa.yallamotor.com/new-cars/kia",
+      "year": null,
+      "models": [
+        "Rio Sedan",
+        "K4",
+        "Sportage",
+        "Cerato",
+        "Rio",
+        "K5",
+        "Seltos",
+        "Pegas",
+        "Optima",
+        "Carnival",
+        "Sonet",
+        "Carens",
+        "Picanto",
+        "Sorento",
+        "K3"
+      ]
+    },
+    {
+      "name_en": "Mitsubishi",
+      "name_ar": "ميتسوبيشي",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/mitsubishi",
+      "year": null,
+      "models": [
+        "Spacestar",
+        "Attrage",
+        "L200",
+        "ASX",
+        "Pajero",
+        "Outlander",
+        "Xpander",
+        "Xpander Cross",
+        "Destinator",
+        "Eclipse Cross",
+        "Montero Sport",
+        "Mirage"
+      ]
+    },
+    {
+      "name_en": "Suzuki",
+      "name_ar": "سوزوكي",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/suzuki",
+      "year": null,
+      "models": [
+        "Dzire",
+        "Vitara",
+        "Carry",
+        "Ertiga",
+        "Grand Vitara",
+        "Jimny",
+        "APV",
+        "Baleno",
+        "Swift",
+        "SX4",
+        "Fronx",
+        "Celerio",
+        "Alto"
+      ]
+    },
+    {
+      "name_en": "Isuzu",
+      "name_ar": "إيسوزو",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/isuzu",
+      "year": null,
+      "models": [
+        "D-MAX",
+        "MU-X",
+        "Reward"
+      ]
+    },
+    {
+      "name_en": "Mazda",
+      "name_ar": "مازدا",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/mazda",
+      "year": null,
+      "models": [
+        "Mazda6",
+        "CX-5",
+        "CX-30",
+        "CX-60",
+        "CX-90",
+        "MX-30",
+        "CX-3",
+        "CX-9",
+        "Mazda3"
+      ]
+    },
+    {
+      "name_en": "Honda",
+      "name_ar": "هوندا",
+      "country": "Japan",
+      "source": "https://ksa.yallamotor.com/new-cars/honda",
+      "year": null,
+      "models": [
+        "Civic",
+        "Accord",
+        "HR-V",
+        "Accord Coupe",
+        "Odyssey",
+        "Pilot",
+        "City",
+        "CR-V",
+        "ZR-V",
+        "S2000",
+        "E"
+      ]
+    },
+    {
+      "name_en": "Ford",
+      "name_ar": "فورد",
+      "country": "United States",
+      "source": "https://ksa.yallamotor.com/new-cars/ford",
+      "year": null,
+      "models": [
+        "Transit",
+        "Escape",
+        "Ranger Raptor",
+        "Mustang",
+        "Expedition",
+        "Expedition EL",
+        "Explorer",
+        "Taurus",
+        "Ranger",
+        "Bronco",
+        "Bronco 2-door",
+        "Bronco Raptor",
+        "Bronco Sport",
+        "Escort",
+        "Everest",
+        "F-150 Lightning",
+        "Mustang Mach-E",
+        "Super Duty",
+        "Territory",
+        "Edge",
+        "F-150",
+        "F-150 Raptor",
+        "Figo",
+        "Figo Sedan",
+        "EcoSport",
+        "Crown Victoria",
+        "Focus",
+        "Flex",
+        "F350 Super Duty",
+        "Fusion"
+      ]
+    },
+    {
+      "name_en": "Chevrolet",
+      "name_ar": "شيفروليه",
+      "country": "United States",
+      "source": "https://ksa.yallamotor.com/new-cars/chevrolet",
+      "year": null,
+      "models": [
+        "Trax",
+        "Captiva",
+        "Groove",
+        "Tahoe",
+        "Spark",
+        "Cruze",
+        "Silverado",
+        "Traverse",
+        "Suburban",
+        "Malibu",
+        "Camaro Coupe",
+        "Trailblazer",
+        "Corvette",
+        "Optra",
+        "Aveo",
+        "Impala"
+      ]
+    },
+    {
+      "name_en": "Renault",
+      "name_ar": "رينو",
+      "country": "France",
+      "source": "https://ksa.yallamotor.com/new-cars/renault",
+      "year": null,
+      "models": [
+        "Captur",
+        "Koleos",
+        "Express Van",
+        "Master",
+        "Dokker Van",
+        "Duster",
+        "Megane",
+        "Megane Hatchback",
+        "Symbol",
+        "Talisman",
+        "Twizy",
+        "Zoe",
+        "Fluence"
+      ]
+    },
+    {
+      "name_en": "Peugeot",
+      "name_ar": "بيجو",
+      "country": "France",
+      "source": "https://ksa.yallamotor.com/new-cars/peugeot",
+      "year": null,
+      "models": [
+        "301",
+        "208",
+        "508",
+        "Partner",
+        "Expert",
+        "Rifter",
+        "Landtrek",
+        "408",
+        "308",
+        "Traveller",
+        "Boxer"
+      ]
+    },
+    {
+      "name_en": "Citroen",
+      "name_ar": "سيتروين",
+      "country": "France",
+      "source": "https://ksa.yallamotor.com/new-cars/citroen",
+      "year": null,
+      "models": [
+        "C3 Aircross",
+        "C4 X",
+        "C5 Aircross",
+        "SpaceTourer"
+      ]
+    },
+    {
+      "name_en": "Skoda",
+      "name_ar": "سكودا",
+      "country": "Czech Republic",
+      "source": "https://ksa.yallamotor.com/new-cars/skoda",
+      "year": null,
+      "models": [
+        "Kushaq",
+        "Superb",
+        "Kodiaq",
+        "Octavia",
+        "Kamiq",
+        "Scala",
+        "Superb Wagon",
+        "Fabia",
+        "Rapid",
+        "Karoq"
+      ]
+    },
+    {
+      "name_en": "MG",
+      "name_ar": "إم جي",
+      "country": "United Kingdom",
+      "source": "https://ksa.yallamotor.com/new-cars/mg",
+      "year": null,
+      "models": [
+        "MG 3",
+        "RX5",
+        "MG 5",
+        "GT",
+        "ZS",
+        "MG 7",
+        "HS",
+        "One",
+        "T60",
+        "MG 6",
+        "ZS EV",
+        "Whale",
+        "RX9"
+      ]
+    },
+    {
+      "name_en": "GAC",
+      "name_ar": "جي إيه سي",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/gac",
+      "year": null,
+      "models": [
+        "GS8",
+        "GS5",
+        "EMZOOM",
+        "GN6",
+        "GS3",
+        "EMPOW",
+        "EMKOO",
+        "GA4",
+        "GA8",
+        "GS4"
+      ]
+    },
+    {
+      "name_en": "Tank",
+      "name_ar": "تانك",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/tank",
+      "year": null,
+      "models": [
+        "500",
+        "300",
+        "700"
+      ]
+    },
+    {
+      "name_en": "Tesla",
+      "name_ar": "تسلا",
+      "country": "United States",
+      "source": "https://ksa.yallamotor.com/new-cars/tesla",
+      "year": null,
+      "models": [
+        "Cybertruck",
+        "Model 3",
+        "Model S",
+        "Model X",
+        "Model Y"
+      ]
+    },
+    {
+      "name_en": "Polestar",
+      "name_ar": "بولستار",
+      "country": "Sweden",
+      "source": "https://ksa.yallamotor.com/new-cars/polestar",
+      "year": null,
+      "models": [
+        "Polestar 2",
+        "Polestar 3",
+        "Polestar 4"
+      ]
+    },
+    {
+      "name_en": "Lotus",
+      "name_ar": "لوتس",
+      "country": "United Kingdom",
+      "source": "https://ksa.yallamotor.com/new-cars/lotus",
+      "year": null,
+      "models": [
+        "Exige",
+        "Evora",
+        "Eletre",
+        "Emeya",
+        "Emira",
+        "Evija"
+      ]
+    },
+    {
+      "name_en": "Geely",
+      "name_ar": "جيلي",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/geely",
+      "year": null,
+      "models": [
+        "Starray",
+        "Emgrand",
+        "Binray",
+        "Tugella",
+        "Okavango",
+        "Azkarra",
+        "Cityray",
+        "Coolray",
+        "EX5",
+        "Geometry C",
+        "Monjaro",
+        "Preface",
+        "GX2",
+        "Emgrand 7",
+        "Emgrand X7"
+      ]
+    },
+    {
+      "name_en": "Haval",
+      "name_ar": "هافال",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/haval",
+      "year": null,
+      "models": [
+        "H9",
+        "Jolion",
+        "H2",
+        "H6 HEV",
+        "H6",
+        "Dargo",
+        "H6 GT",
+        "H7",
+        "Jolion Pro"
+      ]
+    },
+    {
+      "name_en": "Jetour",
+      "name_ar": "جيتور",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/jetour",
+      "year": null,
+      "models": [
+        "X90",
+        "X70",
+        "X70s",
+        "X70 Plus",
+        "Dashing",
+        "G700",
+        "T1",
+        "T2",
+        "X50",
+        "X90 Plus",
+        "X95"
+      ]
+    },
+    {
+      "name_en": "BYD",
+      "name_ar": "بي واي دي",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/byd",
+      "year": null,
+      "models": [
+        "F3",
+        "Tang",
+        "Qin Pro",
+        "Ti 7",
+        "Song Pro",
+        "Han",
+        "Seal",
+        "Seal 7",
+        "Shark 6",
+        "Song Plus",
+        "Atto 3",
+        "S6",
+        "Yuan Plus",
+        "Qin Plus",
+        "Yuan Up"
+      ]
+    },
+    {
+      "name_en": "Changan",
+      "name_ar": "شانجان",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/changan",
+      "year": null,
+      "models": [
+        "CS95",
+        "CS35 Plus",
+        "Hunter",
+        "UNI-T",
+        "Eado Plus",
+        "UNI-K",
+        "Alsvin",
+        "CS35",
+        "UNI-V",
+        "UNI-S",
+        "CS75",
+        "CS85",
+        "Eado"
+      ]
+    },
+    {
+      "name_en": "BAIC",
+      "name_ar": "بايك",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/baic",
+      "year": null,
+      "models": [
+        "BJ40 Plus",
+        "X35",
+        "D50",
+        "BJ40 SE",
+        "BJ40",
+        "X7",
+        "BJ30",
+        "BJ40 C",
+        "BJ80",
+        "F40",
+        "U5 Plus",
+        "X55"
+      ]
+    },
+    {
+      "name_en": "Chery",
+      "name_ar": "شيري",
+      "country": "China",
+      "source": "https://ksa.yallamotor.com/new-cars/chery",
+      "year": null,
+      "models": [
+        "Tiggo 2",
+        "Tiggo 2 Pro",
+        "Tiggo 8 Pro Max",
+        "Arrizo 5 Pro",
+        "Arrizo 5",
+        "Arrizo 6 Pro",
+        "Arrizo 6",
+        "Tiggo 8",
+        "Tiggo 7",
+        "Tiggo 4 Pro",
+        "Tiggo",
+        "Tiggo 8 Pro",
+        "Tiggo 4",
+        "Tiggo 7 Pro",
+        "Tiggo 7 Pro Max"
+      ]
+    },
+    {
+      "name_en": "Toyota",
+      "name_ar": "تويوتا",
+      "country": "Japan",
+      "source": "https://www.toyota.com.sa/en/sitemap",
+      "year": null,
+      "models": [
+        "Raize",
+        "Urban Cruiser",
+        "Veloz",
+        "Innova",
+        "Land Cruiser Hardtop",
+        "Land Cruiser Pickup",
+        "Prado",
+        "Hiace Bus",
+        "Hiace Van",
+        "Liteace Van",
+        "Coaster",
+        "Hilux Single Cab"
+      ]
+    },
+    {
+      "name_en": "Chery",
+      "name_ar": "شيري",
+      "country": "China",
+      "source": "https://www.cheryksa.com/en/models/1",
+      "year": null,
+      "models": [
+        "Arrizo 5 Pro",
+        "Arrizo 6 Pro",
+        "Arrizo 8 Pro",
+        "Tiggo 2 Pro",
+        "Tiggo 4 Pro",
+        "Tiggo 7 Pro Max",
+        "Tiggo 8 Pro Max",
+        "Tiggo 9"
+      ]
+    },
+    {
+      "name_en": "MG",
+      "name_ar": "إم جي",
+      "country": "United Kingdom",
+      "source": "https://www.mgmotor.me/models/",
+      "year": null,
+      "models": [
+        "MG 3",
+        "MG 4 EV",
+        "MG 5",
+        "MG 7",
+        "MG 8 PHEV",
+        "Cyberster",
+        "HS Hybrid+",
+        "One",
+        "ZS",
+        "RX9",
+        "HS",
+        "GT"
+      ]
+    },
+    {
+      "name_en": "BYD",
+      "name_ar": "بي واي دي",
+      "country": "China",
+      "source": "https://www.byd.sa/en/new-cars/",
+      "year": null,
+      "models": [
+        "ATTO 8",
+        "SEALION 5",
+        "SEALION 7",
+        "Seal 7",
+        "Shark 6",
+        "Song Plus",
+        "Qin Plus"
+      ]
+    },
+    {
+      "name_en": "Geely",
+      "name_ar": "جيلي",
+      "country": "China",
+      "source": "https://geelyksa.com/home/",
+      "year": null,
+      "models": [
+        "GX3 Pro",
+        "Emgrand",
+        "Cityray",
+        "Coolray",
+        "Monjaro",
+        "Preface",
+        "Okavango",
+        "Starray",
+        "Geometry C",
+        "Tugella"
+      ]
+    },
+    {
+      "name_en": "Hongqi",
+      "name_ar": "هونشي",
+      "country": "China",
+      "source": "https://www.hongqi-ksa.com/en",
+      "year": null,
+      "models": [
+        "H6",
+        "Guoya",
+        "H5",
+        "H9",
+        "HS3",
+        "HS5",
+        "HS7",
+        "E-HS9",
+        "Ousado"
+      ]
+    },
+    {
+      "name_en": "Bestune",
+      "name_ar": "بيستون",
+      "country": "China",
+      "source": "https://bestune-sa.com/",
+      "year": null,
+      "models": [
+        "T90",
+        "T99",
+        "T77 Pro",
+        "B70",
+        "B70S"
+      ]
+    },
+    {
+      "name_en": "KGM",
+      "name_ar": "كي جي إم",
+      "country": "South Korea",
+      "source": "https://kgm.sa/public/en",
+      "year": null,
+      "models": [
+        "Torres",
+        "Korando",
+        "Tivoli",
+        "Rexton",
+        "XLV",
+        "Actyon"
+      ]
+    },
+    {
+      "name_en": "SsangYong",
+      "name_ar": "سانج يونج",
+      "country": "South Korea",
+      "source": "https://kgm.sa/about-us",
+      "year": null,
+      "models": [
+        "Musso",
+        "Korando",
+        "Rexton",
+        "Actyon Sports",
+        "Tivoli",
+        "XLV"
+      ]
+    },
+    {
+      "name_en": "iCAUR",
+      "name_ar": "آي كار",
+      "country": "China",
+      "source": "https://www.icaursaudi.com/",
+      "year": null,
+      "models": [
+        "V27 REEV",
+        "03T REEV"
+      ]
+    }
+  ]
+}

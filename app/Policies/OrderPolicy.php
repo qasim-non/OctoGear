@@ -67,7 +67,7 @@ class OrderPolicy
 
     public function delete(User $user, Order $order): bool
     {
-        return false;
+        return $this->isCustomer($user, $order);
     }
 
     public function restore(User $user, Order $order): bool

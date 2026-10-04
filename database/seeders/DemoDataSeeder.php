@@ -62,7 +62,7 @@ class DemoDataSeeder extends Seeder
             throw $exception;
         }
 
-        $this->command?->info('Demo data ready: 30 users, 15 stores, 30 customer cars, 45 store cars, 450 stock records, and 60 orders. Images use the shared private storage service.');
+        $this->command?->info('Demo data ready: 40 users, 15 stores, 39 customer cars, 45 store cars, 450 stock records, and 100 orders with photographed offers. Existing image assets are reused; no images are generated.');
     }
 
     private function admins(): int
@@ -87,14 +87,17 @@ class DemoDataSeeder extends Seeder
     private function users(): array
     {
         $cities = ['Riyadh', 'Jeddah', 'Dammam', 'Makkah', 'Al Madinah'];
-        $names = ['أحمد', 'خالد', 'محمد', 'عبدالله', 'عمر', 'سعد', 'يوسف', 'فهد', 'ناصر', 'علي', 'سلمان', 'حسن', 'بدر', 'ماجد', 'وليد'];
+        $names = ['أحمد', 'خالد', 'محمد', 'عبدالله', 'عمر', 'سعد', 'يوسف', 'فهد', 'ناصر', 'علي', 'سلمان', 'حسن', 'بدر', 'ماجد', 'وليد', 'نورة', 'سارة', 'ريم', 'عبدالعزيز', 'تركي', 'هند', 'فيصل', 'مريم', 'إبراهيم', 'أمل'];
         $customers = [];
         $providers = [];
-        foreach (range(0, 14) as $index) {
+        foreach (array_keys($names) as $index) {
             $city = $cities[$index % count($cities)];
             $cityId = $this->id('cities', ['name_en' => $city, 'country_id' => $this->id('countries', ['name_en' => 'Saudi Arabia'])]);
             foreach (['customer', 'service provider'] as $type) {
                 $customer = $type === 'customer';
+                if (! $customer && $index >= 15) {
+                    continue;
+                }
                 $id = SeedRecords::once('users', ['mobile' => $this->mobile(($customer ? 100 : 200) + $index)], [
                     'full_name' => $names[$index].($customer ? ' - عميل تجريبي' : ' - مزود تجريبي'),
                     'type' => $type,
@@ -233,7 +236,10 @@ class DemoDataSeeder extends Seeder
     {
         $assets = $this->carAssets(false);
         foreach ($customers as $index => $customer) {
-            foreach (range(0, 1) as $position) {
+            // Keep the original customers' garages, then include new customers
+            // with zero, one, or two saved cars. All customers still get orders.
+            $carCount = $index < 15 ? 2 : $index % 3;
+            for ($position = 0; $position < $carCount; $position++) {
                 $asset = $assets[($index + $position) % count($assets)];
                 $profile = $this->profile($asset);
                 $id = SeedRecords::once('customer_cars', [
@@ -241,6 +247,7 @@ class DemoDataSeeder extends Seeder
                     'car_name_id' => $profile['car_name_id'],
                 ], [
                     'manufacturing_year' => 2024,
+                    'transmission_type' => 'automatic',
                     'color_id' => $profile['color_id'], 'fuel_type' => $profile['fuel_type'],
                 ]);
                 if (($index + $position) % 4 !== 0) {
@@ -369,6 +376,14 @@ class DemoDataSeeder extends Seeder
                             'rating' => 3 + $index % 3,
                             'comment' => ['تقييم تجريبي: القطعة مناسبة والتعامل واضح.', 'تقييم تجريبي: تم الاستلام كما هو متفق عليه.', 'تقييم تجريبي: خدمة جيدة ويمكن تحسين سرعة التسليم.'][$index % 3],
                         ]);
+                    }
+                }
+
+                // Also backfill older demo offers and repair missing files on
+                // reruns without resetting offer decisions or tester edits.
+                if ($type === 'general') {
+                    foreach (DB::table('order_offers')->where('order_id', $orderId)->get() as $offer) {
+                        $this->images->picture('offer_images', 'order_offer_id', $offer->id, $part['image'], 0);
                     }
                 }
 

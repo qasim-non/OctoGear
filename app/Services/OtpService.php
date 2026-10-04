@@ -13,7 +13,7 @@ class OtpService
 {
     private const OTP_DECAY_MINUTES = 5;
 
-    public function sendOtp(string $mobile)
+    public function sendOtp(string $mobile): ?string
     {
         $otp = fake()->numerify('####');
 
@@ -31,6 +31,10 @@ class OtpService
         if (app()->environment('local')) {
             Log::info("OTP for {$mobile}: {$otp}");
         }
+
+        // Never expose a login code outside the explicitly enabled local flow.
+        return app()->environment('local') && config('otp.expose_for_testing')
+            ? $otp : null;
     }
 
     public function verifyOtp(string $mobile, string $otp): bool

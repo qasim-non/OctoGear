@@ -17,9 +17,9 @@ class AuthService
         protected OtpService $otpService,
     ) {}
 
-    public function sendOtp(string $mobile): void
+    public function sendOtp(string $mobile): ?string
     {
-        $this->otpService->sendOtp($mobile);
+        return $this->otpService->sendOtp($mobile);
     }
 
     public function verifyOtp(string $mobile, string $otp): array
