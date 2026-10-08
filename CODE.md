@@ -1,5 +1,22 @@
 # OctoGear (YARDY) - API Code Guide
 
+## Customer notification inbox addition — 2026-10-06
+
+Shared authenticated routes now include `GET /api/notifications/inbox` (optional
+boolean `unread` and validated opaque `cursor`) and
+`GET /api/notifications/unread-count`. The inbox returns
+`data: {items, unread_count, next_cursor}` with up to 20 NotificationResource rows,
+ordered by descending created_at and UUID. Cursor paging remains stable under new
+arrivals and read actions. Queries use the authenticated user's morph relation.
+The read policy checks model type as well as user ID; existing single/all read
+endpoints and legacy `GET /api/notifications` remain compatible.
+
+No migration or new dependency is needed. Deploy these endpoints before the
+Flutter notification inbox. Existing new-offer and provider-message events feed
+the customer inbox. Payment/completion events still notify providers only. This
+does not introduce FCM, push permissions or token registration. Feature coverage
+is in `NotificationInboxTest` alongside the existing `SharedFeaturesTest`.
+
 > Latest verification (2026-10-02): **373 passed / 2,239 assertions** after
 > the request gallery, offer-selection, and whole-request payment updates. Historical sections describe their
 > respective implementation slices.
@@ -116,8 +133,10 @@ These rules steer all development in this codebase:
 5. **External payment calls are NOT DB-rollbackable.** `PaymentService` wraps only the
    local payment record; a failed external gateway call does not roll back order state
    (see Payments).
-6. **Repositories only with justification.** No generic repository layers; use Eloquent
-   directly. Only introduce one when there is a real reason.
+6. **Use focused repositories for shared or substantial queries.** Reuse Eloquent
+   scopes for small composable filters. Put repeated retrieval, pagination, or a
+   substantial single-use query in a feature repository when it makes the service
+   clearer. Avoid generic CRUD wrappers and keep business decisions in services.
 7. **Controllers stay thin.** Controllers authorize → validate (Form Request) → delegate
    to a service → respond via `ApiResponse`. No business logic in controllers.
 8. **Enums everywhere, magic strings nowhere.** Every DB enum column maps to a backed
@@ -490,8 +509,9 @@ Notifications (`NewOrderNotification`, `NewOfferNotification`, `NewMessageNotifi
 
 ## Query Philosophy
 
-- Controllers use eager loading (`with`/`whenLoaded`) and rely on resource
-  `whenLoaded(...)` guards so no N+1 leaks from serialization.
+- Repositories or query services eager-load the relationships needed by responses.
+  Resources serialize prepared data, using `whenLoaded(...)` for optional relations;
+  serialization must not introduce additional database queries.
 - Listing endpoints use `paginate` and the `paginated` response helper.
 - Resources use `whenLoaded` for nullable relations (`acceptedOffer.store`,
   `storeCarComponent`, `offers`, `vehicleDetails`, etc.).
@@ -683,3 +703,96 @@ preserve the response envelope and exception conventions, keep business logic in
 behind policies, and keep the test suite green (run `php artisan test` after changes).
 Do not add redundant comment blocks; match the existing code style (backed enums,
 Service-injected controllers, `ApiResponse` responses, localized rule keys).
+
+## Offer text chat (2026-10-04)
+
+### Chat responsibility boundaries (2026-10-07)
+
+ConversationController coordinates Form Requests, policies, ChatService and API
+Resources. Shared chat requests live under Requests/Shared; the offer first-send
+request remains customer-specific. UUID, timeline cursor and read-boundary input
+rules use BaseRequest's standard localized 422 envelope. Inbox boolean inputs
+retain true/false, 1/0 and on/off/yes/no spellings; invalid booleans and nonpositive
+or noninteger page numbers now return validation errors.
+
+ConversationRepository owns participant-scoped inbox queries, display eager
+loading, offer lookup and conversation persistence. MessageRepository owns both
+pagination variants, scoped read updates, retry-key lookup and message writes.
+The service retains transactions, lock ordering, idempotency, notification dispatch
+and read-state rules. ChatEligibility shares existing-chat and before-creation
+eligibility without constructing an unsaved conversation. Policies own participant
+and nested-offer authorization; writes recheck authorization after acquiring locks.
+
+Typed chat result objects carry computed eligibility into Resources. Resources
+only serialize prepared data and never resolve services. ChatStoreResource exposes
+only the existing id/name/employee_name fields. Routes, success payloads, pagination
+order, legacy optional retry keys and read-only offer lookup remain compatible.
+Invalid read boundaries and unavailable chats use localized business exceptions.
+No schema change, data migration or live-account mutation is part of this refactor.
+
+Verification: 41 conversation/shared endpoint tests pass (269 assertions), including
+13 new regressions for request envelopes, authorization, cursor paging, per-thread
+unread/latest-message queries, read boundaries, eligibility and retry behavior.
+Prepared response serialization issues zero database queries; both new-message and
+retry results carry their loaded conversation. Targeted Pint and diff checks pass.
+All tests use an isolated SQLite in-memory database.
+
+The full backend suite ran 430 tests: 422 passed, seven failed and one errored.
+The eight unrelated failures/errors also reproduce in a separate focused run:
+OrderServiceTest's completion-instance expectation; two AuthRateLimitTest cases;
+CustomerOrderCancelTest's awaiting-payment cancellation; three
+CustomerOrderLifecycleTest cases; and GeneralOrderDetailsTest's demo seed count.
+Existing order cancellation/state changes, OTP limits and demo-seed expectations
+were not changed by this chat refactor.
+
+GET /customer/orders/{order}/offers/{offer}/conversation is a read-only preview,
+returning conversation (nullable), can_send, order_id, offer_id and store
+{id,name,employee_name}. POST the same URL plus /messages requires content and a
+client_message_id UUID; creates the chat plus its first message atomically and
+returns {conversation,message}. Only the owning customer can start an offer chat;
+the provider is resolved from the offer store. The store employee name is exposed
+only to authorized chat participants, without exposing phone or registration data.
+
+GET /conversations/{id} returns participant-authorized metadata. GET .../timeline
+accepts before_id OR after_id and returns {messages:[newest first],has_more}; pages
+contain at most 40 messages. Forward pages select the earliest 40 after the cursor
+so bursts cannot skip messages. PATCH .../read accepts through_id belonging to that
+chat and marks only incoming messages up to it. Existing POST .../messages accepts
+optional client_message_id for compatibility; Flutter always supplies it. A retry
+with the same sender/key/content/chat returns the stored message; conflicts return
+409. Existing database notifications fire once per new message, inside the write
+transaction. There are no push, realtime, call or attachment changes.
+
+GET /conversations?with_messages=true hides empty legacy chats for the mobile app.
+Default legacy listing behavior remains. Inbox ordering and last-message previews
+use message IDs to break same-second timestamp ties. New sends require unblocked
+participants and an active matching store for offer chats; historical messages stay
+readable. Each offer has one conversation, so different requests stay separate.
+
+Deploy additive migration 2026_10_04_120000_add_offer_chat_context before the app.
+It preserves legacy chats, adds nullable unique offer_id and per-sender message
+retry keys, and expands content to TEXT to match the existing 2000-character rule.
+No backfill guesses and no database reset. Applied to local development on Oct 4.
+
+Chat verification: OfferChatTest plus SharedFeaturesTest pass all 28 tests (109
+assertions); targeted Pint passes. Full backend regression has 399 passing tests
+and three existing expectation mismatches: AuthRateLimitTest expects three attempts
+although configuration permits six (two cases); GeneralOrderDetailsTest expects
+30 demo general requests although the seeder creates 50. No auth/seed changes.
+
+## Customer pickup order lifecycle — 2026-10-06
+
+CustomerOrderResource adds can_cancel, can_confirm_received and payment_summary.
+Store summaries include employee_name and url_location for pickup. Cancellation
+requires pending/awaiting_payment with no retained payment attempt, including
+soft-deleted payments. The API is authoritative; missing flags disable mobile
+actions. Cancellation and receipt confirmation lock/reload the order and safely
+return an already-reached terminal state. Completion dispatches once after commit.
+Payment initialization now takes the same order lock before inserting its durable
+pending record, preventing stale payment attempts after cancellation.
+
+The mobile checkout is prepared for online payment and store pickup. Delivery is
+Coming soon. The gateway is unselected; by user decision Pay online stays disabled
+and the mobile app never invokes the stub payment path. No schema migration is
+needed. Six new lifecycle tests and related payment/cancellation/history/admin
+tests pass: 41 tests, 219 assertions. No real orders or payments were mutated.

@@ -8,9 +8,26 @@ use App\Enums\OrderType;
 use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
 class OrderOfferPolicy
 {
+    public function viewConversation(User $user, OrderOffer $offer, Order $order): Response
+    {
+        if ($offer->order_id !== $order->id) {
+            return Response::denyAsNotFound();
+        }
+
+        return $user->id === $order->customer_id && $this->view($user, $offer)
+            ? Response::allow()
+            : Response::deny();
+    }
+
+    public function startConversation(User $user, OrderOffer $offer): bool
+    {
+        return $offer->order?->customer_id === $user->id;
+    }
+
     /**
      * Keep the purchase and competing offers readable after payment and
      * completion. Mutation permissions are checked separately below.

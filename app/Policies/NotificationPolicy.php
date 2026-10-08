@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use Illuminate\Notifications\DatabaseNotification;
 use App\Models\User;
+use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationPolicy
 {
@@ -14,7 +14,8 @@ class NotificationPolicy
 
     public function view(User $user, DatabaseNotification $notification): bool
     {
-        return $user->id === $notification->notifiable_id;
+        return $notification->notifiable_type === $user->getMorphClass()
+            && (int) $user->id === (int) $notification->notifiable_id;
     }
 
     public function create(User $user): bool
@@ -24,12 +25,12 @@ class NotificationPolicy
 
     public function update(User $user, DatabaseNotification $notification): bool
     {
-        return $user->id === $notification->notifiable_id;
+        return $this->view($user, $notification);
     }
 
     public function delete(User $user, DatabaseNotification $notification): bool
     {
-        return $user->id === $notification->notifiable_id;
+        return $this->view($user, $notification);
     }
 
     public function restore(User $user, DatabaseNotification $notification): bool

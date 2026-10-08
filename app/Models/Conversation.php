@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -15,6 +15,7 @@ class Conversation extends Model
     protected $fillable = [
         'customer_id',
         'provider_id',
+        'offer_id',
     ];
 
     protected $hidden = [
@@ -33,6 +34,11 @@ class Conversation extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function offer(): BelongsTo
+    {
+        return $this->belongsTo(OrderOffer::class)->withTrashed();
     }
 
     public function provider(): BelongsTo
@@ -56,7 +62,7 @@ class Conversation extends Model
      */
     public function latestMessage(): HasMany
     {
-        return $this->messages()->latest();
+        return $this->messages()->orderByDesc('id');
     }
 
     /**

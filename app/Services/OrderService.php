@@ -201,7 +201,10 @@ class OrderService
     {
         return DB::transaction(function () use ($order): Order {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-            if (! $lockedOrder->status->canTransitionTo(OrderStatus::Cancelled)) {
+            if ($lockedOrder->status === OrderStatus::Cancelled) {
+                return $lockedOrder;
+            }
+            if (! self::canCancel($lockedOrder)) {
                 throw new BusinessRuleException('This order cannot be cancelled.', 'auth.validation.order.cannot_cancel');
             }
             $lockedOrder->update(['status' => OrderStatus::Cancelled]);
@@ -216,15 +219,27 @@ class OrderService
      */
     public function complete(Order $order): Order
     {
-        if (! $order->status->canTransitionTo(OrderStatus::Completed)) {
-            throw new BusinessRuleException('This order cannot be marked as received.', 'auth.validation.order.cannot_complete');
-        }
+        return DB::transaction(function () use ($order): Order {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            // A lost response can be retried without notifying the store twice.
+            if ($lockedOrder->status === OrderStatus::Completed) {
+                return $lockedOrder;
+            }
+            if (! $lockedOrder->status->canTransitionTo(OrderStatus::Completed)) {
+                throw new BusinessRuleException('This order cannot be marked as received.', 'auth.validation.order.cannot_complete');
+            }
+            $lockedOrder->update(['status' => OrderStatus::Completed]);
+            DB::afterCommit(fn () => OrderCompleted::dispatch($lockedOrder));
 
-        $order->update(['status' => OrderStatus::Completed]);
+            return $lockedOrder;
+        });
+    }
 
-        OrderCompleted::dispatch($order);
-
-        return $order;
+    public static function canCancel(Order $order): bool
+    {
+        // Even a pending/failed payment needs reconciliation before cancellation.
+        return $order->status->canTransitionTo(OrderStatus::Cancelled)
+            && ! ($order->has_payment_history ?? $order->payment()->withTrashed()->exists());
     }
 
     /**

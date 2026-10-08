@@ -1,13 +1,19 @@
 <?php
 
-namespace App\Http\Requests\Customer;
+namespace App\Http\Requests\Shared;
 
 use App\Enums\UserType;
 use App\Http\Requests\BaseRequest;
+use App\Models\Conversation;
 use Illuminate\Validation\Rule;
 
 class StoreConversationRequest extends BaseRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user()->can('create', Conversation::class);
+    }
+
     public function rules(): array
     {
         $user = $this->user();

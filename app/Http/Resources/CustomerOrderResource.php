@@ -2,8 +2,10 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Services\CustomerOrderManagement;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 
 /** Customer history metadata; payment processing and its API stay unchanged. */
@@ -26,6 +28,9 @@ class CustomerOrderResource extends OrderResource
             'price_scale' => 100,
             'can_edit' => CustomerOrderManagement::canEdit($this->resource),
             'can_delete' => CustomerOrderManagement::canDelete($this->resource),
+            'can_cancel' => OrderService::canCancel($this->resource),
+            'can_confirm_received' => $this->status === OrderStatus::Paid,
+            'payment_summary' => $payment ? new PaymentResource($payment) : null,
             'edit_token' => CustomerOrderManagement::token($this->resource),
             'requested_unit_price' => $this->requested_unit_price,
             'offers_count' => (int) $this->offers_count,

@@ -47,7 +47,6 @@ enum OrderStatus: string
             // An unpaid request can be paid or cancelled.
             self::AwaitingPayment => in_array($newStatus, [
                 self::Paid,
-                self::Cancelled,
             ]),
 
             // Paid → can be completed (customer received the part)

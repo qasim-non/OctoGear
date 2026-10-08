@@ -136,39 +136,29 @@ class PaymentService
             throw new RuntimeException('Only credit_card payments are supported.');
         }
 
-        if ($order->payment()->exists()) {
-            throw new RuntimeException('This order has already been paid.');
-        }
+        // Serialize payment initialization with cancellation. The durable row
+        // prevents cancellation while the gateway outcome is unresolved.
+        $payment = DB::transaction(function () use (&$order): Payment {
+            $order = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if ($order->payment()->withTrashed()->exists()) {
+                throw new RuntimeException('This order has already been paid.');
+            }
+            if (! $order->status->canTransitionTo(OrderStatus::Paid)
+                || ($order->isGeneral()
+                    && (! $order->acceptedOffer
+                        || $order->acceptedOffer->order_id !== $order->id
+                        || $order->acceptedOffer->status !== OfferStatus::Accepted))) {
+                throw new RuntimeException('This order cannot be paid right now.');
+            }
+            $amount = $this->amountFor($order);
 
-        if (! $order->status->canTransitionTo(OrderStatus::Paid)) {
-            throw new RuntimeException('This order cannot be paid right now.');
-        }
-
-        if ($order->isGeneral()
-            && (! $order->acceptedOffer
-                || $order->acceptedOffer->order_id !== $order->id
-                || $order->acceptedOffer->status !== OfferStatus::Accepted)) {
-            throw new RuntimeException('This order cannot be paid right now.');
-        }
-
-        $amount = $this->amountFor($order);
-
-        try {
-            // 1) Durable pending row (single atomic INSERT).
-            $payment = $order->payment()->create([
+            return $order->payment()->create([
                 'amount' => $amount,
                 'payment_method' => PaymentMethod::CreditCard,
                 'payment_status' => PaymentStatus::Pending,
             ]);
-        } catch (\Throwable $e) {
-            Log::error('Could not create pending payment', [
-                'order_id' => $order->id,
-                'amount' => $amount,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new RuntimeException('Payment could not be initialized.', 0, $e);
-        }
+        });
+        $amount = $payment->amount;
 
         // 2) Charge the card. A charge failure is definitive: tell the user failed.
         try {

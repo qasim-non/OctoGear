@@ -10,11 +10,12 @@ class MessageResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'         => $this->id,
-            'content'    => $this->content,
-            'is_read'    => $this->is_read,
-            'sender_id'  => $this->sender_id,
-            'is_mine'    => $this->sender_id === auth()->id(),
+            'id' => $this->id,
+            'client_message_id' => $this->client_message_id,
+            'content' => $this->content,
+            'is_read' => $this->is_read,
+            'sender_id' => $this->sender_id,
+            'is_mine' => $this->sender_id === $request->user()->id,
             'created_at' => $this->created_at,
         ];
     }

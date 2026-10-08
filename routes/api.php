@@ -174,6 +174,8 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/orders/{order}/offers', [OrderOfferController::class, 'index']); // Done
         Route::get('/orders/{order}/offers/{offer}', [OrderOfferController::class, 'show']); // Done
         Route::post('/orders/{order}/offers/{offer}/reject', [OrderOfferController::class, 'reject']);
+        Route::get('/orders/{order}/offers/{offer}/conversation', [ConversationController::class, 'offerConversation']);
+        Route::post('/orders/{order}/offers/{offer}/conversation/messages', [ConversationController::class, 'firstMessage']);
     });
 
     Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
@@ -181,6 +183,9 @@ Route::middleware(['locale'])->group(function () {
 
         Route::get('/conversations', [ConversationController::class, 'index']);
         Route::post('/conversations', [ConversationController::class, 'store']);
+        Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);
+        Route::get('/conversations/{conversation}/timeline', [ConversationController::class, 'timeline']);
+        Route::patch('/conversations/{conversation}/read', [ConversationController::class, 'read']);
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages']);
         Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'sendMessage']);
 
@@ -188,6 +193,8 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/ratings', [RatingController::class, 'store']);
 
         Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/inbox', [NotificationController::class, 'inbox']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     });

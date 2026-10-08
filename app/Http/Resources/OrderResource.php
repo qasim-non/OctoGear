@@ -32,6 +32,8 @@ class OrderResource extends JsonResource
                 'store' => [
                     'id' => $this->storeCarComponent->storeCar?->store?->id,
                     'name' => $this->storeCarComponent->storeCar?->store?->name,
+                    'employee_name' => $this->storeCarComponent->storeCar?->store?->employee_name,
+                    'url_location' => $this->storeCarComponent->storeCar?->store?->url_location,
                 ],
             ]),
             'offers' => $this->whenLoaded('offers', fn () => OrderOfferResource::collection($this->offers)
@@ -41,6 +43,8 @@ class OrderResource extends JsonResource
                 fn () => $this->fulfillmentStore() ? [
                     'id' => $this->fulfillmentStore()->id,
                     'name' => $this->fulfillmentStore()->name,
+                    'employee_name' => $this->fulfillmentStore()->employee_name,
+                    'url_location' => $this->fulfillmentStore()->url_location,
                 ] : null,
             ),
             'created_at' => $this->created_at,
