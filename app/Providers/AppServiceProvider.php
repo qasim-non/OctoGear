@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use App\Models\CustomerCar;
 use App\Models\Conversation;
+use App\Models\CustomerCar;
+use App\Models\DeviceToken;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\OrderOffer;
@@ -13,24 +14,25 @@ use App\Models\Store;
 use App\Models\StoreCarComponent;
 use App\Models\StoreRequest;
 use App\Models\StoresCar;
-use App\Policies\CustomerCarPolicy;
 use App\Policies\ConversationPolicy;
+use App\Policies\CustomerCarPolicy;
+use App\Policies\DeviceTokenPolicy;
 use App\Policies\MessagePolicy;
 use App\Policies\NotificationPolicy;
-use App\Policies\OrderPolicy;
 use App\Policies\OrderOfferPolicy;
+use App\Policies\OrderPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\RatingPolicy;
-use App\Policies\StorePolicy;
 use App\Policies\StoreCarComponentPolicy;
+use App\Policies\StorePolicy;
 use App\Policies\StoreRequestPolicy;
 use App\Policies\StoresCarPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Notifications\DatabaseNotification;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Rating::class, RatingPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
+        Gate::policy(DeviceToken::class, DeviceTokenPolicy::class);
     }
 
     private function configureRateLimiting(): void

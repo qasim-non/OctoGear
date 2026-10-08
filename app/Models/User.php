@@ -25,13 +25,11 @@ class User extends Authenticatable
         'type',
         'city_id',
         'status',
-        'device_token',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
-        'device_token',
         'deleted_at',
     ];
 

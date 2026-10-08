@@ -54,7 +54,6 @@ class AuthService
         string $tempToken,
         string $fullName,
         int $cityId,
-        ?string $deviceToken = null,
     ): array {
         $mobile = $this->otpService->consumePendingToken('registration', $tempToken);
 
@@ -66,7 +65,7 @@ class AuthService
             );
         }
 
-        $user = $this->createUser($mobile, $fullName, $cityId, $deviceToken);
+        $user = $this->createUser($mobile, $fullName, $cityId);
 
         return [
             'token' => $this->otpService->createToken($user),
@@ -77,17 +76,13 @@ class AuthService
         string $mobile,
         string $fullName,
         int $cityId,
-        ?string $deviceToken = null,
     ): User {
-        $deviceToken = $deviceToken === null ? null : trim($deviceToken);
-
         return User::create([
             'full_name' => $fullName,
             'mobile' => $mobile,
             'type' => UserType::Customer,
             'city_id' => $cityId,
             'status' => UserStatus::Unblocked,
-            'device_token' => $deviceToken === '' ? null : $deviceToken,
         ]);
     }
 

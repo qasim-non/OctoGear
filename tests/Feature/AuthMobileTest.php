@@ -6,6 +6,7 @@ use App\Models\City;
 use App\Models\User;
 use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Tests\TestCase;
 
@@ -114,16 +115,15 @@ class AuthMobileTest extends TestCase
         $this->assertDatabaseHas('users', [
             'mobile' => '+966555555555',
             'full_name' => 'Test User',
-            'device_token' => null,
         ]);
     }
 
-    public function test_registration_stores_an_optional_device_token(): void
+    public function test_registration_ignores_legacy_device_token_and_registers_push_after_login(): void
     {
         $city = City::factory()->create();
         $token = $this->pendingRegistrationToken('+966555555555');
 
-        $this->postJson('/api/auth/register', [
+        $response = $this->postJson('/api/auth/register', [
             'temp_token' => $token,
             'full_name' => 'Test User',
             'city_id' => $city->id,
@@ -133,11 +133,26 @@ class AuthMobileTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'mobile' => '+966555555555',
-            'device_token' => 'fcm-registration-token',
+        ]);
+        $this->assertFalse(Schema::hasColumn('users', 'device_token'));
+        $this->assertDatabaseCount('device_tokens', 0);
+
+        $this->withToken($response->json('data.token'))
+            ->postJson('/api/push/device', [
+                'token' => 'current-fcm-token',
+                'platform' => 'android',
+                'locale' => 'en',
+            ])->assertOk();
+
+        $user = User::where('mobile', '+966555555555')->firstOrFail();
+        $this->assertDatabaseHas('device_tokens', [
+            'user_id' => $user->id,
+            'personal_access_token_id' => $user->tokens()->sole()->id,
+            'token' => 'current-fcm-token',
         ]);
     }
 
-    public function test_registration_rejects_an_oversized_device_token(): void
+    public function test_registration_does_not_validate_unused_legacy_device_token(): void
     {
         $city = City::factory()->create();
         $token = $this->pendingRegistrationToken('+966555555555');
@@ -148,8 +163,9 @@ class AuthMobileTest extends TestCase
             'city_id' => $city->id,
             'device_token' => str_repeat('a', 513),
         ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('device_token');
+            ->assertOk();
+
+        $this->assertDatabaseCount('device_tokens', 0);
     }
 
     private function pendingRegistrationToken(string $mobile): string

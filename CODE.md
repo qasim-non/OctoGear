@@ -1,5 +1,26 @@
 # OctoGear (YARDY) - API Code Guide
 
+## Android customer push — 2026-10-08
+
+Android customer push now builds on the stored inbox through one NotificationSent
+listener and per-device queue jobs dispatched after commit. DeviceTokenPolicy,
+RegisterDeviceTokenRequest, DeviceTokenService and DeviceTokenRepository keep
+authorization, validation, lifecycle decisions and substantial queries separate.
+POST/DELETE /api/push/device bind delivery to the current Sanctum login; logout
+removes its subscription and token atomically. Tokens are hidden from responses.
+FCM tokens live only in `device_tokens`; signup is independent of Firebase.
+The cleanup migration drops legacy `users.device_token`. Both device ownership
+and the registering Sanctum session remain explicit in `device_tokens`.
+
+The additive session/locale/freshness migration and queue tables are required.
+Google's official google/auth package supplies OAuth for FCM HTTP v1. Push is
+disabled until server credentials and a database push worker are configured.
+See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) for the deployment contract.
+
+Flutter no longer polls notification endpoints. Inbox entry and explicit user
+actions fetch data; incoming push/resume/Home/More do not fetch lists or counts.
+Historical capture-only/polling descriptions are superseded by this section.
+
 ## Customer notification inbox addition — 2026-10-06
 
 Shared authenticated routes now include `GET /api/notifications/inbox` (optional

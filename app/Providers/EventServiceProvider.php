@@ -12,7 +12,9 @@ use App\Listeners\NotifyCustomerOfOffer;
 use App\Listeners\NotifyProviderOfCompletion;
 use App\Listeners\NotifyProviderOfPayment;
 use App\Listeners\NotifyStoresOfNewOrder;
+use App\Listeners\QueueCustomerPush;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Illuminate\Notifications\Events\NotificationSent;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -20,11 +22,12 @@ class EventServiceProvider extends ServiceProvider
      * The event to listener mappings for the application.
      */
     protected $listen = [
-        OrderCreated::class   => [NotifyStoresOfNewOrder::class],
-        OfferCreated::class   => [NotifyCustomerOfOffer::class],
-        OrderPaid::class      => [NotifyProviderOfPayment::class],
+        NotificationSent::class => [QueueCustomerPush::class],
+        OrderCreated::class => [NotifyStoresOfNewOrder::class],
+        OfferCreated::class => [NotifyCustomerOfOffer::class],
+        OrderPaid::class => [NotifyProviderOfPayment::class],
         OrderCompleted::class => [NotifyProviderOfCompletion::class],
-        MessageSent::class    => [NotifyConversationParticipant::class],
+        MessageSent::class => [NotifyConversationParticipant::class],
     ];
 
     public function boot(): void

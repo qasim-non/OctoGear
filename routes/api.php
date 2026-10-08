@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Reference\CompanyController;
 use App\Http\Controllers\Api\Reference\ComponentController;
 use App\Http\Controllers\Api\Reference\FuelTypeController;
 use App\Http\Controllers\Api\Shared\ConversationController;
+use App\Http\Controllers\Api\Shared\DeviceTokenController;
 use App\Http\Controllers\Api\Shared\NotificationController;
 use App\Http\Controllers\Api\Shared\ProfileController;
 use App\Http\Controllers\Api\Shared\RatingController;
@@ -180,6 +181,9 @@ Route::middleware(['locale'])->group(function () {
 
     Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'show']);
+
+        Route::post('/push/device', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1');
+        Route::delete('/push/device', [DeviceTokenController::class, 'destroy'])->middleware('throttle:30,1');
 
         Route::get('/conversations', [ConversationController::class, 'index']);
         Route::post('/conversations', [ConversationController::class, 'store']);

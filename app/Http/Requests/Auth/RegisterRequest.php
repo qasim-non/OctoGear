@@ -12,7 +12,6 @@ class RegisterRequest extends BaseRequest
             'temp_token' => ['required', 'string', 'max:64'],
             'full_name' => ['required', 'string', 'max:100'],
             'city_id' => ['required', 'integer', 'exists:cities,id'],
-            'device_token' => ['nullable', 'string', 'max:512'],
         ];
     }
 
@@ -26,7 +25,6 @@ class RegisterRequest extends BaseRequest
             'city_id.required' => __('auth.validation.city_id.required'),
             'city_id.integer' => __('auth.validation.city_id.integer'),
             'city_id.exists' => __('auth.validation.city_id.exists'),
-            'device_token.max' => __('auth.validation.device_token.max'),
         ];
     }
 }
