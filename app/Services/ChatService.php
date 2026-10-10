@@ -23,6 +23,7 @@ class ChatService
         private ConversationRepository $conversations,
         private MessageRepository $messages,
         private ChatEligibility $eligibility,
+        private ChatRealtimeService $realtime,
     ) {}
 
     public function details(Conversation $conversation, User $viewer): ConversationData
@@ -59,7 +60,7 @@ class ChatService
         return $this->present($this->conversations->loadForDisplay($conversation, $user, withActivity: false));
     }
 
-    public function timeline(Conversation $conversation, ?int $beforeId, ?int $afterId): MessageTimeline
+    public function timeline(Conversation $conversation, ?int $beforeId, ?int $afterId, ?User $viewer = null): MessageTimeline
     {
         $messages = $this->messages->timeline($conversation, $beforeId, $afterId);
 
@@ -67,6 +68,7 @@ class ChatService
         return new MessageTimeline(
             $messages->take(MessageRepository::TIMELINE_PAGE_SIZE)->sortByDesc('id')->values(),
             $messages->count() > MessageRepository::TIMELINE_PAGE_SIZE,
+            $viewer ? $this->messages->readThroughForSender($conversation, $viewer) : 0,
         );
     }
 
@@ -85,7 +87,11 @@ class ChatService
                 errors: ['through_id' => [__('chat.invalid_read_boundary')]],
             );
         }
-        $this->messages->markIncomingReadThrough($conversation, $reader, $throughId);
+        DB::transaction(function () use ($conversation, $reader, $throughId) {
+            if ($this->messages->markIncomingReadThrough($conversation, $reader, $throughId) > 0) {
+                $this->realtime->read($conversation->id, $reader->id, $throughId);
+            }
+        });
     }
 
     public function start(OrderOffer $offer, User $sender, array $data): Message

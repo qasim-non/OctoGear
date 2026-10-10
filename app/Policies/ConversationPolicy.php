@@ -4,9 +4,22 @@ namespace App\Policies;
 
 use App\Models\Conversation;
 use App\Models\User;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class ConversationPolicy
 {
+    public function subscribe(User $user): bool
+    {
+        return ! $user->isBlocked() && ($user->isCustomer() || $user->isProvider())
+            && $user->currentAccessToken() instanceof PersonalAccessToken;
+    }
+
+    public function subscribeSession(User $user, mixed $channel): bool
+    {
+        return $this->subscribe($user)
+            && $channel === 'private-chat.sessions.'.$user->currentAccessToken()->id;
+    }
+
     private function isParticipant(User $user, Conversation $conversation): bool
     {
         return $user->id === $conversation->customer_id || $user->id === $conversation->provider_id;

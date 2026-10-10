@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Reference\ColorController;
 use App\Http\Controllers\Api\Reference\CompanyController;
 use App\Http\Controllers\Api\Reference\ComponentController;
 use App\Http\Controllers\Api\Reference\FuelTypeController;
+use App\Http\Controllers\Api\Shared\ChatRealtimeController;
 use App\Http\Controllers\Api\Shared\ConversationController;
 use App\Http\Controllers\Api\Shared\DeviceTokenController;
 use App\Http\Controllers\Api\Shared\NotificationController;
@@ -185,6 +186,8 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/push/device', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1');
         Route::delete('/push/device', [DeviceTokenController::class, 'destroy'])->middleware('throttle:30,1');
 
+        Route::get('/chat/realtime', [ChatRealtimeController::class, 'show']);
+        Route::post('/chat/realtime/auth', [ChatRealtimeController::class, 'authorizeChannel'])->middleware('throttle:30,1');
         Route::get('/conversations', [ConversationController::class, 'index']);
         Route::post('/conversations', [ConversationController::class, 'store']);
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);

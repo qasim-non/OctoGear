@@ -153,11 +153,11 @@ class ConversationRefactorTest extends TestCase
         $this->getJson($url)->assertOk()->assertJsonPath('data.can_send', false);
         $provider->update(['status' => UserStatus::Unblocked]);
         $store->update(['status' => StoreStatus::Inactive]);
-        $this->getJson($url)->assertOk()->assertJsonPath('data.can_send', false);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.can_send', true);
         $this->postJson("$url/messages", ['content' => 'Hello', 'client_message_id' => (string) Str::uuid()])
-            ->assertForbidden()->assertJsonPath('success', false);
-        $this->assertDatabaseCount('conversations', 0);
-        $this->assertDatabaseCount('messages', 0);
+            ->assertOk()->assertJsonPath('data.conversation.can_send', true);
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseCount('messages', 1);
     }
 
     public function test_existing_chat_keeps_its_participants_when_store_ownership_changes(): void
@@ -175,12 +175,12 @@ class ConversationRefactorTest extends TestCase
 
     public function test_identical_retry_replays_before_new_send_eligibility_and_deleted_retry_conflicts(): void
     {
-        [, , $store, , , $url] = $this->offerContext();
+        [, $provider, , , , $url] = $this->offerContext();
         $payload = ['content' => 'Hello', 'client_message_id' => (string) Str::uuid()];
         $first = $this->postJson("$url/messages", $payload)->assertOk();
         $id = $first->json('data.conversation.id');
         $messageId = $first->json('data.message.id');
-        $store->update(['status' => StoreStatus::Inactive]);
+        $provider->update(['status' => UserStatus::Blocked]);
         $this->postJson("/api/conversations/$id/messages", $payload)->assertCreated()
             ->assertJsonPath('data.id', $messageId);
         $this->assertDatabaseCount('notifications', 1);

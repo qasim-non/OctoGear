@@ -21,6 +21,16 @@ class ConversationRepository
         return $offer->load(['order.customer', 'store.owner']);
     }
 
+    public function loadRealtimeSummary(Conversation $conversation): Conversation
+    {
+        return $conversation->load(self::DISPLAY_RELATIONS)
+            ->load(['latestMessage' => fn ($query) => $query->limit(1)])
+            ->loadCount([
+                'unreadMessages as customer_unread' => fn ($query) => $query->where('sender_id', '!=', $conversation->customer_id),
+                'unreadMessages as provider_unread' => fn ($query) => $query->where('sender_id', '!=', $conversation->provider_id),
+            ]);
+    }
+
     public function loadForDisplay(Conversation $conversation, User $viewer, bool $withActivity = true): Conversation
     {
         $conversation->load(self::DISPLAY_RELATIONS);

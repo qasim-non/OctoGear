@@ -12,6 +12,7 @@ use App\Listeners\NotifyCustomerOfOffer;
 use App\Listeners\NotifyProviderOfCompletion;
 use App\Listeners\NotifyProviderOfPayment;
 use App\Listeners\NotifyStoresOfNewOrder;
+use App\Listeners\QueueChatRealtime;
 use App\Listeners\QueueCustomerPush;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -27,7 +28,7 @@ class EventServiceProvider extends ServiceProvider
         OfferCreated::class => [NotifyCustomerOfOffer::class],
         OrderPaid::class => [NotifyProviderOfPayment::class],
         OrderCompleted::class => [NotifyProviderOfCompletion::class],
-        MessageSent::class => [NotifyConversationParticipant::class],
+        MessageSent::class => [NotifyConversationParticipant::class, QueueChatRealtime::class],
     ];
 
     public function boot(): void

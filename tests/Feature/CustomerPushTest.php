@@ -160,6 +160,19 @@ class CustomerPushTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_message_push_includes_stable_id_for_socket_deduplication_without_message_text(): void
+    {
+        [$job, $device, $user] = $this->delivery();
+        $user->notifications()->whereKey($job->notificationId)->update(['data' => json_encode([
+            'type' => 'new_message', 'conversation_id' => 7, 'message_id' => 99, 'message' => 'secret message',
+        ])]);
+        Http::fake(['fcm.googleapis.com/*' => Http::response(['name' => 'sent'])]);
+        $this->send($job);
+        Http::assertSent(fn ($request) => $request['message']['data']['message_id'] === '99'
+            && $request['message']['data']['conversation_id'] === '7'
+            && ! str_contains(json_encode($request['message']), 'secret message'));
+    }
+
     public function test_revoked_expired_stale_and_read_deliveries_are_skipped(): void
     {
         [$job, $device, $user, $session] = $this->delivery();

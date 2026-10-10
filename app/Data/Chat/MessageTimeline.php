@@ -11,5 +11,6 @@ final readonly class MessageTimeline
     public function __construct(
         public Collection $messages,
         public bool $hasMore,
+        public int $readThroughId = 0,
     ) {}
 }

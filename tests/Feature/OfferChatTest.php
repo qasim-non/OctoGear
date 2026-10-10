@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\OfferStatus;
+use App\Enums\StoreStatus;
 use App\Enums\UserStatus;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -13,6 +14,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class OfferChatTest extends TestCase
@@ -68,6 +70,53 @@ class OfferChatTest extends TestCase
         $this->patchJson("/api/conversations/$id/read", ['through_id' => 1])->assertForbidden();
     }
 
+    public static function offerStatuses(): array
+    {
+        return array_map(fn (OfferStatus $status) => [$status], OfferStatus::cases());
+    }
+
+    #[DataProvider('offerStatuses')]
+    public function test_customer_can_message_each_offer_store_even_when_inactive(OfferStatus $status): void
+    {
+        [$customer, $store, $order, $offer, $url] = $this->setupOffer();
+        $store->update(['status' => StoreStatus::Inactive]);
+        $offer->update(['status' => $status]);
+        $otherStore = Store::factory()->create(['status' => StoreStatus::Inactive]);
+        $otherOffer = OrderOffer::factory()->create([
+            'order_id' => $order->id, 'store_id' => $otherStore->id, 'status' => OfferStatus::NotSelected,
+        ]);
+
+        $this->getJson($url)->assertOk()->assertJsonPath('data.can_send', true)
+            ->assertJsonPath('data.conversation', null);
+        $first = $this->postJson("$url/messages", [
+            'content' => 'Is this part available?', 'client_message_id' => (string) Str::uuid(),
+        ])->assertOk()->assertJsonPath('data.conversation.can_send', true);
+        $id = $first->json('data.conversation.id');
+
+        $otherId = $this->postJson("/api/customer/orders/{$order->id}/offers/{$otherOffer->id}/conversation/messages", [
+            'content' => 'Can you clarify your offer?', 'client_message_id' => (string) Str::uuid(),
+        ])->assertOk()->json('data.conversation.id');
+        $this->assertNotSame($id, $otherId);
+        $this->assertDatabaseHas('conversations', ['id' => $id, 'customer_id' => $customer->id, 'provider_id' => $store->user_id]);
+        $this->assertDatabaseHas('conversations', ['id' => $otherId, 'customer_id' => $customer->id, 'provider_id' => $otherStore->user_id]);
+
+        Sanctum::actingAs($store->owner);
+        $this->postJson("/api/conversations/$id/messages", [
+            'content' => 'Yes, it is available.', 'client_message_id' => (string) Str::uuid(),
+        ])->assertCreated();
+        $this->postJson("/api/conversations/$otherId/messages", ['content' => 'Wrong store'])
+            ->assertForbidden();
+
+        Sanctum::actingAs($customer);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.conversation.can_send', true);
+        $this->getJson("/api/conversations/$id")->assertOk()->assertJsonPath('data.can_send', true);
+        $this->getJson('/api/conversations?with_messages=true')->assertOk()->assertJsonPath('data.0.can_send', true);
+
+        $store->owner->update(['status' => UserStatus::Blocked]);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.can_send', false);
+        $this->postJson("/api/conversations/$id/messages", ['content' => 'Blocked'])->assertForbidden();
+    }
+
     public function test_cursor_pagination_and_read_boundary(): void
     {
         [$customer, $store, $order, $offer, $url] = $this->setupOffer();
@@ -84,6 +133,23 @@ class OfferChatTest extends TestCase
         $this->assertDatabaseHas('messages', ['id' => 21, 'is_read' => false]);
         $this->assertDatabaseHas('messages', ['id' => 1, 'is_read' => false]);
         $this->getJson('/api/conversations')->assertJsonPath('data.0.unread_count', 26);
+    }
+
+    public function test_existing_offer_chat_remains_writable_when_store_becomes_inactive(): void
+    {
+        [, $store, , , $url] = $this->setupOffer();
+        $id = $this->postJson("$url/messages", [
+            'content' => 'Hello', 'client_message_id' => (string) Str::uuid(),
+        ])->assertOk()->json('data.conversation.id');
+
+        $store->update(['status' => StoreStatus::Inactive]);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.can_send', true);
+        $this->postJson("/api/conversations/$id/messages", ['content' => 'Following up'])->assertCreated();
+
+        $store->delete();
+        $this->getJson("/api/conversations/$id")->assertOk()->assertJsonPath('data.can_send', false);
+        $this->postJson("/api/conversations/$id/messages", ['content' => 'Deleted store'])->assertForbidden();
+        $this->getJson("/api/conversations/$id/timeline")->assertOk()->assertJsonCount(2, 'data.messages');
     }
 
     public function test_failed_first_send_rolls_back_and_offer_nesting_is_checked(): void

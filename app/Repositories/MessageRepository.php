@@ -36,9 +36,15 @@ class MessageRepository
         return $conversation->messages()->whereKey($messageId)->exists();
     }
 
-    public function markIncomingReadThrough(Conversation $conversation, User $reader, int $throughId): void
+    public function readThroughForSender(Conversation $conversation, User $sender): int
     {
-        $conversation->messages()
+        return (int) $conversation->messages()->where('sender_id', $sender->id)
+            ->where('is_read', true)->max('id');
+    }
+
+    public function markIncomingReadThrough(Conversation $conversation, User $reader, int $throughId): int
+    {
+        return $conversation->messages()
             ->where('id', '<=', $throughId)
             ->where('sender_id', '!=', $reader->id)
             ->where('is_read', false)

@@ -58,6 +58,7 @@ class ConversationController extends Controller
             $conversation,
             isset($input['before_id']) ? (int) $input['before_id'] : null,
             isset($input['after_id']) ? (int) $input['after_id'] : null,
+            $request->user(),
         )));
     }
 

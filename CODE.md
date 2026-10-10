@@ -1,5 +1,16 @@
 # OctoGear (YARDY) - API Code Guide
 
+## Chat WebSockets — 2026-10-09
+
+Chat writes remain authenticated, idempotent HTTP POST requests. New messages and
+read receipts broadcast after commit through Reverb to private Sanctum session
+channels. Channel policies/Form Requests, ChatRealtimeService, ChatSessionRepository
+and a dedicated realtime queue separate authorization, orchestration and queries.
+Both Flutter chat polling timers are removed. Reconnect drains missed timeline
+pages and restores read receipts. See [CHAT_REALTIME.md](CHAT_REALTIME.md) for
+configuration, security, deployment and tests. This supersedes historical claims
+below that broadcast/queue workers are absent.
+
 ## Android customer push — 2026-10-08
 
 Android customer push now builds on the stored inbox through one NotificationSent
@@ -787,8 +798,13 @@ transaction. There are no push, realtime, call or attachment changes.
 GET /conversations?with_messages=true hides empty legacy chats for the mobile app.
 Default legacy listing behavior remains. Inbox ordering and last-message previews
 use message IDs to break same-second timestamp ties. New sends require unblocked
-participants and an active matching store for offer chats; historical messages stay
-readable. Each offer has one conversation, so different requests stay separate.
+participants and an existing store whose owner matches the conversation provider.
+Store inactivity does not disable offer chat: customers can discuss any visible
+offer on their own request, including pending, rejected and not-selected offers,
+without accepting it. The same eligibility applies to previews, first sends,
+existing threads and inbox metadata. Deleted stores and changed ownership still
+disable new sends; historical messages stay readable. Each offer has one
+conversation, so different offers and requests stay separate.
 
 Deploy additive migration 2026_10_04_120000_add_offer_chat_context before the app.
 It preserves legacy chats, adds nullable unique offer_id and per-sender message

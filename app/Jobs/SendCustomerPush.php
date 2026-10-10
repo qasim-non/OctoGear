@@ -63,6 +63,11 @@ class SendCustomerPush implements ShouldQueue
             $data[$field] = (string) $payload[$field];
         }
         // No message text, phone numbers, price or store/customer names on lock screens.
+        if ($type === 'new_message' && isset($payload['message_id'])
+            && ctype_digit((string) $payload['message_id']) && (int) $payload['message_id'] > 0) {
+            // Lets the app deduplicate foreground FCM and WebSocket delivery.
+            $data['message_id'] = (string) $payload['message_id'];
+        }
         $body = trans('auth.notifications.'.$type, [], $device->locale);
         try {
             $sent = $sender->send($device, $data, $body);

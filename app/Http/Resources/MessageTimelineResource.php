@@ -14,6 +14,7 @@ class MessageTimelineResource extends JsonResource
         return [
             'messages' => MessageResource::collection($this->resource->messages),
             'has_more' => $this->resource->hasMore,
+            'read_through_id' => $this->resource->readThroughId,
         ];
     }
 }
