@@ -314,6 +314,7 @@ return [
         'not_found' => 'المتجر غير موجود.',
         'already_exists' => 'لديك متجر بالفعل.',
         'become_provider' => 'أصبحت الآن مزود خدمة.',
+        'application_submitted' => 'طلب التسجيل كبائع قيد المراجعة. يمكنك الاستمرار باستخدام حساب العميل.',
         'validation' => [
             'name' => [
                 'required' => 'اسم المتجر مطلوب.',

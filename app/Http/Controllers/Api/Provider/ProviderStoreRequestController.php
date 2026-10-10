@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Api\Provider;
 
-use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\SendOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Http\Requests\Provider\ResubmitStoreRequestRequest;
 use App\Http\Requests\Provider\StoreStoreRequestDirectRequest;
 use App\Http\Requests\Provider\StoreStoreRequestRequest;
 use App\Http\Resources\StoreRequestResource;
 use App\Models\StoreRequest;
 use App\Services\StoreRequestService;
+use Illuminate\Http\Request;
 
 class ProviderStoreRequestController extends Controller
 {
@@ -20,9 +21,10 @@ class ProviderStoreRequestController extends Controller
     {
         $user = auth()->user();
 
-        $this->storeRequests->sendMobileOtp($request->validated('mobile'), $user);
+        $testOtp = $this->storeRequests->sendMobileOtp($request->validated('mobile'), $user);
 
-        return $this->success(null, __('auth.otp.sent'));
+        return $this->success($testOtp === null ? null : ['test_otp' => $testOtp], __('auth.otp.sent'))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function verifyMobileOtp(VerifyOtpRequest $request)
@@ -31,7 +33,8 @@ class ProviderStoreRequestController extends Controller
 
         $tempToken = $this->storeRequests->verifyMobileOtp($data['mobile'], $data['otp']);
 
-        return $this->success(['temp_token' => $tempToken], __('auth.otp.verified'));
+        return $this->success(['temp_token' => $tempToken], __('auth.otp.verified'))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function index()
@@ -53,8 +56,8 @@ class ProviderStoreRequestController extends Controller
 
         return $this->created([
             'store_request' => new StoreRequestResource($storeRequest),
-            'type' => UserType::ServiceProvider->value,
-        ], __('auth.store.become_provider'));
+            'type' => $request->user()->type->value,
+        ], __('auth.store.application_submitted'));
     }
 
     public function storeDirect(StoreStoreRequestDirectRequest $request)
@@ -73,5 +76,22 @@ class ProviderStoreRequestController extends Controller
         $storeRequest->load('city');
 
         return $this->success(new StoreRequestResource($storeRequest));
+    }
+
+    public function resubmit(ResubmitStoreRequestRequest $request, StoreRequest $storeRequest)
+    {
+        $this->authorize('view', $storeRequest);
+
+        return $this->success(new StoreRequestResource(
+            $this->storeRequests->resubmit($storeRequest, $request->validated()),
+        ));
+    }
+
+    public function application(Request $request)
+    {
+        $application = $request->user()->storeRequests()->with('city')->latest('id')->first();
+
+        return $this->success($application ? new StoreRequestResource($application) : null)
+            ->header('Cache-Control', 'no-store, private');
     }
 }

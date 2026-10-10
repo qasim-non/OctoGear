@@ -32,8 +32,8 @@ class OtpService
             Log::info("OTP for {$mobile}: {$otp}");
         }
 
-        // Never expose a login code outside the explicitly enabled local flow.
-        return app()->environment('local') && config('otp.expose_for_testing')
+        // Only explicitly enabled development/staging flows may expose codes.
+        return app()->environment(['local', 'staging']) && config('otp.expose_for_testing')
             ? $otp : null;
     }
 

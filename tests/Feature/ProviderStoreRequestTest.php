@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RequestStatus;
+use App\Models\Admin;
 use App\Models\City;
 use App\Models\StoreRequest;
 use App\Models\User;
@@ -65,7 +66,7 @@ class ProviderStoreRequestTest extends TestCase
             ->assertJsonPath('data.temp_token', 'store-token');
     }
 
-    public function test_customer_can_submit_a_store_request_with_verified_mobile_and_becomes_provider(): void
+    public function test_customer_can_submit_a_store_request_and_stays_customer_until_approval(): void
     {
         $city = City::factory()->create();
         $customer = User::factory()->customer()->create(['mobile' => '+966511111111']);
@@ -78,7 +79,7 @@ class ProviderStoreRequestTest extends TestCase
             ->assertJsonPath('data.store_request.mobile', '+966555555555')
             ->assertJsonPath('data.store_request.request_status', RequestStatus::Pending->value)
             ->assertJsonPath('data.store_request.city.id', $city->id)
-            ->assertJsonPath('data.type', 'service provider');
+            ->assertJsonPath('data.type', 'customer');
 
         $this->assertDatabaseHas('store_requests', [
             'user_id' => $customer->id,
@@ -89,7 +90,7 @@ class ProviderStoreRequestTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'id' => $customer->id,
-            'type' => 'service provider',
+            'type' => 'customer',
         ]);
     }
 
@@ -231,8 +232,12 @@ class ProviderStoreRequestTest extends TestCase
             ->postJson('/api/provider/store-requests', $this->storeRequestPayload($city, $tempToken))
             ->assertStatus(201);
 
-        // Now a provider: the onboarding route is closed to them (customer middleware).
-        $this->actingAs($customer, 'sanctum')
+        $application = $customer->storeRequests()->firstOrFail();
+        $this->actingAs(Admin::factory()->create(), 'sanctum')
+            ->postJson("/api/admin/store-requests/{$application->id}/accept")
+            ->assertOk();
+        // Approval closes the first-application route through customer middleware.
+        $this->actingAs($customer->fresh(), 'sanctum')
             ->postJson('/api/provider/store-requests', $this->storeRequestPayload($city, $tempToken))
             ->assertStatus(403);
     }

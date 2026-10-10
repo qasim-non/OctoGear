@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use App\Enums\RequestStatus;
-use App\Enums\UserType;
 use App\Exceptions\BusinessRuleException;
 use App\Models\StoreRequest;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -27,11 +27,11 @@ class StoreRequestService
     /**
      * Send an OTP to the provider's mobile to start the store-request flow.
      */
-    public function sendMobileOtp(string $mobile, User $user): void
+    public function sendMobileOtp(string $mobile, User $user): ?string
     {
         $this->ensureMobileDiffersFromAccount($user, $mobile);
 
-        $this->otp->sendOtp($mobile);
+        return $this->otp->sendOtp($mobile);
     }
 
     /**
@@ -54,8 +54,7 @@ class StoreRequestService
     }
 
     /**
-     * Become a provider: submit a store request after verifying the store mobile,
-     * promote the user to ServiceProvider, and return the request.
+     * Apply to become a provider; the user stays a customer until admin approval.
      *
      * @throws BusinessRuleException when the token is missing, already used,
      *                               or the store mobile matches the account mobile
@@ -79,7 +78,7 @@ class StoreRequestService
 
         $this->ensureMobileDiffersFromAccount($user, $verifiedMobile);
 
-        return $this->createRequest($user, $data, $verifiedMobile, promote: true);
+        return $this->createRequest($user, $data, $verifiedMobile, firstApplication: true);
     }
 
     /**
@@ -95,16 +94,18 @@ class StoreRequestService
         return $this->createRequest($provider, $data, $data['mobile']);
     }
 
-    private function createRequest(User $user, array $data, string $mobile, bool $promote = false): StoreRequest
+    private function createRequest(User $user, array $data, string $mobile, bool $firstApplication = false): StoreRequest
     {
         $storedFiles = [];
 
         try {
-            $storeRequest = DB::transaction(function () use ($user, $data, $mobile, $promote, &$storedFiles) {
+            $storeRequest = DB::transaction(function () use ($user, $data, $mobile, $firstApplication, &$storedFiles) {
                 $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
-                if ($promote) {
-                    $lockedUser->update(['type' => UserType::ServiceProvider]);
+                if ($firstApplication) {
+                    if (! $lockedUser->isCustomer() || $lockedUser->storeRequests()->exists()) {
+                        throw new BusinessRuleException('Account already onboarded.', 'auth.general.forbidden', [], 409);
+                    }
                 }
 
                 $image = $this->images->store(
@@ -121,16 +122,48 @@ class StoreRequestService
                 ]);
             });
 
-            if ($promote) {
-                $user->setAttribute('type', UserType::ServiceProvider);
-            }
-
             return $storeRequest;
         } catch (Throwable $exception) {
             $this->images->cleanup($storedFiles);
 
             throw $exception;
         }
+    }
+
+    public function resubmit(StoreRequest $request, array $data): StoreRequest
+    {
+        $storedFiles = [];
+        $oldImage = null;
+        try {
+            $result = DB::transaction(function () use ($request, $data, &$storedFiles, &$oldImage) {
+                $locked = StoreRequest::query()->lockForUpdate()->findOrFail($request->id);
+                if ($locked->request_status !== RequestStatus::Rejected) {
+                    throw new BusinessRuleException('Only rejected requests can be corrected.', 'auth.admin.store_requests.already_processed', [], 409);
+                }
+                $attributes = Arr::except($data, ['commercial_registration_picture', 'temp_token', 'mobile']);
+                if (isset($data['commercial_registration_picture'])) {
+                    $oldImage = $locked->registrationImage();
+                    $image = $this->images->store($data['commercial_registration_picture'], "store-requests/{$locked->user_id}/registration", $storedFiles);
+                    $attributes = [...$attributes, ...StoreMediaService::registrationAttributes($image)];
+                }
+                if (! $locked->hasRegistrationImage() && ! isset($data['commercial_registration_picture'])) {
+                    throw ValidationException::withMessages([
+                        'commercial_registration_picture' => [__('validation.required', ['attribute' => 'commercial_registration_picture'])],
+                    ]);
+                }
+                $locked->update([...$attributes, 'request_status' => RequestStatus::Pending, 'rejection_reason' => null, 'processed_by' => null]);
+                if ($oldImage) {
+                    $this->images->deleteAfterCommit([$oldImage]);
+                }
+
+                return $locked->load('city');
+            });
+        } catch (Throwable $exception) {
+            $this->images->cleanup($storedFiles);
+            throw $exception;
+        }
+
+        return $result;
     }
 
     private function ensureMobileDiffersFromAccount(User $user, string $mobile): void

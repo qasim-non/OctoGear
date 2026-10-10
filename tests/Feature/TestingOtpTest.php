@@ -34,7 +34,7 @@ class TestingOtpTest extends TestCase
     public function test_other_environments_never_expose_otp_even_with_flag_enabled(): void
     {
         config(['otp.expose_for_testing' => true]);
-        foreach (['production', 'staging', 'testing'] as $environment) {
+        foreach (['production', 'testing'] as $environment) {
             $this->app->instance('env', $environment);
             $this->postJson('/api/auth/otp/send', ['mobile' => '500000001'])->assertOk()
                 ->assertJsonMissingPath('data.test_otp')->assertJsonPath('data', null);
@@ -49,6 +49,32 @@ class TestingOtpTest extends TestCase
         $this->postJson('/api/auth/otp/send', ['mobile' => '500000001'])->assertOk()
             ->assertJsonPath('data', null);
         Log::shouldHaveReceived('info')->once();
+    }
+
+    public function test_staging_opt_in_returns_a_working_code_and_resend_replaces_it(): void
+    {
+        $this->app->instance('env', 'staging');
+        config(['otp.expose_for_testing' => true]);
+        Log::spy();
+        $this->postJson('/api/auth/otp/send', ['mobile' => '500000001'])->assertOk();
+        $response = $this->postJson('/api/auth/otp/send', ['mobile' => '500000001'])->assertOk();
+        $code = $response->json('data.test_otp');
+        $this->assertMatchesRegularExpression('/^[0-9]{4}$/', $code);
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $this->assertSame(1, OtpCode::count());
+        $this->assertTrue(Hash::check($code, OtpCode::firstOrFail()->hashed_otp));
+        $this->postJson('/api/auth/otp/verify', ['mobile' => '500000001', 'otp' => $code])
+            ->assertOk()->assertJsonPath('data.is_new', true);
+        $this->assertSame(0, OtpCode::count());
+        Log::shouldNotHaveReceived('info');
+    }
+
+    public function test_staging_opt_out_does_not_expose_a_code(): void
+    {
+        $this->app->instance('env', 'staging');
+        config(['otp.expose_for_testing' => false]);
+        $this->postJson('/api/auth/otp/send', ['mobile' => '500000001'])->assertOk()
+            ->assertJsonMissingPath('data.test_otp')->assertJsonPath('data', null);
     }
 
     public function test_resend_returns_the_current_stored_code_and_expiry_still_applies(): void

@@ -198,7 +198,7 @@ class OrderServiceTest extends TestCase
     public function test_store_request_requires_a_valid_one_time_token(): void
     {
         Storage::fake(config('images.disk'));
-        $provider = User::factory()->provider()->create();
+        $customer = User::factory()->customer()->create();
 
         $service = app(StoreRequestService::class);
         $otp = app(OtpService::class);
@@ -218,13 +218,13 @@ class OrderServiceTest extends TestCase
             'city_id' => $city->id,
         ];
 
-        $request = $service->becomeProvider($provider, $payload());
+        $request = $service->becomeProvider($customer, $payload());
         $this->assertSame('0501234567', $request->mobile);
         $this->assertSame(RequestStatus::Pending, $request->request_status);
 
         // A consumed token cannot be reused.
         $this->expectException(BusinessRuleException::class);
 
-        $service->becomeProvider($provider, $payload());
+        $service->becomeProvider($customer, $payload());
     }
 }

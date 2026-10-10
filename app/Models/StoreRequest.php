@@ -27,6 +27,7 @@ class StoreRequest extends Model
         'commercial_registration_mime_type',
         'commercial_registration_size_bytes',
         'city_id',
+        'company_ids',
         'request_status',
         'rejection_reason',
         'processed_by',
@@ -42,6 +43,7 @@ class StoreRequest extends Model
     {
         return [
             'request_status' => RequestStatus::class,
+            'company_ids' => 'array',
             'commercial_registration_size_bytes' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',

@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Enums\RequestStatus;
 use App\Enums\StoreStatus;
+use App\Enums\UserType;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Admin;
+use App\Models\CarCompany;
 use App\Models\Store;
 use App\Models\StoreRequest;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -50,6 +53,13 @@ class AdminStoreRequestService
                 $this->ensurePending($storeRequest);
                 $this->ensureStoreMobileFree($storeRequest->mobile);
 
+                // Application submission keeps customer access. Approval is the
+                // atomic hand-off to the provider role, alongside store creation.
+                $owner = User::query()->lockForUpdate()->findOrFail($storeRequest->user_id);
+                if ($owner->isCustomer()) {
+                    $owner->update(['type' => UserType::ServiceProvider]);
+                }
+
                 $registration = $storeRequest->registrationImage();
 
                 $store = $storeRequest->user->stores()->create([
@@ -63,6 +73,9 @@ class AdminStoreRequestService
                     'city_id' => $storeRequest->city_id,
                     'status' => StoreStatus::Active,
                 ]);
+
+                $companyIds = CarCompany::query()->whereIn('id', $storeRequest->company_ids ?? [])->pluck('id');
+                $store->companies()->sync($companyIds);
 
                 // Legacy references remain untrusted. Real uploads are copied so
                 // deleting the request cannot remove the accepted store's document.
@@ -88,15 +101,17 @@ class AdminStoreRequestService
 
     public function reject(StoreRequest $storeRequest, Admin $admin, string $reason): StoreRequest
     {
-        $this->ensurePending($storeRequest);
+        return DB::transaction(function () use ($storeRequest, $admin, $reason) {
+            $locked = StoreRequest::query()->lockForUpdate()->findOrFail($storeRequest->id);
+            $this->ensurePending($locked);
+            $locked->update([
+                'request_status' => RequestStatus::Rejected,
+                'rejection_reason' => $reason,
+                'processed_by' => $admin->employee_id,
+            ]);
 
-        $storeRequest->update([
-            'request_status' => RequestStatus::Rejected,
-            'rejection_reason' => $reason,
-            'processed_by' => $admin->employee_id,
-        ]);
-
-        return $storeRequest->refresh();
+            return $locked;
+        });
     }
 
     private function ensurePending(StoreRequest $storeRequest): void

@@ -24,6 +24,7 @@ class AdminStoreRequestResource extends JsonResource
                 : null,
             'request_status' => $this->request_status->value,
             'rejection_reason' => $this->rejection_reason,
+            'company_ids' => array_map('intval', $this->company_ids ?? []),
             'processed_by' => $this->processed_by,
             'user' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,

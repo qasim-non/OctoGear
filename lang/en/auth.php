@@ -339,6 +339,7 @@ return [
         'not_found' => 'Store not found.',
         'already_exists' => 'You already have a store.',
         'become_provider' => 'You are now a service provider.',
+        'application_submitted' => 'Your seller application is under review. You can continue using your customer account.',
         'validation' => [
             'name' => [
                 'required' => 'Store name is required.',

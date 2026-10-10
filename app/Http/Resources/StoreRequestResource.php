@@ -23,6 +23,8 @@ class StoreRequestResource extends JsonResource
                 ? route('media.store-request-registration.show', ['storeRequest' => $this->id], false)
                 : null,
             'request_status' => $this->request_status->value,
+            'rejection_reason' => $this->rejection_reason,
+            'company_ids' => array_map('intval', $this->company_ids ?? []),
             'city' => $this->whenLoaded('city', fn () => [
                 'id' => $this->city->id,
                 'name' => $locale === 'en' ? $this->city->name_en : $this->city->name_ar,

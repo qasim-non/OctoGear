@@ -26,6 +26,8 @@ class StoreStoreRequestDirectRequest extends BaseRequest
             'commercial_registration_number' => ['required', 'string', 'max:50'],
             'commercial_registration_picture' => ['required', ...ImageRules::file()],
             'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'company_ids' => ['sometimes', 'nullable', 'array', 'max:100'],
+            'company_ids.*' => ['required', 'integer', 'distinct', 'exists:cars_companies,id,deleted_at,NULL'],
         ];
     }
 }

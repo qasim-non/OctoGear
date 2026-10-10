@@ -112,8 +112,8 @@ Route::middleware(['locale'])->group(function () {
 
         // Provider onboarding — only for customers (becoming a provider)
         Route::middleware('customer')->group(function () {
-            Route::post('/store-requests/verify-mobile', [ProviderStoreRequestController::class, 'sendMobileOtp']);
-            Route::post('/store-requests/verify-code', [ProviderStoreRequestController::class, 'verifyMobileOtp']);
+            Route::post('/store-requests/verify-mobile', [ProviderStoreRequestController::class, 'sendMobileOtp'])->middleware('throttle:customerLogin');
+            Route::post('/store-requests/verify-code', [ProviderStoreRequestController::class, 'verifyMobileOtp'])->middleware('throttle:customerLogin');
             Route::post('/store-requests', [ProviderStoreRequestController::class, 'store']);
         });
 
@@ -134,6 +134,7 @@ Route::middleware(['locale'])->group(function () {
 
             Route::get('/store-requests', [ProviderStoreRequestController::class, 'index']);
             Route::get('/store-requests/{storeRequest}', [ProviderStoreRequestController::class, 'show']);
+            Route::post('/store-requests/{storeRequest}/resubmit', [ProviderStoreRequestController::class, 'resubmit']);
             Route::post('/store-requests/direct', [ProviderStoreRequestController::class, 'storeDirect']);
 
             Route::get('/orders/general', [ProviderOrderController::class, 'general']);
@@ -150,6 +151,7 @@ Route::middleware(['locale'])->group(function () {
 
     Route::middleware(['auth:sanctum', 'user.active', 'customer'])->prefix('customer')->group(function () {
         Route::patch('/profile', [CustomerProfileController::class, 'update']);
+        Route::post('/seller-application/{storeRequest}/resubmit', [ProviderStoreRequestController::class, 'resubmit']);
 
         Route::get('/customer-cars', [CustomerCarController::class, 'index']);
         Route::post('/customer-cars', [CustomerCarController::class, 'store']);
@@ -182,6 +184,7 @@ Route::middleware(['locale'])->group(function () {
 
     Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'show']);
+        Route::get('/seller-application', [ProviderStoreRequestController::class, 'application']);
 
         Route::post('/push/device', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1');
         Route::delete('/push/device', [DeviceTokenController::class, 'destroy'])->middleware('throttle:30,1');
