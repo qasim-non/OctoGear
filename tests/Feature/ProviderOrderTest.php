@@ -63,7 +63,7 @@ class ProviderOrderTest extends TestCase
             ->assertJsonPath('data.0.id', $orderA->id);
     }
 
-    public function test_provider_defaults_general_orders_to_their_store_city(): void
+    public function test_provider_defaults_general_orders_to_all_cities(): void
     {
         $provider = User::factory()->provider()->create();
         $cityA = City::factory()->create();
@@ -86,8 +86,8 @@ class ProviderOrderTest extends TestCase
         $this->actingAs($provider, 'sanctum')
             ->getJson('/api/provider/orders/general')
             ->assertOk()
-            ->assertJsonPath('meta.total', 1)
-            ->assertJsonPath('data.0.id', $orderA->id);
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_provider_general_orders_validate_city_id(): void
@@ -615,6 +615,7 @@ class ProviderOrderTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $order->id)
+            ->assertJsonPath('data.0.sold_to.name', $customer->full_name)
             ->assertJsonPath('data.0.gross_amount', 1000)
             ->assertJsonPath('data.0.commission', 50)
             ->assertJsonPath('data.0.net_amount', 950);

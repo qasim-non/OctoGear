@@ -348,3 +348,19 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 ## Android customer push
 
 See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) for authenticated device registration, Firebase server credentials, queue deployment and live-delivery verification. Push is disabled by default; the inbox works independently.
+
+## Provider general-request discovery
+
+`GET /api/provider/orders/general` returns pending general requests from **all
+cities** when `city_id` is omitted or empty. A positive existing `city_id` filters
+by the customer's current city; there is no implicit provider/store-city fallback.
+`page` must be a positive integer. Pages contain up to 15 records ordered by
+creation time descending, then ID descending for stable ties.
+
+Provider general-list and general-detail responses include localized
+`city: {id, name}` (or null). The city relations are eager loaded. The resource
+does not expose customer contact information, and existing policies and own-offer
+restrictions continue to apply. Customer and specific-order contracts are unchanged.
+
+Regression checks: `php artisan test tests/Feature/ProviderOrderTest.php
+tests/Feature/ProviderGeneralDiscoveryTest.php` (run as one command).

@@ -10,6 +10,7 @@ use App\Http\Requests\Provider\ProviderGeneralOrdersRequest;
 use App\Http\Requests\Provider\UpdateProviderOrderOfferRequest;
 use App\Http\Resources\OrderOfferResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\ProviderGeneralOrderResource;
 use App\Http\Resources\ProviderPaidOrderResource;
 use App\Models\Order;
 use App\Models\OrderOffer;
@@ -30,7 +31,7 @@ class ProviderOrderController extends Controller
 
         $cityId = $request->filled('city_id')
             ? $request->integer('city_id')
-            : $user->stores()->value('city_id');
+            : null;
 
         $orders = Order::query()
             ->with($this->generalRelations($user))
@@ -41,9 +42,10 @@ class ProviderOrderController extends Controller
                 fn ($c) => $c->where('city_id', $cityId)
             ))
             ->latest()
+            ->orderByDesc('id')
             ->paginate(15);
 
-        return $this->paginated($orders->through(fn ($order) => new OrderResource($order)));
+        return $this->paginated($orders->through(fn ($order) => new ProviderGeneralOrderResource($order)));
     }
 
     public function specific()
@@ -115,13 +117,13 @@ class ProviderOrderController extends Controller
                 : $this->specificRelations()
         );
 
-        return $this->success(new OrderResource($order));
+        return $this->success($order->isGeneral() ? new ProviderGeneralOrderResource($order) : new OrderResource($order));
     }
 
     private function generalRelations($user): array
     {
         return [
-            'vehicleDetails', 'images', 'component',
+            'customer:id,city_id', 'customer.city:id,name_en,name_ar', 'vehicleDetails', 'images', 'component',
             'offers' => fn ($q) => $q
                 ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
                 ->with(['store', 'images']),
