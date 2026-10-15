@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CarCompany;
 use App\Models\City;
 use App\Models\Store;
 use App\Models\User;
@@ -22,6 +23,30 @@ class ProviderStoreTest extends TestCase
             ->getJson('/api/provider/stores')
             ->assertOk()
             ->assertJsonCount(2, 'data');
+    }
+
+    public function test_owned_store_list_includes_localized_brands_and_inactive_stores_only_for_the_owner(): void
+    {
+        $provider = User::factory()->provider()->create();
+        $city = City::factory()->create(['name_en' => 'Riyadh', 'name_ar' => 'الرياض']);
+        $store = Store::factory()->create([
+            'user_id' => $provider->id, 'city_id' => $city->id, 'status' => 'inactive',
+        ]);
+        $company = CarCompany::factory()->create(['name_en' => 'Toyota', 'name_ar' => 'تويوتا']);
+        $store->companies()->attach($company);
+        Store::factory()->create();
+
+        foreach (['en' => ['Riyadh', 'Toyota'], 'ar' => ['الرياض', 'تويوتا']] as $locale => [$cityName, $brand]) {
+            $this->actingAs($provider, 'sanctum')->withHeader('Accept-Language', $locale)
+                ->getJson('/api/provider/stores')->assertOk()->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.id', $store->id)
+                ->assertJsonPath('data.0.status', 'inactive')
+                ->assertJsonPath('data.0.mobile', $store->mobile)
+                ->assertJsonPath('data.0.url_location', $store->url_location)
+                ->assertJsonPath('data.0.can_manage', true)
+                ->assertJsonPath('data.0.city.name', $cityName)
+                ->assertJsonPath('data.0.companies.0.name', $brand);
+        }
     }
 
     public function test_provider_can_view_their_store(): void

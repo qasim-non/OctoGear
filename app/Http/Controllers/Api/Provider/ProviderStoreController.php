@@ -16,7 +16,7 @@ class ProviderStoreController extends Controller
     {
         $stores = auth()->user()
             ->stores()
-            ->with(['city', 'pictures'])
+            ->with(['city', 'pictures', 'companies'])
             ->get();
 
         return $this->success(StoreResource::collection($stores));
