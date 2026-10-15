@@ -142,11 +142,13 @@ Route::middleware(['locale'])->group(function () {
             Route::get('/orders/offers', [ProviderOrderController::class, 'offers']);
             Route::get('/orders/offers/{offer}', [ProviderOrderController::class, 'showOffer']);
             Route::get('/orders/paid', [ProviderOrderController::class, 'paidOrders']);
+            Route::get('/orders/paid/{order}', [ProviderOrderController::class, 'paidOrder']);
             Route::get('/orders/{order}', [ProviderOrderController::class, 'show']);
             Route::post('/orders/{order}/offer', [ProviderOrderController::class, 'storeOffer']);
             Route::put('/orders/{order}/offer/{offer}', [ProviderOrderController::class, 'updateOffer']);
             Route::delete('/orders/{order}/offer/{offer}', [ProviderOrderController::class, 'destroyOffer']);
             Route::post('/orders/{order}/reject', [ProviderOrderController::class, 'reject']);
+            Route::post('/orders/{order}/accept', [ProviderOrderController::class, 'accept']);
         });
     });
 

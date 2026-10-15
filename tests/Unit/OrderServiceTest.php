@@ -126,7 +126,7 @@ class OrderServiceTest extends TestCase
             'status' => OrderStatus::Paid,
         ]);
 
-        app(OrderService::class)->complete($order);
+        $order = app(OrderService::class)->complete($order);
 
         $this->assertSame(OrderStatus::Completed, $order->status);
         Event::assertDispatched(OrderCompleted::class);
@@ -154,7 +154,7 @@ class OrderServiceTest extends TestCase
             'status' => OrderStatus::Pending,
         ]);
 
-        app(OrderService::class)->reject($specific);
+        $specific = app(OrderService::class)->reject($specific);
 
         $this->assertSame(OrderStatus::Rejected, $specific->status);
     }

@@ -385,3 +385,42 @@ the existing 1,000-character rule. Its down method intentionally leaves the colu
 wide so rollback never truncates submitted notes. Apply this migration before app
 rollout. Regression suites: ProviderOfferWorkflowTest, ProviderOrderTest and
 ProviderOfferImagesTest.
+
+## Provider direct requests and paid fulfillment
+
+`GET /api/provider/orders/specific` supports optional `status` and positive `page`.
+Omitting status preserves the existing all-status listing. Supported statuses are
+pending, awaiting_payment, paid, completed, rejected and cancelled. The app starts
+with pending. Both lists use created_at/id descending and 15 records per page.
+
+`POST /api/provider/orders/{order}/accept` accepts a pending specific request at
+its saved `requested_unit_price`. Send `expected_unit_price` (integer halalas) and
+`expected_quantity` from the reviewed details. The service locks/reloads the order,
+checks both values, active store, available inventory and positive bounded total,
+then changes status to awaiting_payment. Retrying the same acceptance returns the
+current accepted/paid/completed state without a duplicate effect. Reject also locks
+and reloads the request, and repeating an already completed rejection is safe.
+Acceptance does not charge or reserve/decrement stock. Legacy requests lacking a
+valid price snapshot cannot be accepted. Existing customer cancellation policy is
+unchanged: only pending orders without payment history are cancellable.
+
+`GET /api/provider/orders/paid` defaults to paid; `status=completed` accesses
+completed purchases. `GET /api/provider/orders/paid/{order}` reads one owned paid
+or completed purchase. Existing authorization and soft-deleted inventory/store
+visibility are preserved. No other provider's purchases or customer contact data
+are exposed, and no provider receipt-confirmation endpoint is introduced.
+
+ProviderManagedOrderResource supplies localized part/vehicle/city, store, quantity,
+unit_price/total_amount, capability flags, private images and accepted_offer_id.
+Existing direct response fields are retained. Currency is SAR and price_scale is
+100. Paid totals use the recorded paid payment when available, falling back to the
+existing order amount for older records. Commission/net_amount use the current
+configured commission rate and are explicitly marked `commission_is_estimate`;
+they are not payout records. No migration or payment gateway changes are required.
+
+Regression coverage includes provider ownership and visibility, filters/pagination,
+saved-price acceptance, changed quantity/stock/store guards, idempotence, stale
+rejection, recorded payment amounts, and acceptance -> payment -> customer receipt.
+Run ProviderManagedOrdersTest alongside existing provider and customer lifecycle
+tests. Customer lifecycle regression expectations follow the existing rule in
+commit 341b780 that disallows cancellation after acceptance.

@@ -247,16 +247,46 @@ class OrderService
      */
     public function reject(Order $order): Order
     {
-        if ($order->order_type !== OrderType::Specific) {
-            throw new BusinessRuleException('Cannot reject a general order.', 'auth.validation.order.cannot_reject_general');
-        }
+        return DB::transaction(function () use ($order) {
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if (! $locked->isSpecific()) {
+                throw new BusinessRuleException('Cannot reject a general order.', 'auth.validation.order.cannot_reject_general');
+            }
+            if ($locked->status === OrderStatus::Rejected) {
+                return $locked;
+            }
+            if (! $locked->status->canTransitionTo(OrderStatus::Rejected)) {
+                throw new BusinessRuleException('Cannot reject a non-pending order.', 'auth.validation.order.cannot_reject_not_pending');
+            }
+            $locked->update(['status' => OrderStatus::Rejected]);
 
-        if (! $order->status->canTransitionTo(OrderStatus::Rejected)) {
-            throw new BusinessRuleException('Cannot reject a non-pending order.', 'auth.validation.order.cannot_reject_not_pending');
-        }
+            return $locked;
+        });
+    }
 
-        $order->update(['status' => OrderStatus::Rejected]);
+    /** Accept the customer's saved unit price; never substitute today's catalogue price. */
+    public function acceptSpecific(Order $order, int $expectedUnitPrice, int $expectedQuantity): Order
+    {
+        return DB::transaction(function () use ($order, $expectedUnitPrice, $expectedQuantity) {
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if (! $locked->isSpecific()
+                || $locked->requested_unit_price !== $expectedUnitPrice
+                || $locked->quantity !== $expectedQuantity) {
+                throw new BusinessRuleException('Order changed. Refresh and review it again.', 'auth.general.validation_failed');
+            }
+            // Safe retry after a lost response: preserve the resulting state.
+            if (in_array($locked->status, [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Completed])
+                && $locked->offered_price === $expectedUnitPrice) {
+                return $locked;
+            }
+            $part = StoreCarComponent::query()->with('storeCar.store')->lockForUpdate()->find($locked->store_car_component_id);
+            $locked->setRelation('storeCarComponent', $part);
+            if (! ProviderOrderReadService::canAccept($locked)) {
+                throw new BusinessRuleException('This request cannot be accepted now.', 'auth.general.validation_failed');
+            }
+            $locked->update(['status' => OrderStatus::AwaitingPayment, 'offered_price' => $expectedUnitPrice]);
 
-        return $order;
+            return $locked;
+        });
     }
 }

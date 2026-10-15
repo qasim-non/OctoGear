@@ -37,7 +37,7 @@ class CustomerOrderLifecycleTest extends TestCase
         foreach (OrderStatus::cases() as $status) {
             $order = $this->order($status);
             $this->getJson('/api/customer/orders/'.$order->id)->assertOk()
-                ->assertJsonPath('data.can_cancel', in_array($status, [OrderStatus::Pending, OrderStatus::AwaitingPayment], true))
+                ->assertJsonPath('data.can_cancel', $status === OrderStatus::Pending)
                 ->assertJsonPath('data.can_confirm_received', $status === OrderStatus::Paid)
                 ->assertJsonPath('data.payment_summary', null);
         }
@@ -64,7 +64,7 @@ class CustomerOrderLifecycleTest extends TestCase
 
     public function test_cancel_is_repeatable_but_cannot_complete_a_cancelled_order(): void
     {
-        $order = $this->order(OrderStatus::AwaitingPayment);
+        $order = $this->order(OrderStatus::Pending);
         foreach ([1, 2] as $_) {
             $this->postJson('/api/customer/orders/'.$order->id.'/cancel')->assertOk()->assertJsonPath('data.status', 'cancelled');
         }
@@ -97,7 +97,9 @@ class CustomerOrderLifecycleTest extends TestCase
 
     public function test_payment_reloads_order_before_inserting_attempt_after_cancellation(): void
     {
-        $stale = $this->order(OrderStatus::AwaitingPayment);
+        $stale = $this->order(OrderStatus::Pending);
+        // Simulate a stale caller that still considers the order payable.
+        $stale->status = OrderStatus::AwaitingPayment;
         app(OrderService::class)->cancel($stale);
         try {
             app(PaymentService::class)->charge($stale, 'credit_card', 'test-only');
@@ -105,6 +107,15 @@ class CustomerOrderLifecycleTest extends TestCase
         } catch (RuntimeException $error) {
             $this->assertSame('This order cannot be paid right now.', $error->getMessage());
         }
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_accepted_unpaid_order_cannot_be_cancelled_under_current_policy(): void
+    {
+        $order = $this->order(OrderStatus::AwaitingPayment);
+        $this->getJson('/api/customer/orders/'.$order->id)->assertOk()->assertJsonPath('data.can_cancel', false);
+        $this->postJson('/api/customer/orders/'.$order->id.'/cancel')->assertStatus(400);
+        $this->assertSame(OrderStatus::AwaitingPayment, $order->fresh()->status);
         $this->assertDatabaseCount('payments', 0);
     }
 }
