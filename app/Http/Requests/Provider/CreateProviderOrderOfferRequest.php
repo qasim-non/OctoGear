@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Provider;
 
+use App\Enums\StoreStatus;
 use App\Http\Requests\BaseRequest;
 use App\Support\ImageRules;
 use Illuminate\Validation\Rule;
@@ -10,7 +11,7 @@ class CreateProviderOrderOfferRequest extends BaseRequest
 {
     public function rules(): array
     {
-        $providerStoreIds = auth()->user()->stores()->pluck('id');
+        $providerStoreIds = auth()->user()->stores()->where('status', StoreStatus::Active)->pluck('id');
 
         return [
             'store_id' => [
@@ -18,7 +19,7 @@ class CreateProviderOrderOfferRequest extends BaseRequest
                 'integer',
                 Rule::in($providerStoreIds),
             ],
-            'price' => ['required', 'integer', 'min:1'],
+            'price' => ['required', 'integer', 'min:1', 'max:2147483647'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'images' => ['sometimes', 'array', 'list', 'max:'.config('images.max_files')],
             'images.*' => ImageRules::file(),

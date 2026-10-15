@@ -140,6 +140,7 @@ Route::middleware(['locale'])->group(function () {
             Route::get('/orders/general', [ProviderOrderController::class, 'general']);
             Route::get('/orders/specific', [ProviderOrderController::class, 'specific']);
             Route::get('/orders/offers', [ProviderOrderController::class, 'offers']);
+            Route::get('/orders/offers/{offer}', [ProviderOrderController::class, 'showOffer']);
             Route::get('/orders/paid', [ProviderOrderController::class, 'paidOrders']);
             Route::get('/orders/{order}', [ProviderOrderController::class, 'show']);
             Route::post('/orders/{order}/offer', [ProviderOrderController::class, 'storeOffer']);

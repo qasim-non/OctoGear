@@ -4,13 +4,15 @@ namespace App\Http\Requests\Provider;
 
 use App\Http\Requests\BaseRequest;
 use App\Support\ImageRules;
+use Illuminate\Validation\Rule;
 
 class UpdateProviderOrderOfferRequest extends BaseRequest
 {
     public function rules(): array
     {
         return [
-            'price' => ['sometimes', 'integer', 'min:1'],
+            'clear_images' => ['sometimes', 'boolean', Rule::prohibitedIf(fn () => $this->has('images'))],
+            'price' => ['sometimes', 'integer', 'min:1', 'max:2147483647'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'images' => ['sometimes', 'array', 'list', 'max:'.config('images.max_files')],
             'images.*' => ImageRules::file(),

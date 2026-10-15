@@ -364,3 +364,24 @@ restrictions continue to apply. Customer and specific-order contracts are unchan
 
 Regression checks: `php artisan test tests/Feature/ProviderOrderTest.php
 tests/Feature/ProviderGeneralDiscoveryTest.php` (run as one command).
+## Provider offer management
+
+Provider offer list/create/update responses now use ProviderOrderOfferResource,
+adding order_id, order_status, localized part_name, can_edit and can_withdraw.
+GET /api/provider/orders/offers accepts positive page and optional order_id.
+GET /api/provider/orders/offers/{offer} returns only the owning provider's offer,
+including historical offers, without embedding customer data or winning offers.
+Existing customer offer resources and routes are unchanged.
+
+Create requires an active owned store and integer price in halalas (1 through
+2147483647). Update supports clear_images=true, mutually exclusive with images.
+Omitting images preserves them; supplying images replaces them. Multipart clients
+use POST with _method=PUT on the existing update endpoint. Pending-state policies
+and service transaction locks remain authoritative. Resubmission after withdrawal
+restores the unique order/store offer with new data and images.
+
+Migration 2026_10_15_120000_expand_order_offer_notes widens notes to TEXT to match
+the existing 1,000-character rule. Its down method intentionally leaves the column
+wide so rollback never truncates submitted notes. Apply this migration before app
+rollout. Regression suites: ProviderOfferWorkflowTest, ProviderOrderTest and
+ProviderOfferImagesTest.

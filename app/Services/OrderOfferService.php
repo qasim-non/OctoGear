@@ -45,11 +45,22 @@ class OrderOfferService
                 if (! $lockedOrder->isGeneral() || $lockedOrder->status !== OrderStatus::Pending) {
                     throw new BusinessRuleException('This order is no longer accepting offers.', 'auth.validation.order.cannot_accept_offer');
                 }
-                if ($lockedOrder->offers()->where('store_id', $storeId)->exists()) {
+                $previous = $lockedOrder->offers()->withTrashed()->where('store_id', $storeId)->first();
+                if ($previous && ! $previous->trashed()) {
                     throw new BusinessRuleException('You have already submitted an offer on this order.', 'auth.validation.order.already_offered');
                 }
 
-                $offer = $lockedOrder->offers()->create([...$data, 'store_id' => $storeId]);
+                if ($previous) {
+                    // Reuse the unique order/store identity after withdrawal.
+                    $oldFiles = $previous->images()->get()->map->fileMetadata()->all();
+                    $previous->images()->delete();
+                    $this->images->deleteAfterCommit($oldFiles);
+                    $previous->fill([...$data, 'notes' => $data['notes'] ?? null, 'status' => OfferStatus::Pending, 'rejection_reason' => null]);
+                    $previous->restore();
+                    $offer = $previous;
+                } else {
+                    $offer = $lockedOrder->offers()->create([...$data, 'store_id' => $storeId, 'status' => OfferStatus::Pending]);
+                }
                 $this->storeImages($offer, $imageFiles, $storedFiles);
 
                 return $offer;

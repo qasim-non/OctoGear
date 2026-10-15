@@ -7,10 +7,11 @@ use App\Enums\OrderType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Provider\CreateProviderOrderOfferRequest;
 use App\Http\Requests\Provider\ProviderGeneralOrdersRequest;
+use App\Http\Requests\Provider\ProviderOffersRequest;
 use App\Http\Requests\Provider\UpdateProviderOrderOfferRequest;
-use App\Http\Resources\OrderOfferResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\ProviderGeneralOrderResource;
+use App\Http\Resources\ProviderOrderOfferResource;
 use App\Http\Resources\ProviderPaidOrderResource;
 use App\Models\Order;
 use App\Models\OrderOffer;
@@ -62,17 +63,27 @@ class ProviderOrderController extends Controller
         return $this->paginated($orders->through(fn ($order) => new OrderResource($order)));
     }
 
-    public function offers()
+    public function offers(ProviderOffersRequest $request)
     {
         $user = auth()->user();
 
         $offers = OrderOffer::query()
-            ->with(['order.vehicleDetails', 'order.component', 'store', 'images'])
+            ->with(['order.component', 'store', 'images'])
+            ->when($request->filled('order_id'), fn ($q) => $q->where('order_id', $request->integer('order_id')))
             ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
-            ->latest()
+            ->latest()->orderByDesc('id')
             ->paginate(15);
 
-        return $this->paginated($offers->through(fn ($offer) => new OrderOfferResource($offer)));
+        return $this->paginated($offers->through(fn ($offer) => new ProviderOrderOfferResource($offer)));
+    }
+
+    public function showOffer(OrderOffer $offer)
+    {
+        // Own historical offers stay readable even after another provider wins.
+        // Do not serialize the order or its winning offer here.
+        abort_unless($offer->store?->user_id === auth()->id(), 404);
+
+        return $this->success(new ProviderOrderOfferResource($offer->load(['store', 'images', 'order.component'])));
     }
 
     public function paidOrders(PaymentService $payments)
@@ -148,9 +159,9 @@ class ProviderOrderController extends Controller
 
         $offer = $this->offers->create($order, $request->validated());
 
-        $offer->load(['store', 'images']);
+        $offer->load(['store', 'images', 'order.component']);
 
-        return $this->created(new OrderOfferResource($offer));
+        return $this->created(new ProviderOrderOfferResource($offer));
     }
 
     public function updateOffer(UpdateProviderOrderOfferRequest $request, Order $order, OrderOffer $offer)
@@ -163,11 +174,16 @@ class ProviderOrderController extends Controller
             return $this->notFound(__('auth.general.not_found'));
         }
 
-        $offer = $this->offers->update($offer, $request->validated());
+        $data = $request->validated();
+        if ($request->boolean('clear_images')) {
+            $data['images'] = [];
+        }
+        unset($data['clear_images']);
+        $offer = $this->offers->update($offer, $data);
 
-        $offer->load(['store', 'images']);
+        $offer->load(['store', 'images', 'order.component']);
 
-        return $this->success(new OrderOfferResource($offer));
+        return $this->success(new ProviderOrderOfferResource($offer));
     }
 
     public function destroyOffer(Order $order, OrderOffer $offer)
