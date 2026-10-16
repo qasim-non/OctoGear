@@ -22,7 +22,7 @@ class StoreCustomerCarRequest extends BaseRequest
 
     public function rules(): array
     {
-        $year = date('Y');
+        $year = now(config('app.business_timezone'))->year;
 
         return [
             'car_name_id' => ['required', 'integer', Rule::exists('cars_names', 'id')->whereNull('deleted_at')],

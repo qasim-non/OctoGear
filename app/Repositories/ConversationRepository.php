@@ -3,17 +3,43 @@
 namespace App\Repositories;
 
 use App\Models\Conversation;
+use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ConversationRepository
 {
-    private const DISPLAY_RELATIONS = ['customer', 'provider', 'offer.store'];
+    private const DISPLAY_RELATIONS = ['customer', 'provider', 'offer.store', 'order.storeCarComponent.storeCar.store'];
 
     public function findForOffer(OrderOffer $offer): ?Conversation
     {
         return Conversation::query()->where('offer_id', $offer->id)->first();
+    }
+
+    public function findForOrder(Order $order): ?Conversation
+    {
+        return $order->isGeneral()
+            ? $this->findForOffer($order->acceptedOffer)
+            : Conversation::query()->where('order_id', $order->id)->first();
+    }
+
+    public function loadOrderContext(Order $order, bool $lock = false): Order
+    {
+        return Order::query()
+            ->with(['customer', 'acceptedOffer.store', 'storeCarComponent.storeCar.store'])
+            ->when($lock, fn ($query) => $query->lockForUpdate())
+            ->findOrFail($order->id);
+    }
+
+    public function firstOrCreateForOrder(Order $order, int $providerId): Conversation
+    {
+        return $order->isGeneral()
+            ? $this->firstOrCreateForOffer($order->acceptedOffer, $order->customer_id, $providerId)
+            : Conversation::query()->firstOrCreate(['order_id' => $order->id], [
+                'customer_id' => $order->customer_id,
+                'provider_id' => $providerId,
+            ]);
     }
 
     public function loadOfferContext(OrderOffer $offer): OrderOffer
@@ -61,7 +87,7 @@ class ConversationRepository
 
     public function firstOrCreateDirect(int $customerId, int $providerId): Conversation
     {
-        return Conversation::query()->whereNull('offer_id')->firstOrCreate([
+        return Conversation::query()->whereNull('offer_id')->whereNull('order_id')->firstOrCreate([
             'customer_id' => $customerId,
             'provider_id' => $providerId,
         ]);
@@ -71,6 +97,14 @@ class ConversationRepository
     public function lockOffer(int $offerId): OrderOffer
     {
         return OrderOffer::query()->with(['order', 'store'])->lockForUpdate()->findOrFail($offerId);
+    }
+
+    /** Call inside the service's transaction. */
+    public function lockAcceptedOffer(Order $order): OrderOffer
+    {
+        // Accepted offers remain part of owned fulfillment history after soft deletion.
+        return OrderOffer::withTrashed()->with('store')->where('order_id', $order->id)
+            ->lockForUpdate()->findOrFail($order->accepted_offer_id);
     }
 
     /** Call inside the service's transaction. */

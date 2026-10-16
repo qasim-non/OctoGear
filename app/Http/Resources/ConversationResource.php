@@ -20,8 +20,8 @@ class ConversationResource extends JsonResource
         return [
             'id' => $conversation->id,
             'offer_id' => $conversation->offer_id,
-            'order_id' => $conversation->offer?->order_id,
-            'store' => $conversation->offer?->store ? new ChatStoreResource($conversation->offer->store) : null,
+            'order_id' => $conversation->order_id ?? $conversation->offer?->order_id,
+            'store' => $conversation->contextStore() ? new ChatStoreResource($conversation->contextStore()) : null,
             'can_send' => $this->resource->canSend,
             'other_user' => [
                 'id' => $otherUser?->id,

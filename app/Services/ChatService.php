@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Data\Chat\ConversationData;
 use App\Data\Chat\MessageTimeline;
 use App\Data\Chat\OfferConversationData;
+use App\Data\Chat\ProviderOrderConversationData;
 use App\Events\MessageSent;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\User;
 use App\Repositories\ConversationRepository;
@@ -42,6 +44,58 @@ class ChatService
             $details,
             $details?->canSend ?? $this->eligibility->canStart($offer),
         );
+    }
+
+    public function providerOrderConversation(Order $order, User $provider): ProviderOrderConversationData
+    {
+        $order = $this->conversations->loadOrderContext($order);
+        $this->authorizeProviderOrder($order, $provider);
+        $conversation = $this->conversations->findForOrder($order);
+        if (! $conversation && ! $this->eligibility->canStartProviderOrder($order, $provider)) {
+            throw new BusinessRuleException(messageKey: 'chat.unavailable', statusCode: 403);
+        }
+        if ($conversation) {
+            Gate::forUser($provider)->authorize('view', $conversation);
+        }
+
+        return new ProviderOrderConversationData(
+            $order,
+            $conversation ? $this->details($conversation, $provider) : null,
+        );
+    }
+
+    public function startProviderOrder(Order $order, User $provider, array $data): Message
+    {
+        return DB::transaction(function () use ($order, $provider, $data) {
+            // Lock the order before checking its current accepted offer / fulfillment state.
+            $locked = $this->conversations->loadOrderContext($order, lock: true);
+            $this->authorizeProviderOrder($locked, $provider);
+            if ($locked->isGeneral()) {
+                // Customer first-send uses the same offer lock, so both entry points
+                // serialize without creating separate conversations.
+                $locked->setRelation('acceptedOffer', $this->conversations->lockAcceptedOffer($locked));
+                $this->authorizeProviderOrder($locked, $provider);
+            }
+            if (! $this->eligibility->canStartProviderOrder($locked, $provider)) {
+                $conversation = $this->conversations->findForOrder($locked);
+                if (! $conversation) {
+                    throw new BusinessRuleException(messageKey: 'chat.unavailable', statusCode: 403);
+                }
+
+                return $this->send($conversation, $provider, $data, replayOnly: true);
+            }
+            $conversation = $this->conversations->firstOrCreateForOrder($locked, $provider->id);
+
+            return $this->send($conversation, $provider, $data);
+        }, 3);
+    }
+
+    private function authorizeProviderOrder(Order $order, User $provider): void
+    {
+        if (! $this->eligibility->canStartProviderOrder($order, $provider)
+            && ! $this->eligibility->canReconcileProviderOrder($order, $provider)) {
+            throw new BusinessRuleException(messageKey: 'chat.unavailable', statusCode: 403);
+        }
     }
 
     public function inbox(User $viewer, bool $withMessages, int $page): LengthAwarePaginator
@@ -110,9 +164,9 @@ class ChatService
         }, 3);
     }
 
-    public function send(Conversation $conversation, User $sender, array $data): Message
+    public function send(Conversation $conversation, User $sender, array $data, bool $replayOnly = false): Message
     {
-        return DB::transaction(function () use ($conversation, $sender, $data) {
+        return DB::transaction(function () use ($conversation, $sender, $data, $replayOnly) {
             // Sender lock also serializes a retry key used on different chats.
             $this->messages->lockSender($sender);
             $chat = $this->conversations->lockConversation($conversation->id);
@@ -129,7 +183,7 @@ class ChatService
                     return $existing->setRelation('conversation', $chat);
                 }
             }
-            if (! $this->eligibility->canSend($chat)) {
+            if ($replayOnly || ! $this->eligibility->canSend($chat)) {
                 throw new BusinessRuleException(messageKey: 'chat.unavailable', statusCode: 403);
             }
             $message = $this->messages->create($chat, $sender, $data['content'], $key);

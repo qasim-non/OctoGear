@@ -45,7 +45,7 @@ class BroadcastChatUpdate implements ShouldQueue
             'kind' => $this->messageId === null ? 'read' : 'message',
             'conversation_id' => $conversation->id,
             'offer_id' => $conversation->offer_id,
-            'order_id' => $conversation->offer?->order_id,
+            'order_id' => $conversation->order_id ?? $conversation->offer?->order_id,
         ];
         if ($this->messageId !== null) {
             $message = $conversation->messages()->find($this->messageId);

@@ -7,6 +7,53 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Provider dashboard and order chats (2026-10-16)
+
+- `GET /api/provider/dashboard?store_id=...&period=today|week|month` returns owned
+  stores, current operational counts, attention previews, recent orders and recorded
+  sales. Omit store_id for all owned stores; month is the default period.
+- `GET /api/provider/dashboard/orders?section=pending_direct|awaiting_payment|paid|recent&store_id=...&page=1`
+  paginates the same ownership scope. Paid attention excludes completed orders.
+- Sales use actual paid payment amounts on paid/completed orders and Payment.updated_at
+  (no paid_at exists), using the shared business timezone from calendar start to
+  request time. Weeks begin on Saturday at 00:00 in that timezone.
+  Missing payment records never produce estimated sales. Values are SAR minor units.
+- Summary and paginated reads use short transactions for consistent counts/rows;
+  production MySQL/MariaDB must retain REPEATABLE READ isolation for this guarantee.
+- `GET /api/provider/orders/{order}/conversation` resolves an eligible owned-order
+  chat without writing. POST its `/messages` child with content/client_message_id
+  creates/reuses the chat and sends one message. General orders reuse offer chats;
+  direct orders use unique conversations.order_id. No arbitrary customer ID is accepted.
+- Run migration `2026_10_16_000001_add_direct_order_context_to_conversations` before
+  using direct-order chats. It adds a nullable FK/index and preserves existing rows.
+  Completed-order reconciliation can only read an existing participant conversation
+  or replay an identical first-message receipt; it cannot create a new message/chat.
+
+## Shared business timezone
+
+Set `BUSINESS_TIMEZONE=Asia/Riyadh` in `.env` (also included in `.env.example`).
+Dashboard periods and customer/provider vehicle-year validation use this setting.
+All business calendar calculations must read `config('app.business_timezone')`;
+use `env()` only in configuration files so `config:cache` works correctly.
+The API returns that timezone in `sales.timezone`; the app displays it instead of
+assuming Saudi time. Day/month boundaries and Saturday-start weeks use that zone,
+then convert to UTC for database comparisons and ISO timestamps.
+
+Laravel's persistence/framework timezone remains UTC to preserve existing stored
+timestamps. Changing the business timezone does not reinterpret order/payment
+history. After changing the environment value, rebuild any production config cache
+with `php artisan config:cache` and restart long-running workers.
+
+Timezone follow-up verification (2026-10-16): 9 dashboard API tests passed
+(151 assertions), including Saturday rollover, alternate zones, DST, and UTC
+storage. The vehicle/order validation regression run passed 47 tests, including
+all six year validators around New Year. Two existing GeneralOrderDetailsTest
+failures remain: the paid response contains a field expected absent, and the
+demo seeder creates 50 general orders where the test expects 30. Both reproduce
+in an isolated process with the original date('Y') validation behavior.
+All 24 Flutter dashboard tests passed and targeted static analysis was clean.
+The updated app was rebuilt and launched on the connected Android emulator.
+
 ## General request details (API step 2)
 
 `POST /api/customer/orders` requires a UUID `Idempotency-Key` header for general

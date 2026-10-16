@@ -24,7 +24,7 @@ class UpdateOrderRequest extends BaseRequest
             'vehicle.car_name_id' => ['required_with:vehicle', 'integer', 'min:1'],
             'vehicle.color_id' => ['required_with:vehicle', 'integer', 'min:1'],
             'vehicle.fuel_type' => ['required_with:vehicle', 'integer', 'min:1'],
-            'vehicle.manufacturing_year' => ['required_with:vehicle', 'integer', 'min:1970', 'max:'.date('Y')],
+            'vehicle.manufacturing_year' => ['required_with:vehicle', 'integer', 'min:1970', 'max:'.now(config('app.business_timezone'))->year],
             'vehicle.transmission_type' => ['required_with:vehicle', Rule::enum(TransmissionType::class)],
             'order_type' => ['prohibited'],
             'store_car_component_id' => ['prohibited'],

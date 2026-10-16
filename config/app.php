@@ -65,7 +65,11 @@ return [
     |
     */
 
+    // Keep persistence and framework timestamps in UTC. Business calendar
+    // boundaries use the shared environment-configured timezone below.
     'timezone' => 'UTC',
+
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'Asia/Riyadh'),
 
     /*
     |--------------------------------------------------------------------------

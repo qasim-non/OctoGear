@@ -43,7 +43,7 @@ class StoreOrderRequest extends BaseRequest
             $rules['vehicle.car_name_id'] = ['required_with:vehicle', 'integer', 'min:1'];
             $rules['vehicle.color_id'] = ['required_with:vehicle', 'integer', 'min:1'];
             $rules['vehicle.fuel_type'] = ['required_with:vehicle', 'integer', 'min:1'];
-            $rules['vehicle.manufacturing_year'] = ['required_with:vehicle', 'integer', 'min:1970', 'max:'.date('Y')];
+            $rules['vehicle.manufacturing_year'] = ['required_with:vehicle', 'integer', 'min:1970', 'max:'.now(config('app.business_timezone'))->year];
             $rules['vehicle.transmission_type'] = ['required_with:vehicle', 'string', Rule::enum(TransmissionType::class)];
             $rules['save_to_my_cars'] = ['sometimes', 'boolean', Rule::prohibitedIf($this->filled('customer_car_id'))];
             $rules['component_id'] = ['required_without:component_name', 'prohibits:component_name', 'integer', 'min:1'];

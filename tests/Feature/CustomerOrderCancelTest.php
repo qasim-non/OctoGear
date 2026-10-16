@@ -68,7 +68,7 @@ class CustomerOrderCancelTest extends TestCase
         ]);
     }
 
-    public function test_cancelling_an_order_awaiting_payment_deletes_all_its_offers(): void
+    public function test_accepted_order_awaiting_payment_cannot_be_cancelled_and_keeps_its_offer(): void
     {
         $customer = $this->authCustomer();
         $store = $this->makeStore();
@@ -88,12 +88,22 @@ class CustomerOrderCancelTest extends TestCase
         ]);
         $order->update(['accepted_offer_id' => $offer->id]);
 
+        // OrderStatus has forbidden this transition since the accepted-order
+        // policy change. A rejected cancellation must retain the selected offer.
         $this->actingAs($customer, 'sanctum')
             ->postJson("/api/customer/orders/{$order->id}/cancel")
-            ->assertOk();
+            ->assertStatus(400)
+            ->assertJsonPath('success', false);
 
-        $this->assertDatabaseMissing('order_offers', [
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::AwaitingPayment->value,
+            'accepted_offer_id' => $offer->id,
+        ]);
+        $this->assertDatabaseHas('order_offers', [
+            'id' => $offer->id,
             'order_id' => $order->id,
+            'status' => OfferStatus::Accepted->value,
             'deleted_at' => null,
         ]);
     }

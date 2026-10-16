@@ -10,7 +10,7 @@ class UpdateCustomerCarRequest extends BaseRequest
 {
     public function rules(): array
     {
-        $year = date('Y');
+        $year = now(config('app.business_timezone'))->year;
 
         return [
             'car_name_id' => ['sometimes', 'integer', Rule::exists('cars_names', 'id')->whereNull('deleted_at')],

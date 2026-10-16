@@ -16,6 +16,7 @@ class Conversation extends Model
         'customer_id',
         'provider_id',
         'offer_id',
+        'order_id',
     ];
 
     protected $hidden = [
@@ -39,6 +40,18 @@ class Conversation extends Model
     public function offer(): BelongsTo
     {
         return $this->belongsTo(OrderOffer::class)->withTrashed();
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function contextStore(): ?Store
+    {
+        return $this->offer_id !== null
+            ? $this->offer?->store
+            : $this->order?->fulfillmentStore();
     }
 
     public function provider(): BelongsTo

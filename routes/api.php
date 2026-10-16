@@ -12,7 +12,9 @@ use App\Http\Controllers\Api\Customer\CustomerOrderController;
 use App\Http\Controllers\Api\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\OrderOfferController;
+use App\Http\Controllers\Api\Provider\ProviderDashboardController;
 use App\Http\Controllers\Api\Provider\ProviderOrderController;
+use App\Http\Controllers\Api\Provider\ProviderOrderConversationController;
 use App\Http\Controllers\Api\Provider\ProviderProfileController;
 use App\Http\Controllers\Api\Provider\ProviderStoreCarComponentController;
 use App\Http\Controllers\Api\Provider\ProviderStoreCarController;
@@ -118,6 +120,11 @@ Route::middleware(['locale'])->group(function () {
         });
 
         Route::middleware('provider')->group(function () {
+            Route::get('/dashboard', [ProviderDashboardController::class, 'show']);
+            Route::get('/dashboard/orders', [ProviderDashboardController::class, 'orders']);
+            Route::get('/orders/{order}/conversation', [ProviderOrderConversationController::class, 'show']);
+            Route::post('/orders/{order}/conversation/messages', [ProviderOrderConversationController::class, 'store']);
+
             Route::put('/profile', [ProviderProfileController::class, 'update']);
 
             Route::get('/stores', [ProviderStoreController::class, 'index']);
