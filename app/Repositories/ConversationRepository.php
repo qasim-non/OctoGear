@@ -50,7 +50,7 @@ class ConversationRepository
     public function loadRealtimeSummary(Conversation $conversation): Conversation
     {
         return $conversation->load(self::DISPLAY_RELATIONS)
-            ->load(['latestMessage' => fn ($query) => $query->limit(1)])
+            ->load($this->latestMessageRelation())
             ->loadCount([
                 'unreadMessages as customer_unread' => fn ($query) => $query->where('sender_id', '!=', $conversation->customer_id),
                 'unreadMessages as provider_unread' => fn ($query) => $query->where('sender_id', '!=', $conversation->provider_id),
@@ -62,7 +62,7 @@ class ConversationRepository
         $conversation->load(self::DISPLAY_RELATIONS);
 
         if ($withActivity) {
-            $conversation->load(['latestMessage' => fn ($query) => $query->limit(1)]);
+            $conversation->load($this->latestMessageRelation());
             $conversation->loadCount([
                 'unreadMessages' => fn ($query) => $query->where('sender_id', '!=', $viewer->id),
             ]);
@@ -124,5 +124,10 @@ class ConversationRepository
     public function touch(Conversation $conversation): void
     {
         $conversation->touch();
+    }
+
+    private function latestMessageRelation(): array
+    {
+        return ['latestMessage' => fn ($query) => $query->limit(1)];
     }
 }

@@ -20,8 +20,7 @@ class ProviderStoreCarController extends Controller
 
         $car = $this->cars->create($store, $request->validated());
 
-        $car->load(['carName', 'color', 'fuelType', 'pictures', 'storeCarSections.section']);
-        $car->loadCount('components');
+        $this->loadCarDetails($car);
 
         return $this->created(new StoreCarResource($car));
     }
@@ -36,8 +35,7 @@ class ProviderStoreCarController extends Controller
 
         $storeCar = $this->cars->update($storeCar, $request->validated());
 
-        $storeCar->load(['carName', 'color', 'fuelType', 'pictures', 'storeCarSections.section']);
-        $storeCar->loadCount('components');
+        $this->loadCarDetails($storeCar);
 
         return $this->success(new StoreCarResource($storeCar));
     }
@@ -53,5 +51,11 @@ class ProviderStoreCarController extends Controller
         $storeCar->delete();
 
         return $this->success(__('auth.general.ok'));
+    }
+
+    private function loadCarDetails(StoresCar $car): void
+    {
+        $car->load(['carName', 'color', 'fuelType', 'pictures', 'storeCarSections.section']);
+        $car->loadCount('components');
     }
 }

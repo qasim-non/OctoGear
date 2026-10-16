@@ -19,7 +19,7 @@ class OrderOfferController extends Controller
         $this->authorize('viewAny', [OrderOffer::class, $order]);
 
         $offers = $order->offers()
-            ->with(['store', 'images'])
+            ->with($this->offerRelations())
             ->latest()
             ->paginate(15);
 
@@ -35,7 +35,7 @@ class OrderOfferController extends Controller
             return $this->notFound(__('auth.general.not_found'));
         }
 
-        return $this->success(new OrderOfferResource($offer->loadMissing(['store', 'images'])));
+        return $this->success(new OrderOfferResource($offer->loadMissing($this->offerRelations())));
     }
 
     public function reject(RejectOfferRequest $request, Order $order, OrderOffer $offer)
@@ -48,6 +48,11 @@ class OrderOfferController extends Controller
 
         $offer = $this->offers->reject($offer, $request->validated('rejection_reason'));
 
-        return $this->success(new OrderOfferResource($offer->loadMissing(['store', 'images'])));
+        return $this->success(new OrderOfferResource($offer->loadMissing($this->offerRelations())));
+    }
+
+    private function offerRelations(): array
+    {
+        return ['store', 'images'];
     }
 }

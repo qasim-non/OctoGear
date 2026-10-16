@@ -16,6 +16,7 @@ use App\Models\Payment;
 use App\Services\CustomerOrderManagement;
 use App\Services\OrderService;
 use App\Services\PaymentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
 
@@ -32,10 +33,7 @@ class CustomerOrderController extends Controller
             ->with($this->historyRelations())
             ->with(['offers.store', 'offers.images'])
             ->withCount('offers')
-            ->withExists([
-                'offers as has_offer_history' => fn ($query) => $query->withTrashed(),
-                'payment as has_payment_history' => fn ($query) => $query->withTrashed(),
-            ])
+            ->withExists($this->historyExistenceRelations())
             ->when($request->validated('order_type'), fn ($query, $type) => $query->where('order_type', $type))
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->latest()
@@ -60,10 +58,7 @@ class CustomerOrderController extends Controller
 
         $order->load([...$this->historyRelations(), 'offers' => fn ($query) => $query->with(['store', 'images'])->latest()->orderByDesc('id')]);
         $order->loadCount('offers');
-        $order->loadExists([
-            'offers as has_offer_history' => fn ($query) => $query->withTrashed(),
-            'payment as has_payment_history' => fn ($query) => $query->withTrashed(),
-        ]);
+        $order->loadExists($this->historyExistenceRelations());
 
         return $this->success(new CustomerOrderResource($order));
     }
@@ -99,9 +94,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->acceptOffer($order, $offer);
 
-        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images', 'acceptedOffer.store']);
-
-        return $this->success(new OrderResource($order));
+        return $this->updatedOrderResponse($order);
     }
 
     public function cancel(Order $order)
@@ -110,9 +103,7 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->cancel($order);
 
-        $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images', 'acceptedOffer.store']);
-
-        return $this->success(new OrderResource($order));
+        return $this->updatedOrderResponse($order);
     }
 
     public function pay(PayOrderRequest $request, Order $order, PaymentService $payments)
@@ -152,6 +143,19 @@ class CustomerOrderController extends Controller
 
         $order = $this->orders->complete($order);
 
+        return $this->updatedOrderResponse($order);
+    }
+
+    private function historyExistenceRelations(): array
+    {
+        return [
+            'offers as has_offer_history' => fn ($query) => $query->withTrashed(),
+            'payment as has_payment_history' => fn ($query) => $query->withTrashed(),
+        ];
+    }
+
+    private function updatedOrderResponse(Order $order): JsonResponse
+    {
         $order->load(['vehicleDetails', 'images', 'component', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images', 'acceptedOffer.store']);
 
         return $this->success(new OrderResource($order));

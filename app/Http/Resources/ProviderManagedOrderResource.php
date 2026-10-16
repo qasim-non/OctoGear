@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Models\Store;
 use App\Services\PaymentService;
 use App\Services\ProviderOrderReadService;
 use Illuminate\Http\Request;
@@ -54,11 +55,9 @@ class ProviderManagedOrderResource extends JsonResource
             'store_car_component' => $this->when($order->isSpecific(), $part ? [
                 'id' => $part->id, 'part_number' => $part->part_number,
                 'description' => $part->description, 'price' => $part->price,
-                'store' => $store ? ['id' => $store->id, 'name' => $store->name,
-                    'employee_name' => $store->employee_name, 'url_location' => $store->url_location] : null,
+                'store' => $this->storeContact($store),
             ] : null),
-            'accepted_store' => $store ? ['id' => $store->id, 'name' => $store->name,
-                'employee_name' => $store->employee_name, 'url_location' => $store->url_location] : null,
+            'accepted_store' => $this->storeContact($store),
             'vehicle_details' => $order->isGeneral()
                 ? new OrderVehicleDetailResource($order->vehicleDetails, $order->customer_id)
                 : ($car ? [
@@ -74,5 +73,15 @@ class ProviderManagedOrderResource extends JsonResource
             'images' => OrderImageResource::collection($this->whenLoaded('images')),
             'created_at' => $order->created_at,
         ];
+    }
+
+    private function storeContact(?Store $store): ?array
+    {
+        return $store ? [
+            'id' => $store->id,
+            'name' => $store->name,
+            'employee_name' => $store->employee_name,
+            'url_location' => $store->url_location,
+        ] : null;
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UserStatusRequest;
 use App\Http\Resources\AdminUserResource;
 use App\Models\User;
 use App\Services\AdminUserService;
+use Illuminate\Http\JsonResponse;
 
 class AdminUserController extends Controller
 {
@@ -18,11 +19,7 @@ class AdminUserController extends Controller
 
     public function index(UserIndexRequest $request)
     {
-        $paginator = $this->service->index($request->validated());
-
-        return $this->paginated(
-            $paginator->through(fn (User $user) => new AdminUserResource($user)),
-        );
+        return $this->usersResponse($request->validated());
     }
 
     public function customers(UserIndexRequest $request)
@@ -40,11 +37,7 @@ class AdminUserController extends Controller
         $filters = $request->validated();
         $filters['type'] = $type;
 
-        $paginator = $this->service->index($filters);
-
-        return $this->paginated(
-            $paginator->through(fn (User $user) => new AdminUserResource($user)),
-        );
+        return $this->usersResponse($filters);
     }
 
     public function show(User $user)
@@ -63,5 +56,14 @@ class AdminUserController extends Controller
             : __('auth.admin.users.unblocked');
 
         return $this->success(new AdminUserResource($user), $message);
+    }
+
+    private function usersResponse(array $filters): JsonResponse
+    {
+        $paginator = $this->service->index($filters);
+
+        return $this->paginated(
+            $paginator->through(fn (User $user) => new AdminUserResource($user)),
+        );
     }
 }

@@ -17,7 +17,9 @@ use App\Models\StoreRequestPicture;
 use App\Models\StoresCar;
 use App\Models\User;
 use App\Services\ImageStorageService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Files are addressed by authorized records, never by client-supplied paths. */
 class MediaController extends Controller
@@ -29,8 +31,7 @@ class MediaController extends Controller
         $this->viewer($request);
         abort_unless($storePicture->store_id === $store->id, 404);
 
-        return $this->images->stream($storePicture->only(['disk', 'path', 'mime_type', 'size_bytes']))
-            ?? $this->notFound();
+        return $this->streamImage($storePicture->only(['disk', 'path', 'mime_type', 'size_bytes']));
     }
 
     public function storeCarPicture(Request $request, Store $store, StoresCar $storeCar, StoreCarPicture $storeCarPicture)
@@ -38,8 +39,7 @@ class MediaController extends Controller
         $this->viewer($request);
         abort_unless($storeCar->store_id === $store->id && $storeCarPicture->car_id === $storeCar->id, 404);
 
-        return $this->images->stream($storeCarPicture->only(['disk', 'path', 'mime_type', 'size_bytes']))
-            ?? $this->notFound();
+        return $this->streamImage($storeCarPicture->only(['disk', 'path', 'mime_type', 'size_bytes']));
     }
 
     public function storeRegistration(Request $request, Store $store)
@@ -49,7 +49,7 @@ class MediaController extends Controller
             $this->authorize('manage', $store);
         }
 
-        return $this->images->stream($store->registrationImage()) ?? $this->notFound();
+        return $this->streamImage($store->registrationImage());
     }
 
     public function storeRequestPicture(Request $request, StoreRequest $storeRequest, StoreRequestPicture $storeRequestPicture)
@@ -60,7 +60,7 @@ class MediaController extends Controller
             $this->authorize('view', $storeRequest);
         }
 
-        return $this->images->stream($storeRequestPicture->image()) ?? $this->notFound();
+        return $this->streamImage($storeRequestPicture->image());
     }
 
     public function storeRequestRegistration(Request $request, StoreRequest $storeRequest)
@@ -70,7 +70,7 @@ class MediaController extends Controller
             $this->authorize('view', $storeRequest);
         }
 
-        return $this->images->stream($storeRequest->registrationImage()) ?? $this->notFound();
+        return $this->streamImage($storeRequest->registrationImage());
     }
 
     public function orderImage(Request $request, Order $order, OrderImage $orderImage)
@@ -84,7 +84,7 @@ class MediaController extends Controller
             $this->authorize('view', $order);
         }
 
-        return $this->images->stream($orderImage->fileMetadata()) ?? $this->notFound();
+        return $this->streamImage($orderImage->fileMetadata());
     }
 
     public function offerImage(Request $request, OrderOffer $offer, OfferImage $offerImage)
@@ -95,7 +95,7 @@ class MediaController extends Controller
             $this->authorize('view', $offer);
         }
 
-        return $this->images->stream($offerImage->fileMetadata()) ?? $this->notFound();
+        return $this->streamImage($offerImage->fileMetadata());
     }
 
     private function viewer(Request $request): User|Admin
@@ -108,5 +108,10 @@ class MediaController extends Controller
         );
 
         return $viewer;
+    }
+
+    private function streamImage(array $image): StreamedResponse|JsonResponse
+    {
+        return $this->images->stream($image) ?? $this->notFound();
     }
 }

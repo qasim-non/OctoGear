@@ -17,7 +17,7 @@ class ProviderStoreController extends Controller
     {
         $stores = auth()->user()
             ->stores()
-            ->with(['city', 'pictures', 'companies', 'pendingChangeRequest'])
+            ->with($this->storeRelations())
             ->get();
 
         return $this->success(StoreResource::collection($stores));
@@ -27,7 +27,7 @@ class ProviderStoreController extends Controller
     {
         $this->authorize('manage', $store);
 
-        return $this->success(new StoreResource($store->load(['city', 'pictures', 'companies', 'pendingChangeRequest'])))
+        return $this->success(new StoreResource($store->load($this->storeRelations())))
             ->header('Cache-Control', 'no-store, private');
     }
 
@@ -39,5 +39,10 @@ class ProviderStoreController extends Controller
 
         return $this->created(new StoreRequestResource($proposal), __('store_changes.submitted'))
             ->header('Cache-Control', 'no-store, private');
+    }
+
+    private function storeRelations(): array
+    {
+        return ['city', 'pictures', 'companies', 'pendingChangeRequest'];
     }
 }

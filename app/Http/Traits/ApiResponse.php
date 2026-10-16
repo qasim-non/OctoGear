@@ -19,12 +19,7 @@ trait ApiResponse
         if ($data instanceof ResourceCollection || $data instanceof LengthAwarePaginator) {
             $response['data'] = $data->response()->getData(true)['data'] ?? $data;
             if ($data instanceof LengthAwarePaginator) {
-                $response['meta'] = [
-                    'current_page' => $data->currentPage(),
-                    'last_page' => $data->lastPage(),
-                    'per_page' => $data->perPage(),
-                    'total' => $data->total(),
-                ];
+                $response['meta'] = $this->paginationMeta($data);
             }
         } elseif ($data instanceof JsonResource) {
             $response['data'] = $data->response()->getData(true)['data'] ?? $data;
@@ -75,13 +70,18 @@ trait ApiResponse
             'success' => true,
             'message' => $message ?? __('auth.general.ok'),
             'data' => $paginator->items(),
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-            ],
+            'meta' => $this->paginationMeta($paginator),
             ...$extra,
         ]);
+    }
+
+    private function paginationMeta(LengthAwarePaginator $paginator): array
+    {
+        return [
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+        ];
     }
 }

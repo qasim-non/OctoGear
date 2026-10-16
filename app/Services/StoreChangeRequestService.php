@@ -66,7 +66,7 @@ class StoreChangeRequestService
                         throw new BusinessRuleException(messageKey: 'auth.validation.idempotency_key.conflict', statusCode: 409);
                     }
 
-                    return $existing->load(['city', 'pictures']);
+                    return $existing->load($this->requestRelations());
                 }
                 if (StoreRequest::withTrashed()->where('pending_store_id', $locked->id)->exists()) {
                     throw new BusinessRuleException(messageKey: 'store_changes.pending', statusCode: 409);
@@ -119,7 +119,7 @@ class StoreChangeRequestService
                     $proposal->pictures()->create([...$image, 'sort_order' => count($retained) + $position]);
                 }
 
-                return $proposal->load(['city', 'pictures']);
+                return $proposal->load($this->requestRelations());
             });
         } catch (Throwable $exception) {
             $this->images->cleanup($files);
@@ -154,5 +154,10 @@ class StoreChangeRequestService
         $this->images->deleteAfterCommit($oldFiles);
 
         return $store;
+    }
+
+    private function requestRelations(): array
+    {
+        return ['city', 'pictures'];
     }
 }

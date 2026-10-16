@@ -97,8 +97,7 @@ class ProviderDashboardService
 
     public function orders(int $providerId, ?int $storeId, string $section): Builder
     {
-        return $this->section($this->owned($providerId, $storeId), $section)
-            ->with($this->relations())->orderByDesc('updated_at')->orderByDesc('id');
+        return $this->forDisplay($this->section($this->owned($providerId, $storeId), $section));
     }
 
     private function owned(int $providerId, ?int $storeId): Builder
@@ -132,7 +131,12 @@ class ProviderDashboardService
     {
         return [
             'total' => $total,
-            'items' => $query->with($this->relations())->orderByDesc('updated_at')->orderByDesc('id')->limit($limit)->get(),
+            'items' => $this->forDisplay($query)->limit($limit)->get(),
         ];
+    }
+
+    private function forDisplay(Builder $query): Builder
+    {
+        return $query->with($this->relations())->orderByDesc('updated_at')->orderByDesc('id');
     }
 }

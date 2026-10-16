@@ -10,6 +10,7 @@ use App\Http\Resources\StoreCarComponentResource;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
 use App\Models\StoresCar;
+use Illuminate\Http\JsonResponse;
 
 class ProviderStoreCarComponentController extends Controller
 {
@@ -25,11 +26,9 @@ class ProviderStoreCarComponentController extends Controller
 
     public function store(CreateProviderStoreCarComponentRequest $request, Store $store, StoresCar $storeCar)
     {
-        if (! $this->carInStore($store, $storeCar)) {
-            return $this->notFound(__('auth.general.not_found'));
+        if ($error = $this->authorizeInventory($store, $storeCar)) {
+            return $error;
         }
-
-        $this->authorize('manage', $store);
 
         $component = $storeCar->components()->create($request->validated());
 
@@ -40,11 +39,9 @@ class ProviderStoreCarComponentController extends Controller
 
     public function batchStore(BatchCreateProviderStoreCarComponentRequest $request, Store $store, StoresCar $storeCar)
     {
-        if (! $this->carInStore($store, $storeCar)) {
-            return $this->notFound(__('auth.general.not_found'));
+        if ($error = $this->authorizeInventory($store, $storeCar)) {
+            return $error;
         }
-
-        $this->authorize('manage', $store);
 
         $rows = collect($request->validated('components'))
             ->map(fn ($item) => array_merge($item, ['store_car_id' => $storeCar->id]))
@@ -62,11 +59,9 @@ class ProviderStoreCarComponentController extends Controller
 
     public function update(UpdateProviderStoreCarComponentRequest $request, Store $store, StoresCar $storeCar, StoreCarComponent $component)
     {
-        if (! $this->carInStore($store, $storeCar) || ! $this->componentInCar($storeCar, $component)) {
-            return $this->notFound(__('auth.general.not_found'));
+        if ($error = $this->authorizeInventory($store, $storeCar, $component)) {
+            return $error;
         }
-
-        $this->authorize('manage', $store);
 
         $component->update($request->validated());
 
@@ -77,14 +72,24 @@ class ProviderStoreCarComponentController extends Controller
 
     public function destroy(Store $store, StoresCar $storeCar, StoreCarComponent $component)
     {
-        if (! $this->carInStore($store, $storeCar) || ! $this->componentInCar($storeCar, $component)) {
+        if ($error = $this->authorizeInventory($store, $storeCar, $component)) {
+            return $error;
+        }
+
+        $component->delete();
+
+        return $this->success(__('auth.general.ok'));
+    }
+
+    private function authorizeInventory(Store $store, StoresCar $storeCar, ?StoreCarComponent $component = null): ?JsonResponse
+    {
+        if (! $this->carInStore($store, $storeCar)
+            || ($component !== null && ! $this->componentInCar($storeCar, $component))) {
             return $this->notFound(__('auth.general.not_found'));
         }
 
         $this->authorize('manage', $store);
 
-        $component->delete();
-
-        return $this->success(__('auth.general.ok'));
+        return null;
     }
 }

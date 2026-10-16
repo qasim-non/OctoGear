@@ -6,27 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Reference\ReferenceCatalogRequest;
 use App\Http\Resources\ReferenceResource;
 use App\Models\CarCompany;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\JsonResponse;
 
 class CompanyController extends Controller
 {
     public function index(ReferenceCatalogRequest $request)
     {
         $filters = $request->validated();
-        $companies = CarCompany::query()
-            ->select('id', 'name_en', 'name_ar')
-            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($names) => $names->where('name_en', 'like', "%{$search}%")
-                ->orWhere('name_ar', 'like', "%{$search}%")
-            ))
-            ->orderBy('name_en')->orderBy('id')
-            ->paginate($filters['per_page'] ?? 20);
 
-        return $this->paginated($companies->through(fn ($company) => (new ReferenceResource($company))->resolve($request)));
+        return $this->catalogResponse(CarCompany::query(), $filters, $request);
     }
 
     public function names(ReferenceCatalogRequest $request, CarCompany $company)
     {
         $filters = $request->validated();
-        $names = $company->carNames()
+
+        return $this->catalogResponse($company->carNames(), $filters, $request);
+    }
+
+    private function catalogResponse(Builder|Relation $query, array $filters, ReferenceCatalogRequest $request): JsonResponse
+    {
+        $items = $query
             ->select('id', 'name_en', 'name_ar')
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($names) => $names->where('name_en', 'like', "%{$search}%")
                 ->orWhere('name_ar', 'like', "%{$search}%")
@@ -34,6 +36,6 @@ class CompanyController extends Controller
             ->orderBy('name_en')->orderBy('id')
             ->paginate($filters['per_page'] ?? 20);
 
-        return $this->paginated($names->through(fn ($name) => (new ReferenceResource($name))->resolve($request)));
+        return $this->paginated($items->through(fn ($item) => (new ReferenceResource($item))->resolve($request)));
     }
 }

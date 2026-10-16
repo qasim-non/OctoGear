@@ -18,7 +18,7 @@ class AdminStoreService
         $mobile = $filters['mobile'] ?? null;
 
         return Store::query()
-            ->with(['city', 'owner'])
+            ->with($this->storeRelations())
             ->withCount('cars')
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($name, fn ($query) => $query->where('name', 'like', "%{$name}%"))
@@ -29,7 +29,7 @@ class AdminStoreService
 
     public function show(Store $store): Store
     {
-        return $store->load(['city', 'owner'])->loadCount('cars');
+        return $store->load($this->storeRelations())->loadCount('cars');
     }
 
     public function setStatus(Store $store, StoreStatus $status): Store
@@ -37,5 +37,10 @@ class AdminStoreService
         $store->update(['status' => $status]);
 
         return $store->refresh();
+    }
+
+    private function storeRelations(): array
+    {
+        return ['city', 'owner'];
     }
 }

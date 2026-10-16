@@ -29,8 +29,7 @@ class CustomerCarPictureController extends Controller
     {
         $this->authorize('view', $customerCar);
 
-        if (! $this->belongsToCar($customerCar, $customerCarPicture)
-            || ! $customerCarPicture->isStoredMedia()) {
+        if (! $this->isStoredPictureForCar($customerCar, $customerCarPicture)) {
             return $this->notFound();
         }
 
@@ -41,8 +40,7 @@ class CustomerCarPictureController extends Controller
     {
         $this->authorize('update', $customerCar);
 
-        if (! $this->belongsToCar($customerCar, $customerCarPicture)
-            || ! $customerCarPicture->isStoredMedia()) {
+        if (! $this->isStoredPictureForCar($customerCar, $customerCarPicture)) {
             return $this->notFound();
         }
 
@@ -51,8 +49,8 @@ class CustomerCarPictureController extends Controller
         return $this->success(__('auth.general.ok'));
     }
 
-    private function belongsToCar(CustomerCar $customerCar, CustomerCarPicture $picture): bool
+    private function isStoredPictureForCar(CustomerCar $customerCar, CustomerCarPicture $picture): bool
     {
-        return $picture->car_id === $customerCar->id;
+        return $picture->car_id === $customerCar->id && $picture->isStoredMedia();
     }
 }

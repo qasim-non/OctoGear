@@ -57,8 +57,8 @@ class StorefrontQueryService
         $this->ensureMarketplaceVisible($store);
 
         return $store->cars()
-            ->with(['carName.carCompany', 'color', 'fuelType', 'pictures', 'store'])
-            ->withCount(['components' => fn ($query) => $query->whereHas('component')])
+            ->with($this->carRelations())
+            ->withCount($this->componentCountRelation())
             ->latest()->orderByDesc('id')
             ->paginate(15);
     }
@@ -68,8 +68,8 @@ class StorefrontQueryService
         $this->ensureMarketplaceVisible($store);
         $this->ensureCarBelongsToStore($store, $car);
 
-        $car->load(['carName.carCompany', 'color', 'fuelType', 'pictures', 'store', 'storeCarSections.section']);
-        $car->loadCount(['components' => fn ($query) => $query->whereHas('component')]);
+        $car->load([...$this->carRelations(), 'storeCarSections.section']);
+        $car->loadCount($this->componentCountRelation());
 
         return $car;
     }
@@ -197,5 +197,15 @@ class StorefrontQueryService
             [],
             404,
         );
+    }
+
+    private function carRelations(): array
+    {
+        return ['carName.carCompany', 'color', 'fuelType', 'pictures', 'store'];
+    }
+
+    private function componentCountRelation(): array
+    {
+        return ['components' => fn ($query) => $query->whereHas('component')];
     }
 }

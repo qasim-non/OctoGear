@@ -86,7 +86,7 @@ class ProviderOrderController extends Controller
         // Do not serialize the order or its winning offer here.
         abort_unless($offer->store?->user_id === auth()->id(), 404);
 
-        return $this->success(new ProviderOrderOfferResource($offer->load(['store', 'images', 'order.component'])));
+        return $this->success(new ProviderOrderOfferResource($offer->load($this->offerRelations())));
     }
 
     public function paidOrders(ProviderManagedOrdersRequest $request)
@@ -157,7 +157,7 @@ class ProviderOrderController extends Controller
 
         $offer = $this->offers->create($order, $request->validated());
 
-        $offer->load(['store', 'images', 'order.component']);
+        $offer->load($this->offerRelations());
 
         return $this->created(new ProviderOrderOfferResource($offer));
     }
@@ -179,7 +179,7 @@ class ProviderOrderController extends Controller
         unset($data['clear_images']);
         $offer = $this->offers->update($offer, $data);
 
-        $offer->load(['store', 'images', 'order.component']);
+        $offer->load($this->offerRelations());
 
         return $this->success(new ProviderOrderOfferResource($offer));
     }
@@ -208,5 +208,10 @@ class ProviderOrderController extends Controller
         $order = $this->orders->reject($order);
 
         return $this->success(new ProviderManagedOrderResource($order->load($this->read->relations())));
+    }
+
+    private function offerRelations(): array
+    {
+        return ['store', 'images', 'order.component'];
     }
 }
