@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\RequestStatus;
 use App\Exceptions\BusinessRuleException;
+use App\Models\Store;
 use App\Models\StoreRequest;
 use App\Models\User;
 use Illuminate\Support\Arr;
@@ -97,10 +98,37 @@ class StoreRequestService
     private function createRequest(User $user, array $data, string $mobile, bool $firstApplication = false): StoreRequest
     {
         $storedFiles = [];
+        $key = $data['idempotency_key'] ?? null;
+        $companies = array_map('intval', $data['company_ids'] ?? []);
+        sort($companies);
+        $fingerprint = $key === null ? null : hash('sha256', json_encode([
+            $mobile, $data['name'], $data['nick_name'], $data['employee_name'],
+            $data['url_location'], $data['commercial_registration_number'],
+            (int) $data['city_id'], $companies,
+            hash_file('sha256', $data['commercial_registration_picture']->getRealPath()),
+        ], JSON_THROW_ON_ERROR));
 
         try {
-            $storeRequest = DB::transaction(function () use ($user, $data, $mobile, $firstApplication, &$storedFiles) {
+            $storeRequest = DB::transaction(function () use ($user, $data, $mobile, $firstApplication, $key, $fingerprint, &$storedFiles) {
                 $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+                if ($key !== null) {
+                    $existing = StoreRequest::withTrashed()->where('user_id', $user->id)
+                        ->where('idempotency_key', $key)->first();
+                    if ($existing) {
+                        if ($existing->trashed() || ! hash_equals($existing->idempotency_fingerprint ?? '', $fingerprint)) {
+                            throw new BusinessRuleException(messageKey: 'auth.validation.idempotency_key.conflict', statusCode: 409);
+                        }
+
+                        return $existing;
+                    }
+                }
+                if (! $firstApplication && (
+                    Store::query()->where('mobile', $mobile)->exists() ||
+                    $lockedUser->storeRequests()->where('mobile', $mobile)->where('request_status', RequestStatus::Pending)->exists()
+                )) {
+                    throw ValidationException::withMessages(['mobile' => [__('auth.store.validation.mobile.unique')]]);
+                }
 
                 if ($firstApplication) {
                     if (! $lockedUser->isCustomer() || $lockedUser->storeRequests()->exists()) {
@@ -119,6 +147,8 @@ class StoreRequestService
                     ...StoreMediaService::registrationAttributes($image),
                     'mobile' => $mobile,
                     'request_status' => RequestStatus::Pending,
+                    'idempotency_key' => $key,
+                    'idempotency_fingerprint' => $fingerprint,
                 ]);
             });
 
@@ -132,6 +162,9 @@ class StoreRequestService
 
     public function resubmit(StoreRequest $request, array $data): StoreRequest
     {
+        if ($request->store_id !== null) {
+            throw new BusinessRuleException(messageKey: 'store_changes.new_request', statusCode: 409);
+        }
         $storedFiles = [];
         $oldImage = null;
         try {
@@ -151,12 +184,12 @@ class StoreRequestService
                         'commercial_registration_picture' => [__('validation.required', ['attribute' => 'commercial_registration_picture'])],
                     ]);
                 }
-                $locked->update([...$attributes, 'request_status' => RequestStatus::Pending, 'rejection_reason' => null, 'processed_by' => null]);
+                $locked->update([...$attributes, 'request_status' => RequestStatus::Pending, 'rejection_reason' => null, 'processed_by' => null, 'processed_at' => null]);
                 if ($oldImage) {
                     $this->images->deleteAfterCommit([$oldImage]);
                 }
 
-                return $locked->load('city');
+                return $locked->load(['city', 'pictures']);
             });
         } catch (Throwable $exception) {
             $this->images->cleanup($storedFiles);

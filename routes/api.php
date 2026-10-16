@@ -43,6 +43,7 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/stores/{store}/pictures/{storePicture}', [MediaController::class, 'storePicture'])->name('store-pictures.show');
         Route::get('/stores/{store}/cars/{storeCar}/pictures/{storeCarPicture}', [MediaController::class, 'storeCarPicture'])->name('store-car-pictures.show');
         Route::get('/stores/{store}/registration', [MediaController::class, 'storeRegistration'])->name('store-registration.show');
+        Route::get('/store-requests/{storeRequest}/pictures/{storeRequestPicture}', [MediaController::class, 'storeRequestPicture'])->name('store-request-pictures.show');
         Route::get('/store-requests/{storeRequest}/registration', [MediaController::class, 'storeRequestRegistration'])->name('store-request-registration.show');
         Route::get('/orders/{order}/images/{orderImage}', [MediaController::class, 'orderImage'])->name('order-images.show');
         Route::get('/offers/{offer}/images/{offerImage}', [MediaController::class, 'offerImage'])->name('offer-images.show');
@@ -128,6 +129,9 @@ Route::middleware(['locale'])->group(function () {
             Route::put('/profile', [ProviderProfileController::class, 'update']);
 
             Route::get('/stores', [ProviderStoreController::class, 'index']);
+            Route::get('/stores/{store}', [ProviderStoreController::class, 'show']);
+            Route::post('/stores/{store}/change-requests', [ProviderStoreController::class, 'update']);
+            // Legacy clients must follow the same review rules; no immediate-edit bypass.
             Route::put('/store/{store}', [ProviderStoreController::class, 'update']);
 
             Route::post('/store/{store}/cars', [ProviderStoreCarController::class, 'store'])->name('provider.store.cars.store');

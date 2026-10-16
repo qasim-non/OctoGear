@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\StoreChangeRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -47,6 +48,8 @@ class StoreResource extends JsonResource
             'companies' => ReferenceResource::collection($this->whenLoaded('companies')),
             'pictures' => StorePictureResource::collection($this->whenLoaded('pictures')),
             'can_manage' => $canManage,
+            'edit_version' => $this->when($canManage && $this->resource->relationLoaded('pendingChangeRequest'), fn () => StoreChangeRequestService::version($this->resource)),
+            'pending_change_request_id' => $this->when($canManage && $this->resource->relationLoaded('pendingChangeRequest'), fn () => $this->pendingChangeRequest?->id),
             'created_at' => $this->created_at,
         ];
     }

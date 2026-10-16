@@ -7,6 +7,42 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Store change approval (2026-10-16)
+
+Provider edits now submit proposals; live details and photos change only after
+admin acceptance. The existing store mobile is immutable. Apply additive migration
+`2026_10_16_000003_add_store_change_requests` after the store-request idempotency
+migration, before deploying the updated API and Flutter app.
+
+- Owner `GET /api/provider/stores/{store}` returns `edit_version` and
+  `pending_change_request_id`. POST `/api/provider/stores/{store}/change-requests`
+  sends editable fields plus required `change_reason` (10–1000 characters),
+  `base_version` and UUID `idempotency_key`. The response is a request with
+  `request_type=store_change`, `store_id`, proposed details and private photo URLs.
+- The legacy PUT `/api/provider/store/{store}` follows the same review rules.
+  Supplying `mobile` is rejected. No provider endpoint updates approved details
+  immediately. Missing gallery/brand arrays preserve values; explicit empty arrays
+  clear the proposal. Multipart empty strings represent empty arrays.
+- Existing admin GET `/api/admin/store-requests` and `/{request}` include new-store
+  and change requests. Review details include `change_reason`, `previous_details`,
+  proposed fields/photos, `processed_by` and `processed_at`. POST `/{request}/accept`
+  applies changes to the same store; POST `/{request}/reject` with `reason` leaves
+  the store unchanged. This project exposes the admin API, not an admin UI.
+- Store/owner locking and a unique pending-store key prevent duplicate pending
+  proposals. Version checks reject stale submission/approval with 409. Approved
+  changes retain store ID, owner, phone and active/inactive status. Rejected change
+  requests remain history; corrections create a new request from current store
+  details. Existing rejected new-store application resubmission is unchanged.
+- Proposal media is copied privately and readable only by its owner or an active
+  admin. Approval makes independent live copies and schedules old-file cleanup
+  after commit. Failures roll back metadata and clean newly written copies.
+- Identical submission keys return the existing receipt. The provider's own
+  request resources expose `idempotency_key` for exact timeout reconciliation;
+  storage paths and request fingerprints remain hidden.
+
+Focused regression: 88 tests / 520 assertions passed across store changes,
+onboarding, media, profile, admin dashboard/approval and marketplace access.
+
 ## Provider dashboard and order chats (2026-10-16)
 
 - `GET /api/provider/dashboard?store_id=...&period=today|week|month` returns owned

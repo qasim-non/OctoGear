@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Store extends Model
@@ -93,6 +94,11 @@ class Store extends Model
      * Using 'user' as the method name would conflict with Laravel's built-in auth.
      * So we name it 'owner' to be explicit.
      */
+    public function pendingChangeRequest(): HasOne
+    {
+        return $this->hasOne(StoreRequest::class, 'pending_store_id');
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

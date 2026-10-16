@@ -13,6 +13,19 @@ class StoreRequestResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'request_type' => $this->store_id === null ? 'new_store' : 'store_change',
+            'store_id' => $this->store_id,
+            'change_reason' => $this->change_reason,
+            'idempotency_key' => $this->idempotency_key,
+            'processed_at' => $this->processed_at,
+            'pictures' => $this->pictures->map(fn ($picture) => [
+                'id' => $picture->id,
+                'url' => route('media.store-request-pictures.show', ['storeRequest' => $this->id, 'storeRequestPicture' => $picture->id], false),
+                'mime_type' => $picture->mime_type,
+                'size_bytes' => $picture->size_bytes,
+                'sort_order' => $picture->sort_order,
+            ]),
+
             'name' => $this->name,
             'nick_name' => $this->nick_name,
             'mobile' => $this->mobile,

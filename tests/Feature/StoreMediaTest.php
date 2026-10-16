@@ -10,13 +10,16 @@ use App\Services\AdminStoreRequestService;
 use App\Services\ImageStorageService;
 use App\Services\OtpService;
 use App\Services\StoreCarService;
+use App\Services\StoreChangeRequestService;
 use App\Services\StoreMediaService;
 use App\Services\StoreRequestService;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -39,16 +42,21 @@ class StoreMediaTest extends TestCase
         $response = $this->actingAs($provider, 'sanctum')
             ->post("/api/provider/store/{$store->id}", [
                 '_method' => 'PUT',
+                'change_reason' => 'Upload updated registration and photos.',
+                'base_version' => StoreChangeRequestService::version($store),
+                'idempotency_key' => (string) Str::uuid(),
                 'commercial_registration_picture' => $this->image(),
                 'pictures' => [$this->image(), $this->image()],
             ], ['Accept' => 'application/json'])
-            ->assertOk()
+            ->assertCreated()
             ->assertJsonCount(2, 'data.pictures')
             ->assertJsonPath('data.pictures.0.mime_type', 'image/png')
             ->assertJsonPath('data.pictures.0.sort_order', 0)
             ->assertJsonPath('data.pictures.1.sort_order', 1);
 
-        $store->refresh();
+        $this->assertFalse($store->fresh()->hasRegistrationImage());
+        $this->assertSame(0, $store->pictures()->count());
+        $store = StoreRequest::findOrFail($response->json('data.id'));
         $this->assertTrue($store->hasRegistrationImage());
         Storage::disk('store_media_tests')->assertExists($store->commercial_registration_path);
         $this->assertSame(['id', 'url', 'mime_type', 'size_bytes', 'sort_order'], array_keys($response->json('data.pictures.0')));
@@ -96,21 +104,21 @@ class StoreMediaTest extends TestCase
         $oldRegistration = $store->commercial_registration_path;
         $oldPicture = $store->pictures()->firstOrFail();
 
-        $this->actingAs($provider, 'sanctum')->putJson("/api/provider/store/{$store->id}", ['name' => 'Still here'])->assertOk();
+        $media->update($store, ['name' => 'Still here']);
         Storage::disk('store_media_tests')->assertExists($oldRegistration);
         Storage::disk('store_media_tests')->assertExists($oldPicture->path);
 
-        $this->post("/api/provider/store/{$store->id}", [
-            '_method' => 'PUT',
+        $media->update($store, [
             'commercial_registration_picture' => $this->image(),
             'pictures' => [$this->image()],
-        ], ['Accept' => 'application/json'])->assertOk()->assertJsonCount(1, 'data.pictures');
+        ]);
 
         Storage::disk('store_media_tests')->assertMissing($oldRegistration);
         Storage::disk('store_media_tests')->assertMissing($oldPicture->path);
         $newPicture = $store->fresh()->pictures()->firstOrFail();
 
-        $this->putJson("/api/provider/store/{$store->id}", ['pictures' => []])->assertOk()->assertJsonCount(0, 'data.pictures');
+        $media->update($store, ['pictures' => []]);
+        $this->assertSame(0, $store->pictures()->count());
         Storage::disk('store_media_tests')->assertMissing($newPicture->path);
         $this->assertCount(1, Storage::disk('store_media_tests')->allFiles());
         $this->assertDatabaseCount('pending_image_deletions', 0);
@@ -127,17 +135,19 @@ class StoreMediaTest extends TestCase
         $oldPicture = $store->pictures()->firstOrFail();
         DB::unprepared("CREATE TRIGGER fail_store_picture_insert BEFORE INSERT ON store_pictures BEGIN SELECT RAISE(ABORT, 'Simulated image metadata failure'); END");
 
+        $failed = false;
         try {
-            $this->actingAs($provider, 'sanctum')->post("/api/provider/store/{$store->id}", [
-                '_method' => 'PUT',
-                'name' => 'Rolled Back',
-                'commercial_registration_picture' => $this->image(),
+            app(StoreMediaService::class)->update($store, [
+                'name' => 'Rolled Back', 'commercial_registration_picture' => $this->image(),
                 'pictures' => [$this->image()],
-            ], ['Accept' => 'application/json'])->assertStatus(500);
+            ]);
+        } catch (QueryException) {
+            $failed = true;
         } finally {
             DB::unprepared('DROP TRIGGER IF EXISTS fail_store_picture_insert');
         }
 
+        $this->assertTrue($failed);
         $this->assertNotSame('Rolled Back', $store->fresh()->name);
         $this->assertSame($store->commercial_registration_path, $store->fresh()->commercial_registration_path);
         $this->assertSame($oldPicture->id, $store->fresh()->pictures()->firstOrFail()->id);

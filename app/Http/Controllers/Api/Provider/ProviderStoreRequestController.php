@@ -41,7 +41,7 @@ class ProviderStoreRequestController extends Controller
     {
         $requests = auth()->user()
             ->storeRequests()
-            ->with('city')
+            ->with(['city', 'pictures'])
             ->latest()
             ->get();
 
@@ -52,7 +52,7 @@ class ProviderStoreRequestController extends Controller
     {
         $storeRequest = $this->storeRequests->becomeProvider($request->user(), $request->validated());
 
-        $storeRequest->load('city');
+        $storeRequest->load(['city', 'pictures']);
 
         return $this->created([
             'store_request' => new StoreRequestResource($storeRequest),
@@ -64,7 +64,7 @@ class ProviderStoreRequestController extends Controller
     {
         $storeRequest = $this->storeRequests->createForProvider($request->user(), $request->validated());
 
-        $storeRequest->load('city');
+        $storeRequest->load(['city', 'pictures']);
 
         return $this->created(new StoreRequestResource($storeRequest));
     }
@@ -73,7 +73,7 @@ class ProviderStoreRequestController extends Controller
     {
         $this->authorize('view', $storeRequest);
 
-        $storeRequest->load('city');
+        $storeRequest->load(['city', 'pictures']);
 
         return $this->success(new StoreRequestResource($storeRequest));
     }
@@ -89,7 +89,7 @@ class ProviderStoreRequestController extends Controller
 
     public function application(Request $request)
     {
-        $application = $request->user()->storeRequests()->with('city')->latest('id')->first();
+        $application = $request->user()->storeRequests()->with(['city', 'pictures'])->latest('id')->first();
 
         return $this->success($application ? new StoreRequestResource($application) : null)
             ->header('Cache-Control', 'no-store, private');

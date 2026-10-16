@@ -6,7 +6,9 @@ use App\Models\CarCompany;
 use App\Models\City;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\StoreChangeRequestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ProviderStoreTest extends TestCase
@@ -76,20 +78,24 @@ class ProviderStoreTest extends TestCase
             ->assertJsonPath('data.can_manage', false);
     }
 
-    public function test_provider_can_update_one_of_their_stores(): void
+    public function test_provider_can_request_a_change_for_one_of_their_stores(): void
     {
         $provider = User::factory()->provider()->create();
         $first = Store::factory()->create(['user_id' => $provider->id, 'name' => 'First Store']);
         $second = Store::factory()->create(['user_id' => $provider->id, 'name' => 'Second Store']);
 
         $this->actingAs($provider, 'sanctum')
-            ->putJson("/api/provider/store/{$second->id}", ['name' => 'Renamed Second'])
-            ->assertOk()
+            ->putJson("/api/provider/store/{$second->id}", [
+                'name' => 'Renamed Second', 'change_reason' => 'Our trading name has changed.',
+                'base_version' => StoreChangeRequestService::version($second),
+                'idempotency_key' => (string) Str::uuid(),
+            ])
+            ->assertCreated()
             ->assertJsonPath('data.name', 'Renamed Second')
-            ->assertJsonPath('data.id', $second->id);
+            ->assertJsonPath('data.store_id', $second->id);
 
         $this->assertDatabaseHas('stores', ['id' => $first->id, 'name' => 'First Store']);
-        $this->assertDatabaseHas('stores', ['id' => $second->id, 'name' => 'Renamed Second']);
+        $this->assertDatabaseHas('stores', ['id' => $second->id, 'name' => 'Second Store']);
     }
 
     public function test_provider_cannot_update_another_providers_store(): void
@@ -102,15 +108,15 @@ class ProviderStoreTest extends TestCase
             ->assertStatus(403);
     }
 
-    public function test_provider_can_update_mobile_to_another_unique_value(): void
+    public function test_provider_cannot_update_mobile_even_to_another_unique_value(): void
     {
         $provider = User::factory()->provider()->create();
         $store = Store::factory()->create(['user_id' => $provider->id, 'mobile' => '+966500000000']);
 
         $this->actingAs($provider, 'sanctum')
             ->putJson("/api/provider/store/{$store->id}", ['mobile' => '0566666666'])
-            ->assertOk()
-            ->assertJsonPath('data.mobile', '+966566666666');
+            ->assertUnprocessable()->assertJsonValidationErrors('mobile');
+        $this->assertSame('+966500000000', $store->fresh()->mobile);
     }
 
     public function test_provider_cannot_use_mobile_of_another_store(): void
@@ -125,15 +131,14 @@ class ProviderStoreTest extends TestCase
             ->assertJsonValidationErrors('mobile');
     }
 
-    public function test_provider_can_keep_their_own_mobile(): void
+    public function test_mobile_is_not_an_editable_field_even_when_unchanged(): void
     {
         $provider = User::factory()->provider()->create();
         $store = Store::factory()->create(['user_id' => $provider->id, 'mobile' => '+966500000000']);
 
         $this->actingAs($provider, 'sanctum')
             ->putJson("/api/provider/store/{$store->id}", ['mobile' => '+966500000000'])
-            ->assertOk()
-            ->assertJsonPath('data.mobile', '+966500000000');
+            ->assertUnprocessable()->assertJsonValidationErrors('mobile');
     }
 
     public function test_non_existent_store_returns_not_found(): void

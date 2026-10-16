@@ -8,6 +8,7 @@ use App\Services\ImageStorageService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StoreRequest extends Model
@@ -15,6 +16,7 @@ class StoreRequest extends Model
     use HasFactory, HasRegistrationImage, SoftDeletes;
 
     protected $fillable = [
+        'store_id', 'pending_store_id', 'change_reason', 'previous_details', 'base_version', 'processed_at',
         'user_id',
         'name',
         'mobile',
@@ -31,10 +33,14 @@ class StoreRequest extends Model
         'request_status',
         'rejection_reason',
         'processed_by',
+        'idempotency_key',
+        'idempotency_fingerprint',
     ];
 
     protected $hidden = [
         'deleted_at',
+        'idempotency_key',
+        'idempotency_fingerprint',
         'commercial_registration_disk',
         'commercial_registration_path',
     ];
@@ -42,6 +48,9 @@ class StoreRequest extends Model
     protected function casts(): array
     {
         return [
+            'store_id' => 'integer',
+            'previous_details' => 'array',
+            'processed_at' => 'datetime',
             'request_status' => RequestStatus::class,
             'company_ids' => 'array',
             'commercial_registration_size_bytes' => 'integer',
@@ -49,6 +58,16 @@ class StoreRequest extends Model
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    public function pictures(): HasMany
+    {
+        return $this->hasMany(StoreRequestPicture::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function user(): BelongsTo
@@ -60,6 +79,7 @@ class StoreRequest extends Model
     {
         static::forceDeleting(function (self $storeRequest): void {
             app(ImageStorageService::class)->delete($storeRequest->registrationImage());
+            $storeRequest->pictures->each->delete();
         });
     }
 

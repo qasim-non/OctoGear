@@ -6,6 +6,7 @@ use App\Models\Store;
 use App\Models\StorePicture;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class StoreMediaService
@@ -13,7 +14,8 @@ class StoreMediaService
     public function __construct(private ImageStorageService $images, private StoreCarService $cars) {}
 
     /**
-     * An omitted gallery is unchanged; a supplied gallery replaces its files.
+     * Omitted gallery fields preserve files. Retained IDs keep selected photos;
+     * uploads alone preserve the legacy full-replacement contract.
      * Keep the old files until the replacement and its metadata are committed.
      */
     public function update(Store $store, array $data): Store
@@ -23,7 +25,7 @@ class StoreMediaService
         try {
             return DB::transaction(function () use ($store, $data, &$storedFiles) {
                 $store = Store::query()->lockForUpdate()->findOrFail($store->getKey());
-                $attributes = Arr::except($data, ['pictures', 'commercial_registration_picture']);
+                $attributes = Arr::except($data, ['pictures', 'retained_picture_ids', 'company_ids', 'commercial_registration_picture']);
                 $obsoleteFiles = [];
 
                 if (isset($data['commercial_registration_picture'])) {
@@ -38,19 +40,31 @@ class StoreMediaService
 
                 $store->update($attributes);
 
-                if (array_key_exists('pictures', $data)) {
-                    $oldPictures = $store->pictures()->get();
+                if (array_key_exists('company_ids', $data)) {
+                    $store->companies()->sync($data['company_ids']);
+                }
 
-                    foreach ($oldPictures as $picture) {
-                        $obsoleteFiles[] = $picture->image();
+                if (array_key_exists('pictures', $data) || array_key_exists('retained_picture_ids', $data)) {
+                    $oldPictures = $store->pictures()->get()->keyBy('id');
+                    $retained = array_map('intval', $data['retained_picture_ids'] ?? []);
+                    $files = $data['pictures'] ?? [];
+                    // Recheck after locking: validation may have raced another edit.
+                    if (array_diff($retained, $oldPictures->keys()->all()) || count($retained) + count($files) > config('images.max_files')) {
+                        throw ValidationException::withMessages(['pictures' => [__('validation.max.array', ['attribute' => 'pictures', 'max' => config('images.max_files')])]]);
                     }
-
-                    $store->pictures()->delete();
-
-                    foreach ($data['pictures'] as $sortOrder => $file) {
+                    foreach ($oldPictures as $picture) {
+                        if (! in_array($picture->id, $retained, true)) {
+                            $obsoleteFiles[] = $picture->image();
+                            $picture->delete();
+                        }
+                    }
+                    foreach ($retained as $sortOrder => $id) {
+                        $oldPictures[$id]->update(['sort_order' => $sortOrder]);
+                    }
+                    foreach (array_values($files) as $sortOrder => $file) {
                         $store->pictures()->create([
                             ...$this->images->store($file, "stores/{$store->id}/pictures", $storedFiles),
-                            'sort_order' => $sortOrder,
+                            'sort_order' => count($retained) + $sortOrder,
                         ]);
                     }
                 }

@@ -19,7 +19,7 @@ use Throwable;
  * Owns the admin review workflow for provider store requests.
  *
  * - index:  paginated list, optionally filtered by status
- * - accept: turns a pending request into a live Store (transactional)
+ * - accept: creates a store or applies an approved change (transactional)
  * - reject: denies a pending request with a reason
  *
  * State transitions are guarded here (pending is the only status that can be
@@ -28,12 +28,12 @@ use Throwable;
  */
 class AdminStoreRequestService
 {
-    public function __construct(private ImageStorageService $images) {}
+    public function __construct(private ImageStorageService $images, private StoreChangeRequestService $changes) {}
 
     public function index(?string $status): LengthAwarePaginator
     {
         return StoreRequest::query()
-            ->with(['user', 'city'])
+            ->with(['user', 'city', 'pictures'])
             ->when($status, fn ($query) => $query->where('request_status', $status))
             ->latest()
             ->paginate(15);
@@ -49,13 +49,23 @@ class AdminStoreRequestService
 
         try {
             return DB::transaction(function () use ($storeRequest, $admin, &$storedFiles) {
+                $owner = User::query()->lockForUpdate()->findOrFail($storeRequest->user_id);
+                $store = $storeRequest->store_id === null ? null : Store::query()->lockForUpdate()->findOrFail($storeRequest->store_id);
                 $storeRequest = StoreRequest::query()->lockForUpdate()->findOrFail($storeRequest->getKey());
                 $this->ensurePending($storeRequest);
+                if ($store !== null) {
+                    $result = $this->changes->apply($storeRequest, $store, $storedFiles);
+                    $storeRequest->update([
+                        'request_status' => RequestStatus::Accepted, 'pending_store_id' => null,
+                        'rejection_reason' => null, 'processed_by' => $admin->employee_id, 'processed_at' => now(),
+                    ]);
+
+                    return $result;
+                }
                 $this->ensureStoreMobileFree($storeRequest->mobile);
 
                 // Application submission keeps customer access. Approval is the
                 // atomic hand-off to the provider role, alongside store creation.
-                $owner = User::query()->lockForUpdate()->findOrFail($storeRequest->user_id);
                 if ($owner->isCustomer()) {
                     $owner->update(['type' => UserType::ServiceProvider]);
                 }
@@ -87,7 +97,9 @@ class AdminStoreRequestService
                 $storeRequest->update([
                     'request_status' => RequestStatus::Accepted,
                     'rejection_reason' => null,
+                    'pending_store_id' => null,
                     'processed_by' => $admin->employee_id,
+                    'processed_at' => now(),
                 ]);
 
                 return $store;
@@ -107,7 +119,9 @@ class AdminStoreRequestService
             $locked->update([
                 'request_status' => RequestStatus::Rejected,
                 'rejection_reason' => $reason,
+                'pending_store_id' => null,
                 'processed_by' => $admin->employee_id,
+                'processed_at' => now(),
             ]);
 
             return $locked;

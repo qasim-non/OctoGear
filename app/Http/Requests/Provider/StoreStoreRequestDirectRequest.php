@@ -18,6 +18,7 @@ class StoreStoreRequestDirectRequest extends BaseRequest
     public function rules(): array
     {
         return [
+            'idempotency_key' => ['sometimes', 'required', 'uuid'],
             'mobile' => ['required', 'string', 'regex:/^\+9665\d{8}$/', 'max:15'],
             'name' => ['required', 'string', 'max:100'],
             'nick_name' => ['required', 'string', 'max:100'],

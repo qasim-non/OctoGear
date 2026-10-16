@@ -13,6 +13,7 @@ use App\Models\Store;
 use App\Models\StoreCarPicture;
 use App\Models\StorePicture;
 use App\Models\StoreRequest;
+use App\Models\StoreRequestPicture;
 use App\Models\StoresCar;
 use App\Models\User;
 use App\Services\ImageStorageService;
@@ -49,6 +50,17 @@ class MediaController extends Controller
         }
 
         return $this->images->stream($store->registrationImage()) ?? $this->notFound();
+    }
+
+    public function storeRequestPicture(Request $request, StoreRequest $storeRequest, StoreRequestPicture $storeRequestPicture)
+    {
+        $viewer = $this->viewer($request);
+        abort_unless($storeRequestPicture->store_request_id === $storeRequest->id, 404);
+        if ($viewer instanceof User) {
+            $this->authorize('view', $storeRequest);
+        }
+
+        return $this->images->stream($storeRequestPicture->image()) ?? $this->notFound();
     }
 
     public function storeRequestRegistration(Request $request, StoreRequest $storeRequest)
