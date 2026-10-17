@@ -5,6 +5,8 @@
  * Uses an isolated in-memory SQLite connection and temporary private disk.
  * Does not migrate, seed, or clear the configured application database.
  */
+use App\Enums\OfferStatus;
+use App\Enums\OrderStatus;
 use App\Services\ImageStorageService;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\Support\DemoImages;
@@ -136,7 +138,7 @@ try {
 
     $seed('Database\\Seeders\\DemoDataSeeder');
     $firstCounts = $counts();
-    foreach (['users' => 40, 'admin' => 5, 'stores' => 15, 'customer_cars' => 39, 'stores_cars' => 45, 'store_car_components' => 450, 'orders' => 100, 'ratings' => 50, 'conversations' => 50, 'messages' => 200, 'store_requests' => 25] as $table => $expected) {
+    foreach (['users' => 74, 'admin' => 5, 'stores' => 15, 'customer_cars' => 39, 'stores_cars' => 45, 'store_car_components' => 450, 'orders' => 253, 'ratings' => 50, 'conversations' => 86, 'messages' => 344, 'store_requests' => 25] as $table => $expected) {
         $assert($firstCounts[$table] === $expected, "{$table}: expected {$expected}, found {$firstCounts[$table]}");
     }
     $assert(DB::select('PRAGMA foreign_key_check') === [], 'Foreign-key integrity failed.');
@@ -144,12 +146,46 @@ try {
         $assert(DB::table($table)->count() === 0, "Unexpected operational data: {$table}");
     }
     $assert(DB::table('store_car_components')->where('stock_quantity', '<', 0)->count() === 0, 'Negative inventory.');
-    foreach (DB::table('users')->where('type', 'customer')->get() as $customer) {
+    foreach (DB::table('users')->where('type', 'customer')->whereBetween('mobile', ['+966500000100', '+966500000124'])->get() as $customer) {
         $orders = DB::table('orders')->where('customer_id', $customer->id)->pluck('id');
         $assert($orders->count() === 4, 'A demo customer is missing orders.');
         $assert(DB::table('order_offers')->whereIn('order_id', $orders)->count() >= 2, 'A demo customer has no competing offers.');
     }
-    $assert(DB::table('users')->where('type', 'customer')->whereNotIn('id', DB::table('customer_cars')->select('customer_id'))->count() === 4, 'Missing customers without saved cars.');
+    $assert(DB::table('users')->where('type', 'customer')->whereNotIn('id', DB::table('customer_cars')->select('customer_id'))->count() === 38, 'Missing customers without saved cars.');
+    $providerId = DB::table('users')->where('mobile', '+966500000200')->value('id');
+    $providerOrders = DB::table('orders')->where('notes', 'like', '[PROVIDER-DEMO:%')->get();
+    $assert($providerOrders->count() === 153, 'Provider expansion must add 153 orders.');
+    $discovery = DB::table('orders')->join('users', 'users.id', '=', 'orders.customer_id')
+        ->where('orders.notes', 'like', '[PROVIDER-DEMO:discovery-%')->get(['orders.*', 'users.city_id']);
+    $assert($discovery->count() === 102 && $discovery->groupBy('city_id')->count() === 34, 'Discovery must cover all approved cities.');
+    foreach ($discovery->groupBy('city_id') as $orders) {
+        $assert($orders->count() === 3 && $orders->every(fn ($order) => $order->status === 'pending'), 'Every city needs three open requests.');
+    }
+    foreach ($providerOrders as $order) {
+        $assert(DB::table('order_images')->where('order_id', $order->id)->count() === 1, 'Provider request needs its matching part picture.');
+        if ($order->order_type === 'general') {
+            $assert(DB::table('order_vehicle_details')->where('order_id', $order->id)->exists(), 'General request lacks a vehicle snapshot.');
+        } else {
+            $assert($order->requested_unit_price > 0, 'Direct request lacks the saved price needed for acceptance.');
+        }
+    }
+    foreach (OrderStatus::cases() as $status) {
+        $assert($providerOrders->where('order_type', 'specific')->where('status', $status->value)->count() === 5, 'Missing direct-order status coverage.');
+    }
+    $providerOffers = DB::table('order_offers')->join('stores', 'stores.id', '=', 'order_offers.store_id')
+        ->where('stores.user_id', $providerId)->whereIn('order_id', $providerOrders->pluck('id'))->get(['order_offers.*']);
+    foreach (OfferStatus::cases() as $status) {
+        $assert($providerOffers->where('status', $status->value)->isNotEmpty(), 'Missing provider offer decision: '.$status->value);
+    }
+    $chats = DB::table('conversations')->where('provider_id', $providerId)
+        ->where(fn ($q) => $q->whereNotNull('offer_id')->orWhereNotNull('order_id'))->get();
+    $assert($chats->count() === 36, 'Expected 21 offer chats and 15 direct-order chats.');
+    foreach ($chats as $chat) {
+        $assert(($chat->offer_id === null) !== ($chat->order_id === null), 'Chat must have exactly one context.');
+        $orderId = $chat->order_id ?? DB::table('order_offers')->where('id', $chat->offer_id)->value('order_id');
+        $assert(DB::table('orders')->where('id', $orderId)->value('customer_id') === $chat->customer_id, 'Chat participant does not own the order.');
+        $assert(DB::table('messages')->where('conversation_id', $chat->id)->count() === 4, 'Missing conversation history.');
+    }
     $assert(DB::table('order_offers')->whereNotIn('id', DB::table('offer_images')->select('order_offer_id'))->count() === 0, 'A demo offer is missing its picture.');
     foreach (DB::table('orders')->get() as $order) {
         $offers = DB::table('order_offers')->where('order_id', $order->id)->get();
@@ -272,6 +308,13 @@ try {
     DB::table('users')->where('mobile', '+966500000100')->update(['full_name' => 'Edited demo customer']);
     $pending = DB::table('orders')->where('order_type', 'specific')->where('status', 'pending')->first();
     DB::table('orders')->where('id', $pending->id)->update(['status' => 'awaiting_payment']);
+    $providerPending = DB::table('orders')->where('notes', 'like', '[PROVIDER-DEMO:direct-pending-%')->first();
+    DB::table('orders')->where('id', $providerPending->id)->update(['notes' => 'Edited provider request', 'status' => 'rejected']);
+    $deletedOrder = DB::table('orders')->where('notes', 'like', '[PROVIDER-DEMO:discovery-%')->first();
+    DB::table('orders')->where('id', $deletedOrder->id)->update(['deleted_at' => now()]);
+    $editedOffer = $providerOffers->first();
+    DB::table('order_offers')->where('id', $editedOffer->id)->update(['notes' => 'Edited provider offer']);
+    DB::table('messages')->whereIn('conversation_id', $chats->pluck('id'))->update(['is_read' => true]);
     $editedState = $state();
     $seed('Database\\Seeders\\DemoDataSeeder');
     $assert($state() === $editedState, 'Rerun reset tester edits.');

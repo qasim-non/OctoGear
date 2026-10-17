@@ -56,7 +56,7 @@ The dataset contains:
 
 | Domain | Records |
 | --- | ---: |
-| Customers / providers | 25 / 15 |
+| Customers / providers | 59 / 15 |
 | Admin role examples | 5 |
 | Stores | 15 (13 active, 2 inactive) |
 | Customer cars | 39 (four customers have no saved cars) |
@@ -64,19 +64,56 @@ The dataset contains:
 | Store-car component stock records | 450 |
 | Store requests | 25 (15 accepted, 5 pending, 5 rejected) |
 | Legacy provider request records | 15 accepted |
-| Orders | 100 (four per customer) |
-| Offers / offer pictures | 90 / 90 |
+| Orders | 253 (original 100 plus 153 provider scenarios) |
+| Offers / offer pictures | 132 / 132 |
 | Ratings | 50 |
-| Conversations / messages | 50 / 200 |
+| Conversations / messages | 86 / 344 |
 
-Orders include general and specific requests across pending, awaiting-payment, paid, completed, rejected, and cancelled states. Bids belong only to general orders; each selected offer is linked from the order and competing pending offers are marked not selected. General offer prices are whole-request totals; specific-order payments retain their existing quantity behavior. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. Offers and conversations use active stores in the customer's city.
+Orders include general and specific requests across pending, awaiting-payment, paid, completed, rejected, and cancelled states. Bids belong only to general orders; each selected offer is linked from the order and competing pending offers are marked not selected. General offer prices are whole-request totals; specific-order payments retain their existing quantity behavior. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. The original offers and conversations use active stores in the customer's city; the provider walkthrough also demonstrates cross-city discovery and offers.
 
-The 50 general requests split between 25 catalog selections (`component_id` only)
-and 25 custom part names (`component_name` only). Every customer has a completed general request with two offers, including customers without saved cars. Each general request has a vehicle snapshot with
+The original 50 general requests split between 25 catalog selections (`component_id` only)
+and 25 custom part names (`component_name` only). Each original customer has a completed general request with two offers, including customers without saved cars. Each general request has a vehicle snapshot with
 year, transmission, color and fuel type, including bilingual vehicle/color/fuel
 labels. Part names are not duplicated into language columns on orders.
 
 Demo administrators use `demo-admin@example.test`, `demo-manager@example.test`, `demo-employee@example.test`, `demo-hr@example.test`, and `demo-developer@example.test`; their local-only initial password is `DemoOnly-ChangeMe!`. Customer mobiles are `+966500000100` through `+966500000124`; provider mobiles are `+966500000200` through `+966500000214`. All identities, phone values, businesses, registration numbers, inventory codes, prices, ratings, messages, and transactions are synthetic. Map links point to a city search, not a claimed real business address. No OTPs, login tokens, device tokens, deletion jobs, or gateway transactions are generated.
+
+### Provider walkthrough account
+
+Use **0500000200** (`+966500000200`) with the existing OTP login flow. The seed
+does not generate or bypass OTPs. This is the original first provider and store;
+the other reference, admin, store, inventory, garage and original order scenarios
+remain intact. Additional synthetic customers use `+966500000500` through
+`+966500000533`, one per approved city, without adding saved cars or stores.
+
+The additive provider scenarios contain:
+
+- 102 pending general requests: three per city, each with its matching part photo
+  and full vehicle snapshot. Their first-seed timestamps put them ahead of the
+  older demo requests, with all 34 cities represented in the newest 34 entries.
+  The existing 15-row pagination remains; All cities includes every city across
+  pages, and selecting any city finds at least three photographed requests.
+  These requests initially have no offers so the provider can submit new ones.
+- 30 direct requests in the first provider's intact donor inventory: five each
+  pending, rejected, awaiting payment, paid, completed and cancelled. Saved unit
+  prices support actual accept/reject actions; quantities include one and two.
+  Paid/completed fixtures deduct stock only on first creation.
+- 21 general requests with 42 photographed offers. The first provider has pending,
+  explicitly rejected, accepted and not-selected offers, including cancellation,
+  awaiting-payment, paid and completed history. A second existing store supplies
+  competing offers; selected totals and accepted-offer links agree.
+- 36 contextual conversations (21 offer chats and 15 accepted direct-order chats),
+  with four messages each, including read history and unread incoming messages.
+  Completed orders retain existing chat history for reconciliation.
+- Paid payment rows with correct whole-request or quantity-based amounts and
+  varied dates for dashboard sales. These are synthetic records only; seeding
+  invokes no gateway, notification delivery or socket broadcast.
+
+Stable UUID identities keep provider requests unchanged even when testers edit
+their notes/status, select offers, read messages or soft-delete records. Reruns
+repair missing private images but do not restore deleted orders or reset stock,
+payment history, conversations or read state. Existing demo timestamps are not
+refreshed on rerun; dashboard date buckets naturally age with the fixtures.
 
 Rerunning preserves existing demo edits and does not reset passwords, stock, payments, or order states. Missing private image copies are repaired from the committed assets. To start an entirely new demo, use a separate disposable development database; these seeders do not clear your data.
 
@@ -115,3 +152,7 @@ Coverage:
 ## Verification
 
 `verify.php` uses an isolated SQLite connection even when the project's configured database is MySQL. It checks the 34 approved bilingual cities, representative Saudi/historical nameplates, case-insensitive catalogue duplicates, non-sequential reference IDs, production idempotence, operator content preservation, demo counts, per-customer orders and offers, foreign keys, order/offer/payment/rating consistency, image coverage and metadata, reuse of exactly the existing 36 source assets, rerun stability, missing-file repair and older-offer gallery backfill, rollback cleanup after a simulated storage failure, and production guards. Its temporary image directory is removed afterward.
+
+`ProviderDemoSeederTest` verifies actual provider discovery and city filters,
+protected photos, direct-order acceptance, every offer status, fulfillment,
+dashboard reads and order-linked conversation history on isolated SQLite.

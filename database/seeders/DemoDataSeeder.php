@@ -2,14 +2,23 @@
 
 namespace Database\Seeders;
 
+use App\Enums\OfferStatus;
+use App\Enums\OrderStatus;
+use App\Enums\OrderType;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
+use App\Enums\UserStatus;
+use App\Enums\UserType;
 use App\Models\User;
 use App\Notifications\NewMessageNotification;
 use App\Notifications\NewOrderNotification;
+use Carbon\CarbonInterface;
 use Database\Seeders\Support\DemoImages;
 use Database\Seeders\Support\SeedRecords;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use Throwable;
 
@@ -55,6 +64,7 @@ class DemoDataSeeder extends Seeder
                 $this->customerCars($customers);
                 $this->pendingRequests($customers, $adminId);
                 $this->ordersAndConversations($customers, $stores);
+                $this->providerScenarios($stores);
             });
             $images->committed();
         } catch (Throwable $exception) {
@@ -62,7 +72,7 @@ class DemoDataSeeder extends Seeder
             throw $exception;
         }
 
-        $this->command?->info('Demo data ready: 40 users, 15 stores, 39 customer cars, 45 store cars, 450 stock records, and 100 orders with photographed offers. Existing image assets are reused; no images are generated.');
+        $this->command?->info('Demo data ready: 74 users, 15 stores, 39 customer cars, 45 store cars, 450 stock records, and 253 orders. Provider +966500000200 has all order/offer states and contextual chats; discovery covers all 34 cities with part photos. Existing records and image assets are reused.');
     }
 
     private function admins(): int
@@ -318,19 +328,7 @@ class DemoDataSeeder extends Seeder
                     'updated_at' => now()->subDays(10 - $offset),
                 ]);
                 if ($type === 'general') {
-                    $vehicle = DB::table('stores_cars')->where('id', $car['id'])->first();
-                    $name = DB::table('cars_names')->where('id', $vehicle->car_name_id)->first();
-                    $company = DB::table('cars_companies')->where('id', $name->car_company_id)->first();
-                    $color = DB::table('colors')->where('id', $vehicle->color_id)->first();
-                    $fuel = DB::table('fuel_types')->where('id', $vehicle->fuel_type)->first();
-                    SeedRecords::once('order_vehicle_details', ['order_id' => $orderId], [
-                        'car_name_id' => $name->id, 'car_company_id' => $company->id,
-                        'car_name_en' => $name->name_en, 'car_name_ar' => $name->name_ar,
-                        'company_name_en' => $company->name_en, 'company_name_ar' => $company->name_ar,
-                        'manufacturing_year' => $vehicle->manufacturing_year, 'transmission_type' => 'unknown',
-                        'color_id' => $color->id, 'color_name_en' => $color->name_en, 'color_name_ar' => $color->name_ar,
-                        'fuel_type' => $fuel->id, 'fuel_type_en' => $fuel->type_en, 'fuel_type_ar' => $fuel->type_ar,
-                    ]);
+                    $this->orderVehicle($orderId, $car['id']);
                 }
                 if (($index + $offset) % 4 !== 0) {
                     $this->images->picture('order_images', 'order_id', $orderId, $part['image'], 0);
@@ -399,6 +397,186 @@ class DemoDataSeeder extends Seeder
                 $this->conversation($customer, $store, $index);
             }
         }
+    }
+
+    private function providerScenarios(array $stores): void
+    {
+        $seller = $stores[0];
+        $competitor = $stores[5];
+        $car = $seller['cars'][1];
+        $cities = json_decode(file_get_contents(__DIR__.'/data/saudi-cities.json'), true, flags: JSON_THROW_ON_ERROR)['cities'];
+        $customers = [];
+        foreach ($cities as $index => $city) {
+            $customers[] = SeedRecords::once('users', ['mobile' => $this->mobile(500 + $index)], [
+                'full_name' => 'عميل تجريبي - '.$city['name_ar'],
+                'type' => UserType::Customer->value,
+                'status' => UserStatus::Unblocked->value,
+                'city_id' => $this->id('cities', [
+                    'name_en' => $city['name_en'],
+                    'country_id' => $this->id('countries', ['name_en' => 'Saudi Arabia']),
+                ]),
+            ]);
+        }
+
+        // Three rounds keep the newest 34 requests spread across all cities.
+        foreach (range(0, 2) as $round) {
+            foreach ($customers as $index => $customerId) {
+                $sequence = $round * count($customers) + $index;
+                $this->providerOrder("discovery-{$round}-{$index}", $customerId, $seller, $competitor, $car,
+                    $car['components'][$sequence % count($this->parts)], OrderType::General, OrderStatus::Pending,
+                    now()->subMinutes($sequence), null, 1, $round === 2);
+            }
+        }
+
+        foreach (OrderStatus::cases() as $statusIndex => $status) {
+            foreach (range(0, 4) as $variant) {
+                $sequence = $statusIndex * 5 + $variant;
+                $this->providerOrder("direct-{$status->value}-{$variant}", $customers[$sequence], $seller, $competitor, $car,
+                    $car['components'][$sequence % count($this->parts)], OrderType::Specific, $status,
+                    now()->subDays($variant * 5)->subHours(3), null, 1 + $variant % 2);
+            }
+        }
+
+        $scenarios = [
+            [OrderStatus::Pending, OfferStatus::Pending],
+            [OrderStatus::Pending, OfferStatus::Rejected],
+            [OrderStatus::AwaitingPayment, OfferStatus::Accepted],
+            [OrderStatus::Paid, OfferStatus::Accepted],
+            [OrderStatus::Completed, OfferStatus::Accepted],
+            [OrderStatus::Cancelled, OfferStatus::Pending],
+            [OrderStatus::AwaitingPayment, OfferStatus::NotSelected],
+        ];
+        foreach ($scenarios as $index => [$status, $offerStatus]) {
+            foreach (range(0, 2) as $variant) {
+                $sequence = $index * 3 + $variant;
+                $this->providerOrder("offer-{$index}-{$variant}", $customers[$sequence], $seller, $competitor, $car,
+                    $car['components'][$sequence % count($this->parts)], OrderType::General, $status,
+                    now()->subDays([0, 3, 20][$variant])->subHours(2), $offerStatus, 1, $variant === 2);
+            }
+        }
+    }
+
+    private function providerOrder(
+        string $key, int $customerId, array $seller, array $competitor, array $car, array $part,
+        OrderType $type, OrderStatus $status, CarbonInterface $createdAt,
+        ?OfferStatus $offerStatus = null, int $quantity = 1, bool $customPart = false,
+    ): void {
+        // Identity is independent of editable notes, status and selected offers.
+        $identity = ['customer_id' => $customerId, 'idempotency_key' => Uuid::uuid5(Uuid::NAMESPACE_URL, 'octogear-provider-demo:'.$key)->toString()];
+        $existing = DB::table('orders')->where($identity)->first();
+        if ($existing?->deleted_at !== null) {
+            return;
+        }
+        $general = $type === OrderType::General;
+        $accepted = in_array($status, [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Completed], true);
+        $price = $part['price'];
+        $orderId = SeedRecords::once('orders', $identity, [
+            'order_type' => $type->value, 'status' => $status->value,
+            'notes' => '[PROVIDER-DEMO:'.$key.'] '.$part['name'].' - طلب تجريبي مع صورة القطعة.',
+            'component_id' => $general && ! $customPart ? $part['component_id'] : null,
+            'component_name' => $general && $customPart ? $part['name'] : null,
+            'store_car_component_id' => $general ? null : $part['id'],
+            'quantity' => $quantity, 'requested_unit_price' => $general ? null : $price,
+            'offered_price' => $accepted ? $price : null,
+            'created_at' => $createdAt, 'updated_at' => $createdAt,
+        ]);
+        if ($existing === null && $general) {
+            $this->orderVehicle($orderId, $car['id']);
+        }
+        $this->images->picture('order_images', 'order_id', $orderId, $part['image'], 0);
+        if ($existing !== null) {
+            foreach (DB::table('order_offers')->where('order_id', $orderId)->whereNull('deleted_at')->get() as $offer) {
+                $this->images->picture('offer_images', 'order_offer_id', $offer->id, $part['image'], 0);
+            }
+
+            return;
+        }
+
+        $ownOfferId = null;
+        if ($general && $offerStatus !== null) {
+            foreach ([$seller, $competitor] as $candidate) {
+                $own = $candidate['id'] === $seller['id'];
+                $candidateStatus = $own ? $offerStatus : match ($offerStatus) {
+                    OfferStatus::Accepted => OfferStatus::NotSelected,
+                    OfferStatus::NotSelected => OfferStatus::Accepted,
+                    default => OfferStatus::Pending,
+                };
+                $offerId = SeedRecords::once('order_offers', ['order_id' => $orderId, 'store_id' => $candidate['id']], [
+                    'price' => $candidateStatus === OfferStatus::NotSelected ? $price + 2500 : $price,
+                    'status' => $candidateStatus->value,
+                    'notes' => 'عرض تجريبي: صورة القطعة مرفقة، والسعر إجمالي الطلب. يرجى التأكد من التوافق قبل الاستلام.',
+                    'rejection_reason' => $candidateStatus === OfferStatus::Rejected ? 'رفض تجريبي: القطعة لا تطابق المواصفات المطلوبة.' : null,
+                    'created_at' => $createdAt, 'updated_at' => $createdAt,
+                ]);
+                $this->images->picture('offer_images', 'order_offer_id', $offerId, $part['image'], 0);
+                if ($candidateStatus === OfferStatus::Accepted) {
+                    DB::table('orders')->where('id', $orderId)->update(['accepted_offer_id' => $offerId]);
+                }
+                if ($own) {
+                    $ownOfferId = $offerId;
+                }
+            }
+        }
+        if (in_array($status, [OrderStatus::Paid, OrderStatus::Completed], true)) {
+            SeedRecords::once('payments', ['order_id' => $orderId], [
+                'amount' => $price * $quantity,
+                'payment_method' => PaymentMethod::CreditCard->value,
+                'payment_status' => PaymentStatus::Paid->value,
+                'created_at' => $createdAt, 'updated_at' => $createdAt,
+            ]);
+            if (! $general) {
+                $deducted = DB::table('store_car_components')->where('id', $part['id'])
+                    ->whereNull('deleted_at')->where('stock_quantity', '>=', $quantity)->decrement('stock_quantity', $quantity);
+                if ($deducted !== 1) {
+                    throw new RuntimeException('Insufficient provider demo stock; transaction rolled back.');
+                }
+            }
+        }
+        if ($ownOfferId !== null || (! $general && $accepted)) {
+            $this->providerConversation($orderId, $ownOfferId, $customerId, $seller['provider_id'], $createdAt);
+        }
+    }
+
+    private function providerConversation(int $orderId, ?int $offerId, int $customerId, int $providerId, CarbonInterface $createdAt): void
+    {
+        $conversationId = SeedRecords::once('conversations', $offerId === null ? ['order_id' => $orderId] : ['offer_id' => $offerId], [
+            'customer_id' => $customerId, 'provider_id' => $providerId,
+            'created_at' => $createdAt, 'updated_at' => $createdAt,
+        ]);
+        $messages = [
+            [$customerId, 'السلام عليكم، أود التأكد من حالة القطعة الموضحة في صور الطلب.'],
+            [$providerId, 'وعليكم السلام، يمكننا مراجعة رقم القطعة والتوافق مع السيارة قبل الاستلام.'],
+            [$providerId, 'يرجى مراجعة تفاصيل الطلب والسعر، والاستلام من المتجر بعد تأكيد الدفع.'],
+            [$customerId, 'شكراً للتوضيح، هل يمكن إرسال تفاصيل إضافية عن حالة القطعة؟'],
+        ];
+        foreach ($messages as $index => [$sender, $content]) {
+            SeedRecords::once('messages', [
+                'sender_id' => $sender,
+                'client_message_id' => Uuid::uuid5(Uuid::NAMESPACE_URL, "octogear-provider-chat:{$orderId}:{$index}")->toString(),
+            ], [
+                'conversation_id' => $conversationId, 'content' => $content,
+                'is_read' => $index < 3 || $orderId % 2 === 0,
+                'created_at' => $createdAt->copy()->addMinutes($index + 1),
+                'updated_at' => $createdAt->copy()->addMinutes($index + 1),
+            ]);
+        }
+    }
+
+    private function orderVehicle(int $orderId, int $carId): void
+    {
+        $vehicle = DB::table('stores_cars')->where('id', $carId)->first();
+        $name = DB::table('cars_names')->where('id', $vehicle->car_name_id)->first();
+        $company = DB::table('cars_companies')->where('id', $name->car_company_id)->first();
+        $color = DB::table('colors')->where('id', $vehicle->color_id)->first();
+        $fuel = DB::table('fuel_types')->where('id', $vehicle->fuel_type)->first();
+        SeedRecords::once('order_vehicle_details', ['order_id' => $orderId], [
+            'car_name_id' => $name->id, 'car_company_id' => $company->id,
+            'car_name_en' => $name->name_en, 'car_name_ar' => $name->name_ar,
+            'company_name_en' => $company->name_en, 'company_name_ar' => $company->name_ar,
+            'manufacturing_year' => $vehicle->manufacturing_year, 'transmission_type' => 'unknown',
+            'color_id' => $color->id, 'color_name_en' => $color->name_en, 'color_name_ar' => $color->name_ar,
+            'fuel_type' => $fuel->id, 'fuel_type_en' => $fuel->type_en, 'fuel_type_ar' => $fuel->type_ar,
+        ]);
     }
 
     private function conversation(array $customer, array $store, int $index): void

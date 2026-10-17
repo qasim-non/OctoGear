@@ -386,19 +386,19 @@ class GeneralOrderDetailsTest extends TestCase
         config(['images.disk' => 'images_local', 'customer_car_media.disk' => 'images_local']);
         Storage::fake('images_local');
         $this->seed(DemoDataSeeder::class);
-        $this->assertSame(30, Order::where('order_type', 'general')->count());
-        $this->assertDatabaseCount('order_vehicle_details', 30);
+        $this->assertSame(173, Order::where('order_type', 'general')->count());
+        $this->assertDatabaseCount('order_vehicle_details', 173);
         $order = Order::where('order_type', 'general')->firstOrFail();
         $this->assertNotNull($order->requestedComponentName('en'));
-        $this->assertSame(15, Order::where('order_type', 'general')->whereNotNull('component_id')->whereNull('component_name')->count());
-        $this->assertSame(15, Order::where('order_type', 'general')->whereNull('component_id')->whereNotNull('component_name')->count());
+        $this->assertSame(107, Order::where('order_type', 'general')->whereNotNull('component_id')->whereNull('component_name')->count());
+        $this->assertSame(66, Order::where('order_type', 'general')->whereNull('component_id')->whereNotNull('component_name')->count());
         $this->assertNotNull($order->vehicleDetails->car_name_en);
         $this->assertNotNull($order->vehicleDetails->color_id);
         $this->assertNotNull($order->vehicleDetails->fuel_type);
         $order->vehicleDetails->update(['car_name_en' => 'Preserve original snapshot']);
         $this->seed(DemoDataSeeder::class);
-        $this->assertDatabaseCount('orders', 60);
-        $this->assertDatabaseCount('order_vehicle_details', 30);
+        $this->assertDatabaseCount('orders', 253);
+        $this->assertDatabaseCount('order_vehicle_details', 173);
         $this->assertSame('Preserve original snapshot', $order->fresh()->vehicleDetails->car_name_en);
     }
 
