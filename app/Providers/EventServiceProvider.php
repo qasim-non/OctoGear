@@ -3,14 +3,18 @@
 namespace App\Providers;
 
 use App\Events\MessageSent;
+use App\Events\OfferAccepted;
 use App\Events\OfferCreated;
 use App\Events\OrderCompleted;
 use App\Events\OrderCreated;
 use App\Events\OrderPaid;
+use App\Events\StoreRequestReviewed;
 use App\Listeners\NotifyConversationParticipant;
 use App\Listeners\NotifyCustomerOfOffer;
+use App\Listeners\NotifyProviderOfAcceptedOffer;
 use App\Listeners\NotifyProviderOfCompletion;
 use App\Listeners\NotifyProviderOfPayment;
+use App\Listeners\NotifyStoreApplicantOfReview;
 use App\Listeners\NotifyStoresOfNewOrder;
 use App\Listeners\QueueChatRealtime;
 use App\Listeners\QueueCustomerPush;
@@ -26,6 +30,8 @@ class EventServiceProvider extends ServiceProvider
         NotificationSent::class => [QueueCustomerPush::class],
         OrderCreated::class => [NotifyStoresOfNewOrder::class],
         OfferCreated::class => [NotifyCustomerOfOffer::class],
+        OfferAccepted::class => [NotifyProviderOfAcceptedOffer::class],
+        StoreRequestReviewed::class => [NotifyStoreApplicantOfReview::class],
         OrderPaid::class => [NotifyProviderOfPayment::class],
         OrderCompleted::class => [NotifyProviderOfCompletion::class],
         MessageSent::class => [NotifyConversationParticipant::class, QueueChatRealtime::class],

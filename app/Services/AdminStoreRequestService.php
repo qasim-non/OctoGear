@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\RequestStatus;
 use App\Enums\StoreStatus;
 use App\Enums\UserType;
+use App\Events\StoreRequestReviewed;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Admin;
 use App\Models\CarCompany;
@@ -55,10 +56,7 @@ class AdminStoreRequestService
                 $this->ensurePending($storeRequest);
                 if ($store !== null) {
                     $result = $this->changes->apply($storeRequest, $store, $storedFiles);
-                    $storeRequest->update([
-                        'request_status' => RequestStatus::Accepted, 'pending_store_id' => null,
-                        'rejection_reason' => null, 'processed_by' => $admin->employee_id, 'processed_at' => now(),
-                    ]);
+                    $this->recordReview($storeRequest, $admin, RequestStatus::Accepted);
 
                     return $result;
                 }
@@ -94,13 +92,7 @@ class AdminStoreRequestService
                     $store->update(StoreMediaService::registrationAttributes($registration));
                 }
 
-                $storeRequest->update([
-                    'request_status' => RequestStatus::Accepted,
-                    'rejection_reason' => null,
-                    'pending_store_id' => null,
-                    'processed_by' => $admin->employee_id,
-                    'processed_at' => now(),
-                ]);
+                $this->recordReview($storeRequest, $admin, RequestStatus::Accepted);
 
                 return $store;
             });
@@ -116,16 +108,21 @@ class AdminStoreRequestService
         return DB::transaction(function () use ($storeRequest, $admin, $reason) {
             $locked = StoreRequest::query()->lockForUpdate()->findOrFail($storeRequest->id);
             $this->ensurePending($locked);
-            $locked->update([
-                'request_status' => RequestStatus::Rejected,
-                'rejection_reason' => $reason,
-                'pending_store_id' => null,
-                'processed_by' => $admin->employee_id,
-                'processed_at' => now(),
-            ]);
+            $this->recordReview($locked, $admin, RequestStatus::Rejected, $reason);
 
             return $locked;
         });
+    }
+
+    /** Persist the review and its inbox receipt in the same transaction. */
+    private function recordReview(StoreRequest $request, Admin $admin, RequestStatus $status, ?string $reason = null): void
+    {
+        $request->update([
+            'request_status' => $status, 'rejection_reason' => $reason,
+            'pending_store_id' => null, 'processed_by' => $admin->employee_id,
+            'processed_at' => now(),
+        ]);
+        StoreRequestReviewed::dispatch($request);
     }
 
     private function ensurePending(StoreRequest $storeRequest): void

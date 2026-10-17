@@ -75,7 +75,7 @@ class CustomerPushTest extends TestCase
     {
         $this->register()->assertUnauthorized();
         $this->login(User::factory()->provider()->create());
-        $this->register()->assertForbidden();
+        $this->register()->assertOk();
         $this->login();
         $this->withHeader('Accept-Language', 'ar')->register(str_repeat('x', 513))->assertUnprocessable()
             ->assertJsonPath('errors.token.0', trans('push.invalid', [], 'ar'));

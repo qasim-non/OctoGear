@@ -6,9 +6,11 @@ use App\Exceptions\PushDeliveryException;
 use App\Models\User;
 use App\Repositories\DeviceTokenRepository;
 use App\Services\Push\FcmSender;
+use App\Services\Push\PushNotificationPayload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
+/** Shared customer/provider delivery; legacy name keeps existing integrations compatible. */
 class SendCustomerPush implements ShouldQueue
 {
     use Queueable;
@@ -35,7 +37,7 @@ class SendCustomerPush implements ShouldQueue
             return;
         }
         $user = User::find($this->userId);
-        if (! $user || ! $user->isCustomer() || $user->isBlocked()) {
+        if (! $user || (! $user->isCustomer() && ! $user->isProvider()) || $user->isBlocked()) {
             return;
         }
         $notification = $user->notifications()->whereKey($this->notificationId)->first();
@@ -46,29 +48,12 @@ class SendCustomerPush implements ShouldQueue
         if (! $device) {
             return;
         }
-        $payload = $notification->data;
-        $type = $payload['type'] ?? null;
-        if (! in_array($type, ['new_offer', 'new_message'], true)) {
+        $data = (new PushNotificationPayload)->data($user, $notification->id, $notification->data);
+        if ($data === null) {
             return;
         }
-        $data = [
-            'notification_id' => $notification->id,
-            'recipient_id' => (string) $user->id,
-            'type' => $type,
-        ];
-        foreach ($type === 'new_offer' ? ['order_id', 'offer_id'] : ['conversation_id'] as $field) {
-            if (! isset($payload[$field]) || ! ctype_digit((string) $payload[$field]) || (int) $payload[$field] < 1) {
-                return;
-            }
-            $data[$field] = (string) $payload[$field];
-        }
-        // No message text, phone numbers, price or store/customer names on lock screens.
-        if ($type === 'new_message' && isset($payload['message_id'])
-            && ctype_digit((string) $payload['message_id']) && (int) $payload['message_id'] > 0) {
-            // Lets the app deduplicate foreground FCM and WebSocket delivery.
-            $data['message_id'] = (string) $payload['message_id'];
-        }
-        $body = trans('auth.notifications.'.$type, [], $device->locale);
+        // Generic lock-screen text; only validated identifiers leave the server.
+        $body = trans('push.'.$data['type'], [], $device->locale);
         try {
             $sent = $sender->send($device, $data, $body);
         } catch (PushDeliveryException $error) {

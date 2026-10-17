@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\Shared;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ReadNotificationPageRequest;
 use App\Http\Resources\NotificationResource;
+use App\Services\NotificationReadService;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\Cursor;
@@ -32,7 +34,7 @@ class NotificationController extends Controller
         $notifications = $request->user()->notifications()
             ->when($request->boolean('unread'), fn ($query) => $query->whereNull('read_at'))
             ->reorder()->orderByDesc('created_at')->orderByDesc('id')
-            ->cursorPaginate(20, ['*'], 'cursor', $cursor);
+            ->cursorPaginate(NotificationReadService::PAGE_SIZE, ['*'], 'cursor', $cursor);
 
         return $this->success([
             'items' => NotificationResource::collection($notifications->items()),
@@ -65,6 +67,11 @@ class NotificationController extends Controller
         $notification->markAsRead();
 
         return $this->success(new NotificationResource($notification));
+    }
+
+    public function markPageAsRead(ReadNotificationPageRequest $request, NotificationReadService $reads)
+    {
+        return $this->success($reads->readPage($request->user(), $request->validated('ids')));
     }
 
     public function markAllAsRead()

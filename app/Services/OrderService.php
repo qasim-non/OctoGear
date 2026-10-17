@@ -6,6 +6,7 @@ use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Enums\StoreStatus;
+use App\Events\OfferAccepted;
 use App\Events\OrderCompleted;
 use App\Events\OrderCreated;
 use App\Exceptions\BusinessRuleException;
@@ -189,6 +190,8 @@ class OrderService
                 ->where('id', '!=', $selected->id)
                 ->where('status', OfferStatus::Pending->value)
                 ->update(['status' => OfferStatus::NotSelected]);
+
+            OfferAccepted::dispatch($selected);
 
             return $lockedOrder->refresh();
         });

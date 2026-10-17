@@ -73,6 +73,8 @@ class StoreChangeRequestTest extends TestCase
         $this->assertDatabaseCount('stores', 1);
         $this->assertDatabaseHas('stores', ['id' => $store->id, 'name' => 'Proposed store', 'mobile' => $store->mobile, 'user_id' => $store->user_id, 'status' => 'inactive']);
         $this->assertSame([$company->id], $store->fresh()->companies->modelKeys());
+        $this->assertSame($id, $store->owner->notifications()->sole()->data['request_id']);
+        $this->assertSame('store_approved', $store->owner->notifications()->sole()->data['type']);
         $this->assertNull(StoreRequest::find($id)->pending_store_id);
         $this->assertNotNull(StoreRequest::find($id)->processed_at);
         $this->postJson("/api/admin/store-requests/{$id}/accept")->assertUnprocessable();
@@ -118,6 +120,7 @@ class StoreChangeRequestTest extends TestCase
         $this->assertSame('Approved store', $store->fresh()->name);
         $this->actingAs($store->owner, 'sanctum');
         $next = $this->submit($store)->assertCreated()->json('data.id');
+        $this->assertSame('store_rejected', $store->owner->notifications()->sole()->data['type']);
         $this->assertNotSame($id, $next);
         $this->assertDatabaseHas('store_requests', ['id' => $id, 'request_status' => 'rejected']);
         $this->assertDatabaseCount('store_requests', 2);

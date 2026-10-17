@@ -9,7 +9,7 @@ class DeviceTokenPolicy
 {
     public function manage(User $user): bool
     {
-        return $user->isCustomer() && ! $user->isBlocked()
+        return ($user->isCustomer() || $user->isProvider()) && ! $user->isBlocked()
             && $user->currentAccessToken() instanceof PersonalAccessToken;
     }
 }

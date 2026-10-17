@@ -1,5 +1,30 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
+## Provider notifications and bounded page reads — 2026-10-17
+
+Shared notification inbox/read APIs and Android device registration support active
+customers and providers. Provider entry acknowledges only the fetched 20-row page
+through `PATCH /notifications/read-page` with `ids` (1–20 distinct UUIDs). The
+response `data` contains the acknowledged IDs and authoritative `unread_count`.
+`ReadNotificationPageRequest` validates input; `NotificationReadService` locks the
+authenticated user's morph-scoped rows, rejects any foreign/missing row atomically,
+and sets only previously null read timestamps. GET, legacy reads and cursor ordering
+remain unchanged. No migration or backfill is required.
+
+`OrderService::acceptOffer` emits `OfferAccepted` only on the actual transition;
+replays do not notify again. Admin store approval/rejection emits
+`StoreRequestReviewed` for both applications and changes. Their database inbox rows
+are written synchronously within the existing business transaction and roll back
+with it. Existing payment/completion/direct-request/message notifications are reused.
+
+`PushNotificationPayload` is the shared recipient-role and identifier allowlist at
+enqueue and delivery. Device/session ownership, expiry, read state, blocked users,
+privacy, retry and conditional invalid-token deletion rules remain intact. The
+legacy `SendCustomerPush`/`QueueCustomerPush` names remain compatible with existing
+queued jobs/integrations, but now serve both roles. All pushes remain after commit.
+General-order inbox alerts retain the existing audience; only new direct orders
+trigger new-order push. Read PUSH_NOTIFICATIONS.md for deployment and tests.
+
 <p align="center">
 <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>

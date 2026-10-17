@@ -219,6 +219,7 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::get('/notifications/inbox', [NotificationController::class, 'inbox']);
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('/notifications/read-page', [NotificationController::class, 'markPageAsRead']);
         Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     });
