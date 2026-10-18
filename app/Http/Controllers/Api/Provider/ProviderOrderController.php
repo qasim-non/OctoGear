@@ -63,7 +63,7 @@ class ProviderOrderController extends Controller
             ->latest()->orderByDesc('id')
             ->paginate(15);
 
-        return $this->paginated($orders->through(fn ($order) => new ProviderManagedOrderResource($order)));
+        return $this->paginated($orders->through(fn ($order) => new ProviderManagedOrderResource($order, $this->read->amounts($order))));
     }
 
     public function offers(ProviderOffersRequest $request)
@@ -100,7 +100,7 @@ class ProviderOrderController extends Controller
             ->paginate(15);
 
         return $this->paginated(
-            $orders->through(fn ($order) => new ProviderPaidOrderResource($order))
+            $orders->through(fn ($order) => new ProviderPaidOrderResource($order, $this->read->amounts($order)))
         );
     }
 
@@ -112,7 +112,7 @@ class ProviderOrderController extends Controller
             $this->authorize('view', $order);
             $order->load($this->read->relations());
 
-            return $this->success(new ProviderManagedOrderResource($order));
+            return $this->success(new ProviderManagedOrderResource($order, $this->read->amounts($order)));
         }
 
         $this->authorize('view', $order);
@@ -138,7 +138,7 @@ class ProviderOrderController extends Controller
         $order = $this->read->details($order->id, auth()->id());
         abort_unless(in_array($order->status, [OrderStatus::Paid, OrderStatus::Completed]), 404);
 
-        return $this->success(new ProviderPaidOrderResource($order));
+        return $this->success(new ProviderPaidOrderResource($order, $this->read->amounts($order)));
     }
 
     public function accept(AcceptProviderDirectOrderRequest $request, Order $order)
@@ -146,7 +146,9 @@ class ProviderOrderController extends Controller
         $this->authorize('view', $order);
         $order = $this->orders->acceptSpecific($order, $request->integer('expected_unit_price'), $request->integer('expected_quantity'));
 
-        return $this->success(new ProviderManagedOrderResource($order->load($this->read->relations())));
+        $order->load($this->read->relations());
+
+        return $this->success(new ProviderManagedOrderResource($order, $this->read->amounts($order)));
     }
 
     public function storeOffer(CreateProviderOrderOfferRequest $request, Order $order)
@@ -207,7 +209,9 @@ class ProviderOrderController extends Controller
 
         $order = $this->orders->reject($order);
 
-        return $this->success(new ProviderManagedOrderResource($order->load($this->read->relations())));
+        $order->load($this->read->relations());
+
+        return $this->success(new ProviderManagedOrderResource($order, $this->read->amounts($order)));
     }
 
     private function offerRelations(): array

@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Contracts\PaymentGateway;
+use App\Data\PaymentCharge;
+use App\Data\PaymentRefund;
 use App\Enums\OfferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
@@ -18,36 +21,21 @@ use RuntimeException;
 /**
  * Handles charging a customer for an order (credit-card only).
  *
- * DESIGN:
- *   - All payment business logic lives here, not in the controller.
- *   - Every charge is wrapped in a DB transaction so the payment row and the
- *     order status update either both commit or both roll back.
- *   - Exceptions are caught and logged; failures map to PaymentStatus::Failed
- *     and the order is left unchanged.
- *
- * GATEWAY (external API):
- *   The credit card is charged through a payment gateway. No real gateway is
- *   wired yet, so the default driver "stub" simulates a successful charge.
- *
- *   To go live:
- *     1. Set PAYMENT_DRIVER in .env (e.g. moyasar / tap / paytabs / hyperpay).
- *     2. Add its secret keys to .env and to config/payments.php.
- *     3. Implement the driver branch below with a real HTTP (Http::post ...)
- *        call and map the gateway's response to a PaymentStatus.
+ * The pending payment is committed before the external operation. Gateway
+ * adapters are selected centrally; the default remains a simulation.
+ * See INTEGRATIONS.md for the additional work required for live payments.
  */
 class PaymentService
 {
+    public function __construct(private PaymentGateway $gateway, private OrderPricingService $pricing) {}
+
     /**
      * The whole accepted offer total for general requests; specific purchases
      * continue to multiply their unit price by requested quantity.
      */
     public function amountFor(Order $order): int
     {
-        if ($order->isGeneral()) {
-            return (int) ($order->acceptedOffer?->price ?? 0);
-        }
-
-        return ($order->offered_price ?? 0) * max(1, (int) $order->quantity);
+        return $this->pricing->amountFor($order);
     }
 
     /**
@@ -55,7 +43,7 @@ class PaymentService
      */
     public function commissionFor(Order $order): int
     {
-        return (int) round($this->amountFor($order) * config('payments.commission_rate') / 100);
+        return $this->pricing->commissionForAmount($this->amountFor($order));
     }
 
     /**
@@ -262,25 +250,8 @@ class PaymentService
         });
     }
 
-    /**
-     * Send the refund to the (simulated) gateway and return its status.
-     *
-     * In production this is the exact inverse of chargeCard(): the gateway is
-     * asked to return the money to the customer's card, keyed on the original
-     * charge. The stub driver always approves so local development can move
-     * the payment to "refunded". Any driver configured but not implemented
-     * here fails safely (throws) instead of silently approving real refunds.
-     *
-     * NOTE (real gateway): pass the payment (or original charge) id as the
-     * gateway's IDEMPOTENCY KEY so a retried admin request can never refund
-     * the customer twice. e.g.
-     *   $this->gateway($driver)->refund([
-     *       'amount'          => $payment->amount,
-     *       'payment_id'      => (string) $payment->id,
-     *       'idempotency_key' => (string) $payment->id,
-     *   ]);
-     */
-    private function refundCard(Payment $payment): PaymentStatus
+    /** Delegate the external refund without changing local transaction ordering. */
+    private function refundCard(Payment $payment): void
     {
         $driver = config('payments.driver', 'stub');
 
@@ -291,17 +262,7 @@ class PaymentService
             'amount' => $payment->amount,
         ]);
 
-        return match ($driver) {
-            'stub' => PaymentStatus::Refunded,
-
-            // Real gateway integration goes here, e.g.:
-            // 'moyasar' => $this->moyasar()->refund($payment),
-            // 'tap'     => $this->tap()->refund($payment),
-
-            default => throw new RuntimeException(
-                "Payment driver [{$driver}] is not implemented."
-            ),
-        };
+        $this->gateway->refund(new PaymentRefund($payment->id, $payment->order_id, $payment->amount));
     }
 
     /**
@@ -320,22 +281,8 @@ class PaymentService
             ->increment('stock_quantity', $quantity);
     }
 
-    /**
-     * Send the card charge to the (simulated) gateway and return its status.
-     *
-     * The stub driver always approves so local development can move the order
-     * to "paid". Any driver that is configured but not implemented here fails
-     * safely (throws) instead of silently approving real charges.
-     *
-     * NOTE (real gateway): pass the order id as the gateway's IDEMPOTENCY KEY so
-     * a retried request can never double-charge the card. e.g.
-     *   $this->gateway($driver)->charge([
-     *       'amount'         => $amount,
-     *       'source'         => $cardToken,
-     *       'idempotency_key' => (string) $order->id,
-     *   ]);
-     */
-    private function chargeCard(Order $order, int $amount, ?string $cardToken): PaymentStatus
+    /** Delegate the external charge after the pending audit row is committed. */
+    private function chargeCard(Order $order, int $amount, ?string $cardToken): void
     {
         $driver = config('payments.driver', 'stub');
 
@@ -346,16 +293,6 @@ class PaymentService
             'has_token' => $cardToken !== null,
         ]);
 
-        return match ($driver) {
-            'stub' => PaymentStatus::Paid,
-
-            // Real gateway integration goes here, e.g.:
-            // 'moyasar' => $this->moyasar()->authorize($amount, $cardToken, $order),
-            // 'tap'     => $this->tap()->charge($amount, $cardToken, $order),
-
-            default => throw new RuntimeException(
-                "Payment driver [{$driver}] is not implemented."
-            ),
-        };
+        $this->gateway->charge(new PaymentCharge($order->id, $amount, $cardToken));
     }
 }

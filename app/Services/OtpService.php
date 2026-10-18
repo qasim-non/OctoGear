@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\SmsSender;
 use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -13,9 +14,11 @@ class OtpService
 {
     private const OTP_DECAY_MINUTES = 5;
 
+    public function __construct(private SmsSender $sms) {}
+
     public function sendOtp(string $mobile): ?string
     {
-        $otp = fake()->numerify('####');
+        $otp = (string) random_int(1000, 9999);
 
         $hashed = Hash::make($otp);
 
@@ -27,10 +30,7 @@ class OtpService
             'expires_at' => now()->addMinutes(self::OTP_DECAY_MINUTES),
         ]);
 
-        // Conecction to Api
-        if (app()->environment('local')) {
-            Log::info("OTP for {$mobile}: {$otp}");
-        }
+        $this->sms->sendOtp($mobile, $otp);
 
         // Only explicitly enabled development/staging flows may expose codes.
         return app()->environment(['local', 'staging']) && config('otp.expose_for_testing')

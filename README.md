@@ -532,3 +532,8 @@ rejection, recorded payment amounts, and acceptance -> payment -> customer recei
 Run ProviderManagedOrdersTest alongside existing provider and customer lifecycle
 tests. Customer lifecycle regression expectations follow the existing rule in
 commit 341b780 that disallows cancellation after acceptance.
+
+
+## Integration replacement and private cloud media
+
+See [INTEGRATIONS.md](INTEGRATIONS.md) for the SMS/payment adapter boundaries, private S3 image configuration, existing-media behavior and remaining live-provider activation work. `SMS_DRIVER=log` and `PAYMENT_DRIVER=stub` are simulations.

@@ -78,6 +78,24 @@ return [
             'report' => false,
         ],
 
+        // Private feature media, streamed through authorized API routes.
+        'images_s3' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'token' => env('AWS_SESSION_TOKEN'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET'),
+            'root' => env('AWS_IMAGE_PREFIX', 'images'),
+            'endpoint' => env('AWS_ENDPOINT') ?: null,
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            // Supported by AWS Bucket owner enforced buckets (ACLs disabled).
+            'options' => ['ACL' => env('AWS_IMAGE_ACL', 'bucket-owner-full-control')],
+            'throw' => true,
+            'report' => true,
+        ],
+
     ],
 
     /*

@@ -2,16 +2,21 @@
 
 namespace App\Http\Resources;
 
+use App\Data\ProviderOrderAmounts;
 use App\Enums\OrderStatus;
-use App\Enums\PaymentStatus;
+use App\Models\Order;
 use App\Models\Store;
-use App\Services\PaymentService;
 use App\Services\ProviderOrderReadService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProviderManagedOrderResource extends JsonResource
 {
+    public function __construct(Order $resource, private ProviderOrderAmounts $amounts)
+    {
+        parent::__construct($resource);
+    }
+
     public function toArray(Request $request): array
     {
         $locale = $request->header('Accept-Language', app()->getLocale()) === 'en' ? 'en' : 'ar';
@@ -21,12 +26,6 @@ class ProviderManagedOrderResource extends JsonResource
         $car = $part?->storeCar;
         $store = $order->fulfillmentStore();
         $fulfilled = in_array($order->status, [OrderStatus::Paid, OrderStatus::Completed]);
-        $unit = $order->isSpecific() ? ($order->status === OrderStatus::Pending ? $order->requested_unit_price : ($order->offered_price ?? $order->requested_unit_price)) : null;
-        $total = $order->isGeneral() ? $order->acceptedOffer?->price : ($unit === null ? null : $unit * $order->quantity);
-        // Recorded payment is authoritative; older paid rows may predate payment records.
-        $gross = $fulfilled ? ($order->payment?->payment_status === PaymentStatus::Paid
-            ? $order->payment->amount : app(PaymentService::class)->amountFor($order)) : null;
-        $commission = $gross === null ? null : (int) round($gross * config('payments.commission_rate') / 100);
 
         return [
             'id' => $order->id,
@@ -40,11 +39,11 @@ class ProviderManagedOrderResource extends JsonResource
             'sold_to' => $fulfilled && $order->customer ? ['id' => $order->customer->id, 'name' => $order->customer->full_name] : null,
             'quantity' => $order->isSpecific() ? $order->quantity : null,
             'requested_unit_price' => $order->requested_unit_price,
-            'unit_price' => $unit,
-            'total_amount' => $gross ?? $total,
-            'gross_amount' => $gross,
-            'commission' => $commission,
-            'net_amount' => $gross === null ? null : $gross - $commission,
+            'unit_price' => $this->amounts->unit,
+            'total_amount' => $this->amounts->total,
+            'gross_amount' => $this->amounts->gross,
+            'commission' => $this->amounts->commission,
+            'net_amount' => $this->amounts->net,
             'commission_is_estimate' => true,
             'currency' => 'SAR', 'price_scale' => 100,
             'description' => $order->notes,

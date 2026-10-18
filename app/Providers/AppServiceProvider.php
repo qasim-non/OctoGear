@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\PaymentGateway;
+use App\Contracts\SmsSender;
+use App\Integrations\Payments\PaymentGatewayManager;
+use App\Integrations\Sms\SmsManager;
 use App\Models\Conversation;
 use App\Models\CustomerCar;
 use App\Models\DeviceToken;
@@ -38,7 +42,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(SmsSender::class, SmsManager::class);
+        $this->app->singleton(PaymentGateway::class, PaymentGatewayManager::class);
     }
 
     public function boot(): void

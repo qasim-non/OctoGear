@@ -1,5 +1,7 @@
 <?php
 
+use App\Integrations\Payments\StubPaymentGateway;
+
 return [
 
     /*
@@ -9,7 +11,7 @@ return [
     |
     | driver:
     |   - "stub"  : Simulates a successful credit-card charge (default, no keys needed).
-    |   - "moyasar" / "tap" / "paytabs" / "hyperpay" : real gateway (TODO).
+    | Real gateways require an adapter and lifecycle work; see INTEGRATIONS.md.
     |
     | Set the real driver and put its secrets in your .env file. Never hardcode
     | keys here — always read them from the environment.
@@ -17,6 +19,10 @@ return [
     */
 
     'driver' => env('PAYMENT_DRIVER', 'stub'),
+
+    'drivers' => [
+        'stub' => StubPaymentGateway::class,
+    ],
 
     /*
     |--------------------------------------------------------------------------
