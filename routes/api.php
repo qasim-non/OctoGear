@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminOrderController;
+use App\Http\Controllers\Api\Admin\AdminProfileController;
 use App\Http\Controllers\Api\Admin\AdminStoreController;
 use App\Http\Controllers\Api\Admin\AdminStoreRequestController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
@@ -39,7 +40,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['locale'])->group(function () {
 
-    Route::middleware('auth:sanctum')->prefix('media')->name('media.')->group(function () {
+    Route::middleware('auth:sanctum,admin')->prefix('media')->name('media.')->group(function () {
         Route::get('/stores/{store}/pictures/{storePicture}', [MediaController::class, 'storePicture'])->name('store-pictures.show');
         Route::get('/stores/{store}/cars/{storeCar}/pictures/{storeCarPicture}', [MediaController::class, 'storeCarPicture'])->name('store-car-pictures.show');
         Route::get('/stores/{store}/registration', [MediaController::class, 'storeRegistration'])->name('store-registration.show');
@@ -53,7 +54,7 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:customerLogin');
         Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:customerLogin');
         Route::post('/register', [AuthController::class, 'register']); // Done
-        Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+        Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum,admin');
         Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:adminLogin');
     });
 
@@ -73,7 +74,8 @@ Route::middleware(['locale'])->group(function () {
     Route::get('/cms/{cms}', [CmsController::class, 'show']); // Done
 
     // Admin panel — web dashboard. Tokens come from /auth/admin/login.
-    Route::middleware(['auth:sanctum', 'admin.active'])->prefix('admin')->group(function () {
+    Route::middleware(['auth:sanctum,admin', 'admin.active'])->prefix('admin')->group(function () {
+        Route::get('/profile', [AdminProfileController::class, 'show']);
         Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
         Route::get('/store-requests', [AdminStoreRequestController::class, 'index']);
@@ -150,6 +152,7 @@ Route::middleware(['locale'])->group(function () {
 
             Route::get('/orders/general', [ProviderOrderController::class, 'general']);
             Route::get('/orders/specific', [ProviderOrderController::class, 'specific']);
+            Route::get('/conversations/{conversation}/offers', [ProviderOrderController::class, 'chatOffers'])->whereNumber('conversation');
             Route::get('/orders/offers', [ProviderOrderController::class, 'offers']);
             Route::get('/orders/offers/{offer}', [ProviderOrderController::class, 'showOffer']);
             Route::get('/orders/paid', [ProviderOrderController::class, 'paidOrders']);

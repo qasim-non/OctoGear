@@ -1,5 +1,38 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
+## Admin web session and bearer authentication — 2026-10-19
+
+The Angular/PrimeNG/Sakai web project lives at
+`C:/Tamkkun/OctoGearProject/OctoGear-admin`. Admin and shared media/logout routes
+now use `auth:sanctum,admin`: the existing user Sanctum guard remains bound to
+users, and Laravel falls back to the existing admin guard for Admin-owned bearer
+tokens. Admin routes retain `admin.active`; mobile-only routes retain their
+original guard and role checks. This fixes tokens issued by the existing admin
+login being rejected by the users-only guard. Login/logout response contracts,
+inactive/blocked rules, token expiry, and role policy behavior are unchanged.
+
+New `GET /api/admin/profile` returns the authenticated administrator through
+`AdminProfileResource` in the standard success envelope: `employee_id`, `name`,
+`email`, `assigned_role`, `status`. It never returns password, mobile or token
+fields. The response is `Cache-Control: no-store, private`. Missing/invalid auth
+returns 401; customer/provider identity or blocked admin returns 403. No input,
+migration, new account or permission rule is required.
+
+The browser calls existing `POST /api/auth/admin/login` with `{email,password}`,
+then this profile endpoint with the returned bearer token before entering the
+admin shell. Existing `POST /api/auth/logout` revokes the current token. No admin
+self-service password-reset route exists; the web explains contacting an
+administrator rather than simulating email delivery.
+
+Verification: `AdminSessionTest` passes 5 real-bearer tests / 21 assertions. The
+full suite ran 551 tests / 4679 assertions, with 548 passing and 3 failures.
+The two OTP rate-limit expectations and the general-order missing-quantity
+assertion reproduce on unchanged HEAD `dc378658e22b7a8eaea8967232a9603cd95221a2`;
+they were not changed by this session slice. Tests used isolated SQLite memory
+databases. See the web project's `docs/LARAVEL_SESSION_STEP.md` for the request
+flow and review guide. No retained data or production deployment was modified.
+
+
 ## Provider notifications and bounded page reads — 2026-10-17
 
 Shared notification inbox/read APIs and Android device registration support active
@@ -537,3 +570,44 @@ commit 341b780 that disallows cancellation after acceptance.
 ## Integration replacement and private cloud media
 
 See [INTEGRATIONS.md](INTEGRATIONS.md) for the SMS/payment adapter boundaries, private S3 image configuration, existing-media behavior and remaining live-provider activation work. `SMS_DRIVER=log` and `PAYMENT_DRIVER=stub` are simulations.
+
+## Edit provider offers from chat — 2026-10-19
+
+User action: A provider in an existing customer conversation sees an Edit offer
+action with the sole editable offer's request, part, store and total. Multiple
+editable offers open a paginated chooser for that customer, across owned stores
+and requests; the conversation's offer is identified and ordered first. The
+existing offer editor changes price, notes and optional photos and returns to chat.
+
+Roles/permissions: Provider-only, participant-authorized lookup; the server derives
+the customer from the conversation, never a supplied customer ID. Only the
+provider's pending offers on pending requests are selectable. Existing locked
+update policies and transactions remain authoritative if selection races editing.
+Accepted/paid orders and customer-owned request fields retain their current rules.
+
+API: GET /provider/conversations/7/offers?page=1 returns editable offers scoped
+to an authorized conversation. Older servers return unavailable instead of silently
+ignoring a customer filter. It returns the existing
+ProviderOrderOfferResource envelope, e.g. data: [{id:11, order_id:1,
+order_status:"pending", store:{id:1,name:"Parts"}, price:12345,
+status:"pending", can_edit:true, can_withdraw:true, ...}], with existing meta.
+Only editable offers for that conversation's customer are returned. The existing
+/provider/orders/offers list and order_id behavior remain unchanged.
+Existing multipart POST + _method=PUT saves the offer. No schema/backfill,
+new payment transition, automatic message, notification or write retry is added.
+
+Loading/empty/error/offline: Compact loading state; no-editable-offers explanation;
+explicit refresh/retry. Pagination retains loaded rows after failure. Account and
+locale changes discard stale results. No polling. Editor entry reloads the selected
+offer; returning refreshes the chooser and existing offer caches are invalidated.
+
+Navigation: A typed provider Chats child editor uses orderId/offerId only; pushing
+and popping preserves the conversation and unsent message. No conversation is
+created by browsing offers. A provider-order preview exposes the shortcut after
+its first explicit message creates a conversation.
+
+Locale/RTL: Arabic and English, directional layout, scrollable chooser and editor,
+large text and keyboard-safe chat; use existing theme, money and error helpers.
+Tests: scope/ownership, legacy/direct/offer chats, pagination/validation, locked
+and deleted records, single/multiple/empty/error states, stale session/locale and
+pagination responses, edit-return/draft retention, Arabic/English large text.

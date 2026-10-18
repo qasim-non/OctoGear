@@ -15,8 +15,10 @@ use App\Http\Resources\ProviderGeneralOrderResource;
 use App\Http\Resources\ProviderManagedOrderResource;
 use App\Http\Resources\ProviderOrderOfferResource;
 use App\Http\Resources\ProviderPaidOrderResource;
+use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\OrderOffer;
+use App\Repositories\ProviderOfferRepository;
 use App\Services\OrderOfferService;
 use App\Services\OrderService;
 use App\Services\ProviderOrderReadService;
@@ -27,6 +29,7 @@ class ProviderOrderController extends Controller
         private OrderOfferService $offers,
         private OrderService $orders,
         private ProviderOrderReadService $read,
+        private ProviderOfferRepository $offerQueries,
     ) {}
 
     public function general(ProviderGeneralOrdersRequest $request)
@@ -68,14 +71,26 @@ class ProviderOrderController extends Controller
 
     public function offers(ProviderOffersRequest $request)
     {
-        $user = auth()->user();
+        return $this->offerList($request);
+    }
 
-        $offers = OrderOffer::query()
-            ->with(['order.component', 'store', 'images'])
-            ->when($request->filled('order_id'), fn ($q) => $q->where('order_id', $request->integer('order_id')))
-            ->whereHas('store', fn ($s) => $s->where('user_id', $user->id))
-            ->latest()->orderByDesc('id')
-            ->paginate(15);
+    public function chatOffers(ProviderOffersRequest $request, Conversation $conversation)
+    {
+        $this->authorize('viewProviderOffers', $conversation);
+
+        return $this->offerList($request, $conversation);
+    }
+
+    private function offerList(ProviderOffersRequest $request, ?Conversation $conversation = null)
+    {
+        $user = $request->user();
+
+        $offers = $this->offerQueries->paginateFor(
+            $user,
+            $request->integer('page', 1),
+            $request->filled('order_id') ? $request->integer('order_id') : null,
+            $conversation,
+        );
 
         return $this->paginated($offers->through(fn ($offer) => new ProviderOrderOfferResource($offer)));
     }

@@ -35,6 +35,11 @@ class ConversationPolicy
         return $this->isParticipant($user, $conversation);
     }
 
+    public function viewProviderOffers(User $user, Conversation $conversation): bool
+    {
+        return $user->isProvider() && $user->id === $conversation->provider_id;
+    }
+
     public function create(User $user): bool
     {
         return $user->isCustomer() || $user->isProvider();
