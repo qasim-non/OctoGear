@@ -665,3 +665,38 @@ migration was run. A read-only audit found 12 duplicate participant pairs with
 24 conversations and 90 messages; consolidating those histories and applying
 the unique constraint remain pending explicit approval. Existing unrelated admin
 service/test changes were preserved.
+
+## Admin user city filtering — 2026-10-20
+
+GET /api/admin/users, /api/admin/users/customers and /api/admin/users/providers
+accept optional city_id (positive integer, existing non-deleted city). Omitted,
+null or empty retains all cities. City combines with existing name/mobile/status/
+type filters before the fixed 25-row pagination; route type enforcement remains.
+Invalid, unknown and deleted IDs return localized 422 validation errors.
+The Angular admin lazily reuses GET /api/reference/cities for searchable options.
+No new endpoint, response field, permission rule or migration is needed.
+See the admin project's docs/CITY_FILTER.md and tests/Feature/AdminCityFilterTest.php.
+
+### Complete admin city selector — 2026-10-20
+
+GET /api/admin/cities/options returns the complete non-deleted city catalog in
+the standard success/data envelope: each item contains only id, name_en, name_ar.
+It is protected by auth:sanctum,admin and admin.active, ordered by name_en/id,
+and has no pagination or search parameters. Cache-Control is no-store, private;
+the admin app retains the reference data in memory for local bilingual search.
+CityController shares its existing catalog query between this selector and the
+unchanged public paginated /reference/cities endpoint. No migration or retained
+data mutation. This supersedes the web's earlier paginated city-search design.
+AdminCityOptionsTest covers full catalogs over 50 rows, fields, deleted cities,
+ordering, both locales, empty data and guest/customer/provider/blocked-admin denial.
+
+Web refresh now revalidates its tab-scoped saved bearer using the existing
+admin/profile endpoint. Laravel login, token expiry, guards and logout are unchanged.
+
+Verification: city options/filter/reference/admin-session subset passes 22 tests
+with 238 assertions; targeted Pint and PHP syntax pass. Full suite: 567 tests,
+4,573 assertions, 562 passing, three failures (two existing OTP-limit expectations
+and the general-order quantity expectation) and two demo image write/copy errors
+in GeneralOrderDetailsTest and ProviderDemoSeederTest. These match previously
+documented problem areas; their implementations were not changed. Tests use
+isolated SQLite memory databases, not retained application data.

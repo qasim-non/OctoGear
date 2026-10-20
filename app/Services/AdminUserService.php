@@ -25,6 +25,7 @@ class AdminUserService
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($name, fn ($query) => $query->where('full_name', 'like', "%{$name}%"))
             ->when($mobile, fn ($query) => $query->where('mobile', 'like', "%{$mobile}%"))
+            ->when($filters['city_id'] ?? null, fn ($query, $cityId) => $query->where('city_id', $cityId))
             ->latest()
             ->paginate(25);
     }

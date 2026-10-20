@@ -76,6 +76,7 @@ Route::middleware(['locale'])->group(function () {
     // Admin panel — web dashboard. Tokens come from /auth/admin/login.
     Route::middleware(['auth:sanctum,admin', 'admin.active'])->prefix('admin')->group(function () {
         Route::get('/profile', [AdminProfileController::class, 'show']);
+        Route::get('/cities/options', [CityController::class, 'options']);
         Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
         Route::get('/store-requests', [AdminStoreRequestController::class, 'index']);
