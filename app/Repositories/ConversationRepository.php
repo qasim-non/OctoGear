@@ -14,14 +14,28 @@ class ConversationRepository
 
     public function findForOffer(OrderOffer $offer): ?Conversation
     {
-        return Conversation::query()->where('offer_id', $offer->id)->first();
+        $providerId = $offer->store?->user_id ?? $offer->store()->withTrashed()->value('user_id');
+
+        // A transferred store must never transfer an existing private history.
+        $original = Conversation::query()->where('offer_id', $offer->id)->first();
+        if ($original && $original->provider_id !== $providerId) {
+            return $original;
+        }
+
+        return $providerId === null ? null : $this->findPair($offer->order->customer_id, $providerId);
     }
 
     public function findForOrder(Order $order): ?Conversation
     {
-        return $order->isGeneral()
-            ? $this->findForOffer($order->acceptedOffer)
-            : Conversation::query()->where('order_id', $order->id)->first();
+        if ($order->isGeneral()) {
+            return $this->findForOffer($order->acceptedOffer);
+        }
+        $providerId = $order->fulfillmentStore()->user_id;
+        $original = Conversation::query()->where('order_id', $order->id)->first();
+
+        return $original && $original->provider_id !== $providerId
+            ? $original
+            : $this->findPair($order->customer_id, $providerId);
     }
 
     public function loadOrderContext(Order $order, bool $lock = false): Order
@@ -36,10 +50,7 @@ class ConversationRepository
     {
         return $order->isGeneral()
             ? $this->firstOrCreateForOffer($order->acceptedOffer, $order->customer_id, $providerId)
-            : Conversation::query()->firstOrCreate(['order_id' => $order->id], [
-                'customer_id' => $order->customer_id,
-                'provider_id' => $providerId,
-            ]);
+            : $this->firstOrCreatePair($order->customer_id, $providerId, ['order_id' => $order->id]);
     }
 
     public function loadOfferContext(OrderOffer $offer): OrderOffer
@@ -87,10 +98,7 @@ class ConversationRepository
 
     public function firstOrCreateDirect(int $customerId, int $providerId): Conversation
     {
-        return Conversation::query()->whereNull('offer_id')->whereNull('order_id')->firstOrCreate([
-            'customer_id' => $customerId,
-            'provider_id' => $providerId,
-        ]);
+        return $this->firstOrCreatePair($customerId, $providerId);
     }
 
     /** Call inside the service's transaction. */
@@ -115,10 +123,47 @@ class ConversationRepository
 
     public function firstOrCreateForOffer(OrderOffer $offer, int $customerId, int $providerId): Conversation
     {
-        return Conversation::query()->firstOrCreate(['offer_id' => $offer->id], [
-            'customer_id' => $customerId,
-            'provider_id' => $providerId,
+        return $this->firstOrCreatePair($customerId, $providerId, ['offer_id' => $offer->id]);
+    }
+
+    private function findPair(int $customerId, int $providerId): ?Conversation
+    {
+        return Conversation::query()->where('customer_id', $customerId)
+            ->where('provider_id', $providerId)->orderBy('id')->first();
+    }
+
+    /** All creation callers must own a transaction. */
+    private function firstOrCreatePair(int $customerId, int $providerId, array $context = []): Conversation
+    {
+        $this->lockParticipants($customerId, $providerId);
+        if ($context !== []) {
+            $original = Conversation::withTrashed()->where($context)->lockForUpdate()->first();
+            if ($original && ($original->customer_id !== $customerId || $original->provider_id !== $providerId)) {
+                // Leave participant authorization to the service; never reassign history.
+                return $original;
+            }
+        }
+        $conversation = Conversation::withTrashed()
+            ->where('customer_id', $customerId)->where('provider_id', $providerId)
+            ->orderBy('id')->lockForUpdate()->first();
+        if ($conversation) {
+            if ($conversation->trashed()) {
+                $conversation->restore();
+            }
+
+            return $conversation;
+        }
+
+        return Conversation::create([
+            'customer_id' => $customerId, 'provider_id' => $providerId, ...$context,
         ]);
+    }
+
+    /** Stable order avoids opposite-role first sends taking opposite user locks. */
+    public function lockParticipants(int $customerId, int $providerId): void
+    {
+        User::query()->whereIn('id', [$customerId, $providerId])
+            ->orderBy('id')->lockForUpdate()->get();
     }
 
     public function touch(Conversation $conversation): void

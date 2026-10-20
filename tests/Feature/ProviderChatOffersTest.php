@@ -95,12 +95,10 @@ class ProviderChatOffersTest extends TestCase
 
     public function test_legacy_and_direct_chats_resolve_customer_without_creating_messages(): void
     {
-        [$provider, $customer, , $offer] = $this->fixture();
+        [$provider, $customer, , $offer, $chat] = $this->fixture();
         $directOrder = Order::factory()->specific()->create(['customer_id' => $customer->id]);
         foreach ([null, $directOrder->id] as $orderId) {
-            $chat = Conversation::factory()->create([
-                'customer_id' => $customer->id, 'provider_id' => $provider->id, 'order_id' => $orderId,
-            ]);
+            $chat->update(['offer_id' => null, 'order_id' => $orderId]);
             $this->getJson($this->url($chat))->assertOk()->assertJsonPath('data.0.id', $offer->id);
         }
         $this->assertDatabaseCount('messages', 0);

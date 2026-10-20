@@ -611,3 +611,57 @@ large text and keyboard-safe chat; use existing theme, money and error helpers.
 Tests: scope/ownership, legacy/direct/offer chats, pagination/validation, locked
 and deleted records, single/multiple/empty/error states, stale session/locale and
 pagination responses, edit-return/draft retention, Arabic/English large text.
+
+Verification (2026-10-19): the full Flutter suite passed 506 tests. The two added
+real-provider-shell integration tests also pass, including Chats branch retention,
+back navigation, unsent drafts and keyboard layouts in both locales at 200% text.
+After correcting the provider empty-chat copy, all 28 affected chat/offer tests
+passed again. Arabic/English single-offer and chooser renders were inspected.
+Flutter analysis and custom lint reported no issues; generated routing was rebuilt
+with build_runner. Tests use fake repositories; no real customer message or offer
+was changed. No APK/device or remote deployment verification was performed.
+
+API checks: the existing offer/chat subset passed 36 tests (348 assertions), and
+the new scoped-lookup suite passed 5 tests (41 assertions). Targeted Pint and diff
+checks passed. The complete suite ran 556 tests / 4,347 assertions: 551 passed,
+three failed and two errored. The failures are two AuthRateLimitTest expectations
+and the GeneralOrderDetailsTest paid quantity-field expectation; errors are demo
+image copies in GeneralOrderDetailsTest and ProviderDemoSeederTest. Loading the
+committed controller/policy in a separate in-memory test process reproduced all
+three assertion failures and the ProviderDemoSeederTest image-copy error; the
+other seed case passed that focused rerun. Auth, payment, image storage and seed
+behavior were not changed. Existing unrelated admin edits were preserved.
+
+Rollout: serve the new API route with the updated Flutter build. No migration or
+worker change is required. Restart Flutter after rebuilding to load the typed
+route; hot reload alone may retain the old router. An older backend leaves the
+chat lookup unavailable with explicit retry rather than showing unscoped offers.
+
+## One conversation per customer/provider — 2026-10-20
+
+All direct, offer and provider-order entry points reuse the customer/provider
+pair, across stores and requests. GET previews remain read-only. The existing
+offer/order fields retain the originating reference, not the chat's identity.
+Existing authorization, eligibility, retry receipts, notifications and editor
+lookup remain in force. Pair creation and sends lock participants in ID order;
+a database unique pair constraint also protects against concurrent API callers.
+Soft-deleted pairs are restored on an authorized creation rather than duplicated.
+
+The additive pair-identity migration adds database uniqueness only when no
+duplicate pairs exist. Otherwise it stops without modifying conversations or
+messages. Consolidating existing histories is a separate operation requiring
+explicit approval. No reset, history merge or live migration is part of this step.
+
+Checks cover both roles and entry directions, multiple offers/orders/stores,
+participant isolation, soft deletion, database uniqueness, non-destructive duplicate detection,
+retry replay and isolation. Tests use isolated SQLite.
+
+Verification (2026-10-20): 59 focused chat tests passed (586 assertions), Pint and
+whitespace checks passed, and isolated seed verification passed with 75 chats and
+344 messages. The full suite ran 560 tests / 4,757 assertions: 557 passed and the
+three previously documented failures remain (two AuthRateLimitTest expectations
+and GeneralOrderDetailsTest's quantity-field expectation). No retained database
+migration was run. A read-only audit found 12 duplicate participant pairs with
+24 conversations and 90 messages; consolidating those histories and applying
+the unique constraint remain pending explicit approval. Existing unrelated admin
+service/test changes were preserved.

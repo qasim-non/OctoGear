@@ -1,3 +1,18 @@
+## Shared conversation identity — 2026-10-20
+
+The customer/provider pair identifies the conversation across direct, offer and
+provider-order entry points. Existing offer_id/order_id fields are originating
+references only. All first-send paths use the same locked pair lookup; a unique
+database constraint covers both active and soft-deleted pairs. Authorized creation
+restores a soft-deleted pair rather than creating another one. Existing policy,
+store eligibility, idempotency, read-state and notification behavior is retained.
+Read-only previews never create or restore conversations.
+
+The additive migration stops without changing records if duplicate pairs exist.
+Existing histories must be consolidated with explicit approval before applying
+that constraint. No automatic history merge or database reset is included.
+This supersedes older descriptions of one conversation per offer or direct order.
+
 # OctoGear (YARDY) - API Code Guide
 
 ## Provider notifications and bounded page reads — 2026-10-17

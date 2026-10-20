@@ -75,10 +75,11 @@ class ProviderDemoSeederTest extends TestCase
             $this->getJson('/api/conversations?with_messages=true')->assertOk();
             foreach (['direct-awaiting_payment', 'direct-paid', 'direct-completed', 'offer-2', 'offer-3', 'offer-4'] as $key) {
                 $order = Order::where('notes', 'like', '[PROVIDER-DEMO:'.$key.'-%')->firstOrFail();
-                $chat = Conversation::where($order->isGeneral() ? 'offer_id' : 'order_id', $order->isGeneral() ? $order->accepted_offer_id : $order->id)->firstOrFail();
+                $chat = Conversation::where('customer_id', $order->customer_id)->where('provider_id', $provider->id)->firstOrFail();
                 $this->getJson('/api/provider/orders/'.$order->id.'/conversation')->assertOk()
                     ->assertJsonPath('data.conversation.id', $chat->id);
-                $this->getJson('/api/conversations/'.$chat->id.'/timeline')->assertOk()->assertJsonCount(4, 'data.messages');
+                $this->getJson('/api/conversations/'.$chat->id.'/timeline')->assertOk()
+                    ->assertJsonCount(min(40, $chat->messages()->count()), 'data.messages');
             }
             $this->assertGreaterThan(0, DB::table('messages')->join('conversations', 'conversations.id', '=', 'messages.conversation_id')
                 ->where('conversations.provider_id', $provider->id)->where('sender_id', '!=', $provider->id)->where('is_read', false)->count());

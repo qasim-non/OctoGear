@@ -67,7 +67,7 @@ The dataset contains:
 | Orders | 253 (original 100 plus 153 provider scenarios) |
 | Offers / offer pictures | 132 / 132 |
 | Ratings | 50 |
-| Conversations / messages | 86 / 344 |
+| Conversations / messages | 75 / 344 |
 
 Orders include general and specific requests across pending, awaiting-payment, paid, completed, rejected, and cancelled states. Bids belong only to general orders; each selected offer is linked from the order and competing pending offers are marked not selected. General offer prices are whole-request totals; specific-order payments retain their existing quantity behavior. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. The original offers and conversations use active stores in the customer's city; the provider walkthrough also demonstrates cross-city discovery and offers.
 
@@ -102,8 +102,9 @@ The additive provider scenarios contain:
   explicitly rejected, accepted and not-selected offers, including cancellation,
   awaiting-payment, paid and completed history. A second existing store supplies
   competing offers; selected totals and accepted-offer links agree.
-- 36 contextual conversations (21 offer chats and 15 accepted direct-order chats),
-  with four messages each, including read history and unread incoming messages.
+- 25 customer/provider conversations shared by 21 offer and 15 accepted
+  direct-order scenarios, preserving all 144 messages from those scenarios,
+  including read history and unread incoming messages.
   Completed orders retain existing chat history for reconciliation.
 - Paid payment rows with correct whole-request or quantity-based amounts and
   varied dates for dashboard sales. These are synthetic records only; seeding

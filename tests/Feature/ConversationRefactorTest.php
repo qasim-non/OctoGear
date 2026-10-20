@@ -244,18 +244,17 @@ class ConversationRefactorTest extends TestCase
             ->assertJsonValidationErrors('page');
     }
 
-    public function test_direct_creation_does_not_reuse_an_offer_conversation_for_the_same_participants(): void
+    public function test_direct_creation_reuses_an_offer_conversation_for_the_same_participants(): void
     {
         [, $provider, , , , $url] = $this->offerContext();
         $offerId = $this->postJson("$url/messages", ['content' => 'Offer', 'client_message_id' => (string) Str::uuid()])
             ->assertOk()->json('data.conversation.id');
         $direct = $this->postJson('/api/conversations', ['provider_id' => $provider->id])->assertOk()
-            ->assertJsonPath('data.offer_id', null)->assertJsonPath('data.store', null)
             ->assertJsonPath('data.can_send', true)->assertJsonMissingPath('data.latest_message');
-        $this->assertNotSame($offerId, $direct->json('data.id'));
+        $this->assertSame($offerId, $direct->json('data.id'));
         $this->postJson('/api/conversations', ['provider_id' => $provider->id])->assertOk()
             ->assertJsonPath('data.id', $direct->json('data.id'));
-        $this->assertDatabaseCount('conversations', 2);
+        $this->assertDatabaseCount('conversations', 1);
     }
 
     public function test_inbox_latest_messages_and_unread_counts_are_scoped_per_conversation(): void

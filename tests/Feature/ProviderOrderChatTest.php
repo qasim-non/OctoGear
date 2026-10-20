@@ -105,17 +105,17 @@ class ProviderOrderChatTest extends TestCase
         $this->assertDatabaseCount('conversations', 1);
     }
 
-    public function test_direct_orders_keep_order_context_and_do_not_reuse_legacy_pair_chats(): void
+    public function test_direct_orders_reuse_legacy_pair_chat_and_preserve_reconciliation(): void
     {
         [$provider, $customer, $store, $order, $url] = $this->context(false, OrderStatus::Paid);
         $legacy = Conversation::factory()->create(['customer_id' => $customer->id, 'provider_id' => $provider->id]);
-        $this->getJson($url)->assertOk()->assertJsonPath('data.conversation', null)->assertJsonPath('data.offer_id', null);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.conversation.id', $legacy->id)->assertJsonPath('data.offer_id', null);
         $payload = $this->payload();
         $id = $this->postJson("$url/messages", $payload)->assertOk()
-            ->assertJsonPath('data.conversation.order_id', $order->id)
-            ->assertJsonPath('data.conversation.store.id', $store->id)
+            ->assertJsonPath('data.conversation.order_id', null)
+            ->assertJsonPath('data.conversation.store', null)
             ->assertJsonPath('data.conversation.offer_id', null)->json('data.conversation.id');
-        $this->assertNotSame($legacy->id, $id);
+        $this->assertSame($legacy->id, $id);
         $this->postJson("$url/messages", $payload)->assertOk()->assertJsonPath('data.conversation.id', $id);
         $this->assertDatabaseCount('messages', 1);
         $this->postJson('/api/conversations', ['customer_id' => $customer->id])->assertOk()
@@ -123,11 +123,11 @@ class ProviderOrderChatTest extends TestCase
 
         $chat = app(ConversationRepository::class)->loadRealtimeSummary(Conversation::findOrFail($id));
         $snapshot = (new ChatRealtimeConversationResource(app(ChatService::class)->details($chat, $provider)))->resolve();
-        $this->assertSame($order->id, $snapshot['order_id']);
-        $this->assertSame($store->id, $snapshot['store']['id']);
+        $this->assertNull($snapshot['order_id']);
+        $this->assertNull($snapshot['store']);
         Sanctum::actingAs($customer);
         $this->getJson('/api/conversations?with_messages=true')->assertOk()
-            ->assertJsonPath('data.0.order_id', $order->id);
+            ->assertJsonPath('data.0.id', $id);
         $this->postJson("/api/conversations/$id/messages", $this->payload('Delivery address'))->assertCreated();
 
         // Completion removes dashboard initiation, while participant history remains usable.
@@ -138,8 +138,9 @@ class ProviderOrderChatTest extends TestCase
         $this->getJson("/api/conversations/$id")->assertOk()->assertJsonPath('data.can_send', true);
         $this->postJson("/api/conversations/$id/messages", $this->payload('Thank you'))->assertCreated();
         $order->storeCarComponent->delete();
-        $this->getJson("/api/conversations/$id")->assertOk()->assertJsonPath('data.can_send', false);
-        $this->postJson("/api/conversations/$id/messages", $this->payload('Unavailable'))->assertForbidden();
+        // The reused legacy pair chat has no dependency on this order's inventory.
+        $this->getJson("/api/conversations/$id")->assertOk()->assertJsonPath('data.can_send', true);
+        $this->postJson("/api/conversations/$id/messages", $this->payload('Still available'))->assertCreated();
     }
 
     public static function orderKinds(): array

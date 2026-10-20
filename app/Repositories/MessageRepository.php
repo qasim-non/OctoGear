@@ -51,12 +51,6 @@ class MessageRepository
             ->update(['is_read' => true]);
     }
 
-    /** Serialize a sender's retry keys across conversations inside a transaction. */
-    public function lockSender(User $sender): void
-    {
-        User::query()->whereKey($sender->id)->lockForUpdate()->firstOrFail();
-    }
-
     public function findRetry(User $sender, string $key): ?Message
     {
         return Message::withTrashed()->where('sender_id', $sender->id)

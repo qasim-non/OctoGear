@@ -539,8 +539,10 @@ class DemoDataSeeder extends Seeder
 
     private function providerConversation(int $orderId, ?int $offerId, int $customerId, int $providerId, CarbonInterface $createdAt): void
     {
-        $conversationId = SeedRecords::once('conversations', $offerId === null ? ['order_id' => $orderId] : ['offer_id' => $offerId], [
+        $conversationId = SeedRecords::once('conversations', [
             'customer_id' => $customerId, 'provider_id' => $providerId,
+        ], [
+            'order_id' => $offerId === null ? $orderId : null, 'offer_id' => $offerId,
             'created_at' => $createdAt, 'updated_at' => $createdAt,
         ]);
         $messages = [

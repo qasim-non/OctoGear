@@ -108,7 +108,10 @@ class ChatService
     {
         $customerId = $user->isProvider() ? (int) $data['customer_id'] : $user->id;
         $providerId = $user->isProvider() ? $user->id : (int) $data['provider_id'];
-        $conversation = $this->conversations->firstOrCreateDirect($customerId, $providerId);
+        $conversation = DB::transaction(
+            fn () => $this->conversations->firstOrCreateDirect($customerId, $providerId),
+            3,
+        );
 
         // Preserve the legacy creation response, which has no latest-message field.
         return $this->present($this->conversations->loadForDisplay($conversation, $user, withActivity: false));
@@ -167,8 +170,8 @@ class ChatService
     public function send(Conversation $conversation, User $sender, array $data, bool $replayOnly = false): Message
     {
         return DB::transaction(function () use ($conversation, $sender, $data, $replayOnly) {
-            // Sender lock also serializes a retry key used on different chats.
-            $this->messages->lockSender($sender);
+            // Participant locks also serialize sender retry keys across chats.
+            $this->conversations->lockParticipants($conversation->customer_id, $conversation->provider_id);
             $chat = $this->conversations->lockConversation($conversation->id);
             Gate::forUser($sender)->authorize('view', $chat);
             $key = $data['client_message_id'] ?? null;

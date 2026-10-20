@@ -26,7 +26,7 @@ class AdminUserService
             ->when($name, fn ($query) => $query->where('full_name', 'like', "%{$name}%"))
             ->when($mobile, fn ($query) => $query->where('mobile', 'like', "%{$mobile}%"))
             ->latest()
-            ->paginate(15);
+            ->paginate(25);
     }
 
     public function show(User $user): User

@@ -172,7 +172,7 @@ class OfferChatTest extends TestCase
         $this->getJson('/api/conversations?with_messages=1')->assertJsonCount(1, 'data')->assertJsonPath('data.0.latest_message.content', 'Hello');
     }
 
-    public function test_offer_threads_are_separate_and_cross_chat_retry_cannot_create_empty_chat(): void
+    public function test_offers_share_the_pair_conversation_and_retry_receipt(): void
     {
         [$customer, $store, $order, $offer, $url] = $this->setupOffer();
         $payload = ['content' => 'Hello', 'client_message_id' => (string) Str::uuid()];
@@ -180,10 +180,10 @@ class OfferChatTest extends TestCase
         $order2 = Order::factory()->create(['customer_id' => $customer->id]);
         $offer2 = OrderOffer::factory()->create(['order_id' => $order2->id, 'store_id' => $store->id, 'status' => OfferStatus::Pending]);
         $url2 = "/api/customer/orders/{$order2->id}/offers/{$offer2->id}/conversation";
-        $this->postJson("$url2/messages", $payload)->assertConflict();
+        $this->postJson("$url2/messages", $payload)->assertOk()->assertJsonPath('data.conversation.id', $first);
         $this->assertDatabaseCount('conversations', 1);
         $this->postJson("$url2/messages", ['content' => 'Another request', 'client_message_id' => (string) Str::uuid()])->assertOk();
-        $this->assertDatabaseCount('conversations', 2);
+        $this->assertDatabaseCount('conversations', 1);
         $this->postJson("/api/conversations/$first/messages", ['content' => 'Newest message', 'client_message_id' => (string) Str::uuid()])->assertCreated();
         $this->getJson('/api/conversations')->assertJsonPath('data.0.id', $first)->assertJsonPath('data.0.latest_message.content', 'Newest message');
     }

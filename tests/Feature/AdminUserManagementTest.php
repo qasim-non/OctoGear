@@ -77,14 +77,22 @@ class AdminUserManagementTest extends TestCase
     public function test_admin_can_list_customers_via_dedicated_route(): void
     {
         User::factory()->customer()->create(['full_name' => 'Customer One']);
-        User::factory()->customer()->create(['full_name' => 'Customer Two']);
+        User::factory()->customer()->count(25)->create(['full_name' => 'Customer Two']);
         User::factory()->provider()->create(['full_name' => 'Provider One']);
 
         $this->actingAs(Admin::factory()->create(), 'sanctum')
             ->getJson('/api/admin/users/customers')
             ->assertOk()
-            ->assertJsonCount(2, 'data')
-            ->assertJsonPath('meta.total', 2);
+            ->assertJsonCount(25, 'data')
+            ->assertJsonPath('meta.per_page', 25)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 26);
+
+        $this->getJson('/api/admin/users/customers?page=2')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.total', 26);
     }
 
     public function test_admin_can_list_providers_via_dedicated_route(): void

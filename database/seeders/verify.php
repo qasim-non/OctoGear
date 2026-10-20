@@ -138,7 +138,7 @@ try {
 
     $seed('Database\\Seeders\\DemoDataSeeder');
     $firstCounts = $counts();
-    foreach (['users' => 74, 'admin' => 5, 'stores' => 15, 'customer_cars' => 39, 'stores_cars' => 45, 'store_car_components' => 450, 'orders' => 253, 'ratings' => 50, 'conversations' => 86, 'messages' => 344, 'store_requests' => 25] as $table => $expected) {
+    foreach (['users' => 74, 'admin' => 5, 'stores' => 15, 'customer_cars' => 39, 'stores_cars' => 45, 'store_car_components' => 450, 'orders' => 253, 'ratings' => 50, 'conversations' => 75, 'messages' => 344, 'store_requests' => 25] as $table => $expected) {
         $assert($firstCounts[$table] === $expected, "{$table}: expected {$expected}, found {$firstCounts[$table]}");
     }
     $assert(DB::select('PRAGMA foreign_key_check') === [], 'Foreign-key integrity failed.');
@@ -179,12 +179,13 @@ try {
     }
     $chats = DB::table('conversations')->where('provider_id', $providerId)
         ->where(fn ($q) => $q->whereNotNull('offer_id')->orWhereNotNull('order_id'))->get();
-    $assert($chats->count() === 36, 'Expected 21 offer chats and 15 direct-order chats.');
+    $assert($chats->count() === 25, 'Expected one provider conversation for each of the 25 participating customers.');
+    $assert(DB::table('messages')->whereIn('conversation_id', $chats->pluck('id'))->count() === 144, 'All 36 contextual message histories must remain in the shared chats.');
     foreach ($chats as $chat) {
         $assert(($chat->offer_id === null) !== ($chat->order_id === null), 'Chat must have exactly one context.');
         $orderId = $chat->order_id ?? DB::table('order_offers')->where('id', $chat->offer_id)->value('order_id');
         $assert(DB::table('orders')->where('id', $orderId)->value('customer_id') === $chat->customer_id, 'Chat participant does not own the order.');
-        $assert(DB::table('messages')->where('conversation_id', $chat->id)->count() === 4, 'Missing conversation history.');
+        $assert(DB::table('messages')->where('conversation_id', $chat->id)->count() >= 4, 'Missing conversation history.');
     }
     $assert(DB::table('order_offers')->whereNotIn('id', DB::table('offer_images')->select('order_offer_id'))->count() === 0, 'A demo offer is missing its picture.');
     foreach (DB::table('orders')->get() as $order) {
