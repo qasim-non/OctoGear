@@ -13,6 +13,7 @@ class StoreIndexRequest extends BaseRequest
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'name' => ['nullable', 'string', 'max:100'],
             'mobile' => ['nullable', 'string', 'max:20'],
+            'owner_id' => ['nullable', 'integer', 'min:1', Rule::exists('users', 'id')->whereNull('deleted_at')],
         ];
     }
 
@@ -22,6 +23,9 @@ class StoreIndexRequest extends BaseRequest
             'status.in' => __('auth.validation.admin.stores.status_invalid'),
             'name.max' => __('auth.validation.admin.name.max'),
             'mobile.max' => __('auth.validation.admin.mobile.max'),
+            'owner_id.integer' => __('auth.validation.admin.stores.owner_invalid'),
+            'owner_id.min' => __('auth.validation.admin.stores.owner_invalid'),
+            'owner_id.exists' => __('auth.validation.admin.stores.owner_missing'),
         ];
     }
 }

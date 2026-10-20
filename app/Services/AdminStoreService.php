@@ -16,10 +16,12 @@ class AdminStoreService
         $status = $filters['status'] ?? null;
         $name = $filters['name'] ?? null;
         $mobile = $filters['mobile'] ?? null;
+        $ownerId = $filters['owner_id'] ?? null;
 
         return Store::query()
             ->with($this->storeRelations())
             ->withCount('cars')
+            ->when($ownerId, fn ($query) => $query->where('user_id', $ownerId))
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($name, fn ($query) => $query->where('name', 'like', "%{$name}%"))
             ->when($mobile, fn ($query) => $query->where('mobile', 'like', "%{$mobile}%"))

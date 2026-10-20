@@ -126,6 +126,8 @@ return [
             ],
             'stores' => [
                 'status_invalid' => 'Invalid store status.',
+                'owner_invalid' => 'Store owner must be a valid ID.',
+                'owner_missing' => 'Selected store owner does not exist.',
             ],
             'name' => [
                 'max' => 'Name must not exceed 100 characters.',

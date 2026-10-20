@@ -700,3 +700,31 @@ and the general-order quantity expectation) and two demo image write/copy errors
 in GeneralOrderDetailsTest and ProviderDemoSeederTest. These match previously
 documented problem areas; their implementations were not changed. Tests use
 isolated SQLite memory databases, not retained application data.
+
+## Admin provider stores — 2026-10-20
+
+GET /api/admin/stores accepts optional owner_id: a positive integer referencing
+an existing non-deleted user. It combines with name/mobile/status before the
+existing 15-store pagination and newest-first ordering. Omitted/null/empty owner
+preserves the all-store view. Invalid or missing owners return localized 422
+errors. This general owner filter does not add a provider-type restriction.
+
+StoreIndexRequest validates the new input; the unchanged AdminStoreController
+passes it to AdminStoreService, which applies stores.user_id. Existing admin
+middleware, eager-loaded owner/city, counts, resource fields and store status
+behavior are unchanged. No new route, migration or worker change is required.
+
+The Angular provider detail loads owned stores only on Show stores, rejects rows
+with another owner, and offers pagination/refresh/retry. Provider user lists keep
+25-row pages. Account block/unblock does not alter store activation. Read the web
+project's docs/PROVIDERS_STEP.md for the full incremental review walkthrough.
+Ship this filter with the new web screen; no production deployment was performed.
+
+Verification: AdminProviderStoresTest and existing store/user/city/session checks
+passed 35 tests / 213 assertions; targeted Pint and PHP syntax passed. Full suite:
+573 tests / 5,002 assertions, 569 passing, three failures (the documented two
+AuthRateLimitTest expectations and general-order quantity-field expectation) and
+one demo image-write error in GeneralOrderDetailsTest. These unrelated areas were
+not changed. Tests used isolated SQLite memory databases. The web production build,
+typecheck and all 37 mocked browser tests passed, including provider behavior and
+existing customer/authentication regressions.
