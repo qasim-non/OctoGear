@@ -39,15 +39,23 @@ class AdminStoreRequestResource extends JsonResource
             'rejection_reason' => $this->rejection_reason,
             'company_ids' => array_map('intval', $this->company_ids ?? []),
             'processed_by' => $this->processed_by,
-            'user' => $this->whenLoaded('user', fn () => [
+            'review_companies' => $this->whenLoaded('reviewCompanies', fn () => $this->reviewCompanies->map(fn ($company) => [
+                'id' => $company->id,
+                'name' => $locale === 'en' ? $company->name_en : $company->name_ar,
+            ])),
+            'previous_city' => $this->whenLoaded('previousCity', fn () => $this->previousCity ? [
+                'id' => $this->previousCity->id,
+                'name' => $locale === 'en' ? $this->previousCity->name_en : $this->previousCity->name_ar,
+            ] : null),
+            'user' => $this->whenLoaded('user', fn () => $this->user ? [
                 'id' => $this->user->id,
                 'full_name' => $this->user->full_name,
                 'mobile' => $this->user->mobile,
-            ]),
-            'city' => $this->whenLoaded('city', fn () => [
+            ] : null),
+            'city' => $this->whenLoaded('city', fn () => $this->city ? [
                 'id' => $this->city->id,
                 'name' => $locale === 'en' ? $this->city->name_en : $this->city->name_ar,
-            ]),
+            ] : null),
             'created_at' => $this->created_at,
         ];
     }

@@ -728,3 +728,47 @@ one demo image-write error in GeneralOrderDetailsTest. These unrelated areas wer
 not changed. Tests used isolated SQLite memory databases. The web production build,
 typecheck and all 37 mocked browser tests passed, including provider behavior and
 existing customer/authentication regressions.
+
+### 2026-10-21: admin store request review page
+
+The Angular admin now has `/store-requests` and `/store-requests/:id` for initial
+applications, additional stores and proposed store changes. The existing API
+routes remain unchanged. GET `/api/admin/store-requests` additionally accepts:
+
+- `search`: optional string, maximum 100 characters; matches store/applicant name
+  or mobile. Search conditions are grouped with the other filters.
+- `request_type`: `new_store` or `store_change`, based on whether store_id exists.
+- `city_id`: optional positive ID of a non-deleted city.
+- `page`: positive integer. Existing 15-row pagination is retained; timestamp ties
+  now use descending ID for deterministic page boundaries.
+
+The existing optional status filter and unfiltered API default are preserved.
+The web selects pending by default. City choices reuse its existing lazy catalog;
+typing in that chooser does not issue a search request to Laravel.
+
+AdminStoreRequestService prepares detail relationships and reference labels.
+Detail and decision responses add `review_companies: [{id, name}]` and
+`previous_city: {id, name} | null`. Names follow Accept-Language; historical
+soft-deleted references remain resolvable. Serialization performs no label queries.
+The list omits these detail-only additions. A missing loaded city/user is null.
+
+Accept/reject continue through the existing service locks, transactions,
+pending/version checks, store creation/change application and inbox notifications.
+No business-rule transition, route, schema or worker configuration was changed.
+The web confirms decisions, requires a rejection reason, and reads fresh details
+after success or uncertainty. Protected images use existing authenticated media
+routes on demand, with tokens in headers and no public storage paths.
+
+Review the web project's `docs/STORE_REQUESTS_STEP.md` for the incremental file
+walkthrough and UI limits. Deploy these additive API fields/filters before or with
+the web page. No production deployment or retained-account mutation occurred.
+
+Verification: the focused review/onboarding/store-change/media set passed
+50 tests / 389 assertions. Changed PHP syntax and targeted Pint passed. The full
+isolated SQLite suite ran 579 tests / 5,059 assertions: 576 passed, with the same
+three documented failures in the two OTP-rate-limit expectations and the
+general-order quantity-field expectation. No errors occurred on this run; the
+previous image-write error did not recur. The full suite remains non-green.
+Angular typecheck/build and all 45 mocked browser tests passed; desktop and Arabic
+mobile request-review layouts were inspected. No live authenticated review was
+performed against retained records.

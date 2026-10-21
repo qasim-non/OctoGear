@@ -118,6 +118,9 @@ return [
                 'max' => 'The rejection reason must not exceed 255 characters.',
             ],
             'status_invalid' => 'Invalid store request status.',
+            'search_max' => 'Search must not exceed 100 characters.',
+            'type_invalid' => 'Invalid store request type.',
+            'page_invalid' => 'Page must be a positive integer.',
         ],
         'admin' => [
             'users' => [

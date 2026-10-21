@@ -17,7 +17,7 @@ class AdminStoreRequestController extends Controller
 
     public function index(StoreRequestIndexRequest $request)
     {
-        $paginator = $this->service->index($request->validated('status'));
+        $paginator = $this->service->index($request->validated('status'), $request->validated());
 
         return $this->paginated(
             $paginator->through(fn (StoreRequest $storeRequest) => new AdminStoreRequestResource($storeRequest)),
@@ -26,7 +26,7 @@ class AdminStoreRequestController extends Controller
 
     public function show(StoreRequest $storeRequest)
     {
-        $storeRequest->load(['user', 'city', 'pictures']);
+        $storeRequest = $this->service->show($storeRequest);
 
         return $this->success(new AdminStoreRequestResource($storeRequest));
     }
@@ -36,7 +36,7 @@ class AdminStoreRequestController extends Controller
         $this->service->accept($storeRequest, auth()->user());
 
         return $this->success(
-            new AdminStoreRequestResource($storeRequest->fresh(['user', 'city', 'pictures'])),
+            new AdminStoreRequestResource($this->service->show($storeRequest->fresh())),
             __('auth.admin.store_requests.accepted'),
         );
     }
@@ -46,7 +46,7 @@ class AdminStoreRequestController extends Controller
         $this->service->reject($storeRequest, auth()->user(), $request->validated('reason'));
 
         return $this->success(
-            new AdminStoreRequestResource($storeRequest->fresh(['user', 'city', 'pictures'])),
+            new AdminStoreRequestResource($this->service->show($storeRequest->fresh())),
             __('auth.admin.store_requests.rejected'),
         );
     }

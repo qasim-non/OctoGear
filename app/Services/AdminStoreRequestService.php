@@ -9,6 +9,7 @@ use App\Events\StoreRequestReviewed;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Admin;
 use App\Models\CarCompany;
+use App\Models\City;
 use App\Models\Store;
 use App\Models\StoreRequest;
 use App\Models\User;
@@ -31,13 +32,40 @@ class AdminStoreRequestService
 {
     public function __construct(private ImageStorageService $images, private StoreChangeRequestService $changes) {}
 
-    public function index(?string $status): LengthAwarePaginator
+    public function index(?string $status, array $filters = []): LengthAwarePaginator
     {
+        $search = $filters['search'] ?? null;
+
         return StoreRequest::query()
-            ->with(['user', 'city', 'pictures'])
+            ->with($this->reviewRelations())
             ->when($status, fn ($query) => $query->where('request_status', $status))
+            ->when($filters['city_id'] ?? null, fn ($query, $cityId) => $query->where('city_id', $cityId))
+            ->when(($filters['request_type'] ?? null) === 'new_store', fn ($query) => $query->whereNull('store_id'))
+            ->when(($filters['request_type'] ?? null) === 'store_change', fn ($query) => $query->whereNotNull('store_id'))
+            ->when($search !== null && $search !== '', fn ($query) => $query->where(fn ($matches) => $matches
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('mobile', 'like', "%{$search}%")
+                ->orWhereHas('user', fn ($owner) => $owner->where('full_name', 'like', "%{$search}%")->orWhere('mobile', 'like', "%{$search}%"))
+            ))
             ->latest()
+            ->orderByDesc('id')
             ->paginate(15);
+    }
+
+    public function show(StoreRequest $request): StoreRequest
+    {
+        $request->load($this->reviewRelations());
+        $companyIds = array_unique([...($request->company_ids ?? []), ...($request->previous_details['company_ids'] ?? [])]);
+        // Prepare labels once for detail review; resources must not query per field.
+        $request->setRelation('reviewCompanies', CarCompany::withTrashed()->whereIn('id', $companyIds)->get(['id', 'name_en', 'name_ar']));
+        $request->setRelation('previousCity', City::withTrashed()->find($request->previous_details['city_id'] ?? null));
+
+        return $request;
+    }
+
+    private function reviewRelations(): array
+    {
+        return ['user', 'city', 'pictures'];
     }
 
     /**
