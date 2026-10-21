@@ -15,6 +15,7 @@ class AdminProfileResource extends JsonResource
             'email' => $this->email,
             'assigned_role' => $this->assigned_role->value,
             'status' => $this->status->value,
+            'preferred_language' => $this->preferred_language?->value,
         ];
     }
 }

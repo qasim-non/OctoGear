@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PreferredLanguage;
 use App\Enums\UserStatus;
 use App\Enums\UserType;
 use Database\Factories\UserFactory;
@@ -21,6 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'full_name',
+        'preferred_language',
         'mobile',
         'type',
         'city_id',
@@ -37,6 +39,7 @@ class User extends Authenticatable
     {
         return [
             'type' => UserType::class,
+            'preferred_language' => PreferredLanguage::class,
             'status' => UserStatus::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',

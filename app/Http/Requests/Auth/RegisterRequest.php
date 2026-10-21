@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Enums\PreferredLanguage;
 use App\Http\Requests\BaseRequest;
+use Illuminate\Validation\Rule;
 
 class RegisterRequest extends BaseRequest
 {
@@ -10,6 +12,7 @@ class RegisterRequest extends BaseRequest
     {
         return [
             'temp_token' => ['required', 'string', 'max:64'],
+            'preferred_language' => ['sometimes', 'required', Rule::enum(PreferredLanguage::class)],
             'full_name' => ['required', 'string', 'max:100'],
             'city_id' => ['required', 'integer', 'exists:cities,id'],
         ];

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AdminStatus;
+use App\Enums\PreferredLanguage;
 use App\Enums\UserStatus;
 use App\Enums\UserType;
 use App\Exceptions\BusinessRuleException;
@@ -54,6 +55,7 @@ class AuthService
         string $tempToken,
         string $fullName,
         int $cityId,
+        ?PreferredLanguage $preferredLanguage = null,
     ): array {
         $mobile = $this->otpService->consumePendingToken('registration', $tempToken);
 
@@ -65,7 +67,7 @@ class AuthService
             );
         }
 
-        $user = $this->createUser($mobile, $fullName, $cityId);
+        $user = $this->createUser($mobile, $fullName, $cityId, $preferredLanguage);
 
         return [
             'token' => $this->otpService->createToken($user),
@@ -76,9 +78,11 @@ class AuthService
         string $mobile,
         string $fullName,
         int $cityId,
+        ?PreferredLanguage $preferredLanguage = null,
     ): User {
         return User::create([
             'full_name' => $fullName,
+            'preferred_language' => $preferredLanguage,
             'mobile' => $mobile,
             'type' => UserType::Customer,
             'city_id' => $cityId,
@@ -86,7 +90,7 @@ class AuthService
         ]);
     }
 
-    public function adminLogin(string $email, string $password): array
+    public function adminLogin(string $email, string $password, ?PreferredLanguage $preferredLanguage = null): array
     {
         $admin = Admin::where('email', $email)->first();
 
@@ -111,6 +115,12 @@ class AuthService
                 messageKey: 'auth.admin.blocked',
                 statusCode: 403,
             );
+        }
+
+        // First sign-in initializes the choice; another browser must not overwrite it.
+        if ($preferredLanguage !== null) {
+            Admin::whereKey($admin->getKey())->whereNull('preferred_language')
+                ->update(['preferred_language' => $preferredLanguage->value]);
         }
 
         $token = $admin->createToken('admin-token', ['admin'])->plainTextToken;

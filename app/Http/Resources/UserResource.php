@@ -10,12 +10,13 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'        => $this->id,
+            'id' => $this->id,
             'full_name' => $this->full_name,
-            'mobile'    => $this->mobile,
-            'type'      => $this->type->value,
-            'city'      => $this->whenLoaded('city', fn () => [
-                'id'   => $this->city->id,
+            'preferred_language' => $this->preferred_language?->value,
+            'mobile' => $this->mobile,
+            'type' => $this->type->value,
+            'city' => $this->whenLoaded('city', fn () => [
+                'id' => $this->city->id,
                 'name' => app()->getLocale() === 'en'
                     ? $this->city->name_en
                     : $this->city->name_ar,

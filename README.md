@@ -803,3 +803,59 @@ retry. Read the web project's `docs/STORES_STEP.md` for the review order and lim
 `tests/Feature/AdminStoreDirectoryTest.php` covers the added contract, filters,
 stable pagination, serialization, authorization, and status isolation. Verification
 results are recorded in the web project's `PROJECT_DOCUMENTATION.md`.
+
+## Account language preference — 2026-10-21
+
+Customers and providers have a nullable `users.preferred_language` (`ar` or `en`).
+Null means the account has not selected a language; existing accounts are not
+assigned a guessed language. Registration accepts optional `preferred_language`,
+falling back to an exact supported `Accept-Language` header. Ordinary requests
+and sign-ins never overwrite an existing account preference.
+
+Authenticated `PATCH /api/profile/language` accepts
+`{"preferred_language":"ar"}` and returns that saved field in the standard
+success envelope. The route changes only the current active customer's/provider's
+account, validates the two supported values, and preserves unrelated profile data.
+`GET /api/profile` and profile-update responses include `preferred_language`.
+Flutter restores a saved account language after session validation; accounts with
+no preference save their current app language once. Explicit language changes
+update the UI immediately and save through this endpoint; failed saves offer Retry.
+Push registrations retain their existing per-device locale behavior.
+
+Deploy the additive `2026_10_21_120000_add_preferred_language_to_users_table.php`
+migration before the API/mobile update. No database reset or preference backfill.
+
+## Administrator language and Orders web review — 2026-10-21
+
+Administrators use nullable `admin.preferred_language` with the shared
+PreferredLanguage enum (`ar` / `en`). Admin login accepts optional
+`preferred_language`; after credential/status checks it initializes only a null
+preference. Existing choices win across browsers, and older login clients may
+omit it. GET `/api/admin/profile` includes the preference and never writes it.
+PATCH `/api/admin/profile/language` validates and updates only the authenticated
+admin, returning the saved value with private/no-store caching. Existing admin
+middleware remains authoritative. Accept-Language still controls response locale
+without changing database preferences. The shared request/service also retains
+its customer/provider behavior.
+
+Deploy `2026_10_21_130000_add_preferred_language_to_admin_table.php` before the
+updated admin API/web. Only this explicit additive migration was applied to the
+verified local MySQL database; no resets, seeders or preference backfill were run.
+Existing accounts choose a language on their next successful login or explicit
+signed-in change. No retained administrator account was modified for testing.
+
+Existing GET `/api/admin/orders` adds optional positive `order_id`, `city_id`,
+and `page`, plus `date_from` / `date_to` in YYYY-MM-DD format. City means the
+customer's current city. Date bounds include both selected UTC calendar days;
+invalid ranges are rejected. Filters combine before the existing 15-row
+pagination, with descending ID resolving timestamp ties. Name/mobile searches
+accept `0`. Detail/list fields add `currency: SAR`, `price_scale: 100`, specific
+requested_unit_price, localized cities and linked inventory part/vehicle labels.
+The service prepares relationships before resource serialization. Existing
+pricing rules, lifecycle operations, routes and permissions remain unchanged.
+
+The web Orders pages are read-only: request, vehicle, customer, store, offers,
+private photos and the existing payment record. No fabricated commission or
+complete payment-history claim. Read the web project's `docs/ORDERS_STEP.md`
+and `docs/LANGUAGE_PREFERENCE_STEP.md` for the incremental code review. Exact
+verification results and known baseline failures are in its PROJECT_DOCUMENTATION.md.

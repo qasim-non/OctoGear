@@ -76,6 +76,7 @@ Route::middleware(['locale'])->group(function () {
     // Admin panel — web dashboard. Tokens come from /auth/admin/login.
     Route::middleware(['auth:sanctum,admin', 'admin.active'])->prefix('admin')->group(function () {
         Route::get('/profile', [AdminProfileController::class, 'show']);
+        Route::patch('/profile/language', [AdminProfileController::class, 'updateLanguage']);
         Route::get('/cities/options', [CityController::class, 'options']);
         Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
@@ -202,6 +203,7 @@ Route::middleware(['locale'])->group(function () {
 
     Route::middleware(['auth:sanctum', 'user.active', 'auth.provider'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'show']);
+        Route::patch('/profile/language', [ProfileController::class, 'updateLanguage']);
         Route::get('/seller-application', [ProviderStoreRequestController::class, 'application']);
 
         Route::post('/push/device', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AdminRole;
 use App\Enums\AdminStatus;
+use App\Enums\PreferredLanguage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -37,6 +38,7 @@ class Admin extends Authenticatable
         'email',
         'password',
         'status',
+        'preferred_language',
     ];
 
     /**
@@ -53,6 +55,7 @@ class Admin extends Authenticatable
             'password' => 'hashed',          // Auto-hashes on set: plain text → bcrypt
             'assigned_role' => AdminRole::class,
             'status' => AdminStatus::class,
+            'preferred_language' => PreferredLanguage::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

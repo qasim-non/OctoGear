@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\PreferredLanguage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AdminLoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -46,6 +47,7 @@ class AuthController extends Controller
             $data['temp_token'],
             $data['full_name'],
             $data['city_id'],
+            PreferredLanguage::tryFrom($data['preferred_language'] ?? $request->header('Accept-Language', '')),
         );
 
         return $this->success(['token' => $result['token']], __('auth.register.completed'));
@@ -63,6 +65,7 @@ class AuthController extends Controller
         $result = $this->authService->adminLogin(
             $request->validated('email'),
             $request->validated('password'),
+            $request->enum('preferred_language', PreferredLanguage::class),
         );
 
         return $this->success(['token' => $result['token']], __('auth.login.success'));

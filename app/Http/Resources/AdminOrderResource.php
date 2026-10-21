@@ -13,17 +13,21 @@ class AdminOrderResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'currency' => 'SAR',
+            'price_scale' => 100,
             'order_type' => $this->order_type->value,
             'quantity' => $this->when($this->isSpecific(), $this->quantity),
             'images' => OrderImageResource::collection($this->whenLoaded('images')),
             'status' => $this->status->value,
             'accepted_offer_id' => $this->accepted_offer_id,
             'offered_price' => $this->offered_price,
+            'requested_unit_price' => $this->when($this->isSpecific(), $this->requested_unit_price),
             'notes' => $this->notes,
             'customer' => $this->whenLoaded('customer', fn () => [
                 'id' => $this->customer?->id,
                 'full_name' => $this->customer?->full_name,
                 'mobile' => $this->customer?->mobile,
+                'city' => $this->customer?->city ? ['id' => $this->customer->city->id, 'name' => $locale === 'en' ? $this->customer->city->name_en : $this->customer->city->name_ar] : null,
             ]),
             'description' => $this->when($this->isGeneral(), $this->notes),
             'component_id' => $this->when($this->isGeneral(), $this->component_id),
@@ -33,6 +37,9 @@ class AdminOrderResource extends JsonResource
                 'id' => $this->storeCarComponent->id,
                 'part_number' => $this->storeCarComponent->part_number,
                 'description' => $this->storeCarComponent->description,
+                'component_name' => $locale === 'en' ? $this->storeCarComponent->component?->name_en : $this->storeCarComponent->component?->name_ar,
+                'car_name' => $locale === 'en' ? $this->storeCarComponent->storeCar?->carName?->name_en : $this->storeCarComponent->storeCar?->carName?->name_ar,
+                'manufacturing_year' => $this->storeCarComponent->storeCar?->manufacturing_year,
                 'price' => $this->storeCarComponent->price,
                 'store' => [
                     'id' => $this->storeCarComponent->storeCar?->store?->id,
@@ -44,6 +51,7 @@ class AdminOrderResource extends JsonResource
                 fn () => $this->fulfillmentStore() ? [
                     'id' => $this->fulfillmentStore()->id,
                     'name' => $this->fulfillmentStore()->name,
+                    'city' => $this->fulfillmentStore()->city ? ['id' => $this->fulfillmentStore()->city->id, 'name' => $locale === 'en' ? $this->fulfillmentStore()->city->name_en : $this->fulfillmentStore()->city->name_ar] : null,
                 ] : null,
             ),
             'payment' => $this->whenLoaded('payment', fn () => $this->payment ? [

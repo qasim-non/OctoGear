@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\BusinessRuleException;
 use App\Models\Order;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use RuntimeException;
 
@@ -31,32 +32,35 @@ class AdminOrderService
         $mobile = $filters['mobile'] ?? null;
 
         return Order::query()
-            ->with(['customer', 'vehicleDetails', 'images', 'component', 'acceptedOffer.store', 'storeCarComponent.storeCar.store', 'offers.store', 'offers.images'])
+            ->with($this->orderRelations())
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($type, fn ($query) => $query->where('order_type', $type))
-            ->when($customer, fn ($query) => $query->whereHas(
+            ->when($customer !== null && $customer !== '', fn ($query) => $query->whereHas(
                 'customer',
                 fn ($query) => $query->where('full_name', 'like', "%{$customer}%")
             ))
-            ->when($mobile, fn ($query) => $query->whereHas(
+            ->when($mobile !== null && $mobile !== '', fn ($query) => $query->whereHas(
                 'customer',
                 fn ($query) => $query->where('mobile', 'like', "%{$mobile}%")
             ))
-            ->latest()
+            ->when($filters['city_id'] ?? null, fn ($query, $id) => $query->whereHas('customer', fn ($query) => $query->where('city_id', $id)))
+            ->when($filters['order_id'] ?? null, fn ($query, $id) => $query->whereKey($id))
+            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->where('created_at', '>=', CarbonImmutable::parse($date, 'UTC')->startOfDay()))
+            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->where('created_at', '<', CarbonImmutable::parse($date, 'UTC')->addDay()->startOfDay()))
+            ->latest()->orderByDesc('id')
             ->paginate(15);
     }
 
     public function show(Order $order): Order
     {
-        return $order->load([
-            'customer',
-            'vehicleDetails', 'images', 'component',
-            'storeCarComponent.storeCar.store',
-            'acceptedOffer.store',
-            'payment',
-            'offers.store',
-            'offers.images',
-        ]);
+        return $order->load([...$this->orderRelations(), 'payment']);
+    }
+
+    private function orderRelations(): array
+    {
+        return ['customer.city', 'vehicleDetails', 'images', 'component', 'acceptedOffer.store.city',
+            'storeCarComponent.component', 'storeCarComponent.storeCar.carName.carCompany',
+            'storeCarComponent.storeCar.store.city', 'offers.store', 'offers.images'];
     }
 
     public function cancel(Order $order): Order
