@@ -859,3 +859,34 @@ private photos and the existing payment record. No fabricated commission or
 complete payment-history claim. Read the web project's `docs/ORDERS_STEP.md`
 and `docs/LANGUAGE_PREFERENCE_STEP.md` for the incremental code review. Exact
 verification results and known baseline failures are in its PROJECT_DOCUMENTATION.md.
+
+## Admin payment directory — 2026-10-21
+
+GET `/api/admin/payments` is a read-only 25-row directory protected by existing
+admin middleware and PaymentPolicy::viewAdminDirectory. Standard pagination,
+private/no-store headers and localized 422 errors are preserved. It accepts
+`search` (customer name/phone or fulfillment-store name), positive `order_id`,
+`city_id`, `page`, payment `status` (pending/paid/failed/refunded), `method`
+(cash/credit_card), order `type` (general/specific), and `date_from`/`date_to`
+(YYYY-MM-DD). Filters combine; dates include both selected UTC calendar days
+based on payment.created_at, with timestamp/ID descending ordering.
+
+AdminPaymentQueryService prepares the required relationships, retaining
+soft-deleted payments/order/inventory/store context only for this admin query.
+Rows are separate payment records, not one aggregate per order. `archived`
+identifies retained soft-deleted payments. AdminPaymentResource extends the
+existing payment fields with currency SAR, price_scale 100, updated_at and a
+minimal order/customer/store/part context. `order.available` prevents web links
+to soft-deleted orders. Labels use current related records, not invented payment
+snapshots. Resource serialization performs no queries; missing context is null.
+
+Recorded payment.amount is authoritative. Pending/failed amounts are not revenue;
+this endpoint does not calculate commission or payout totals, invoke a gateway,
+or change charging/retry/refund eligibility. Existing customer payment policy
+methods and payment lifecycle APIs remain unchanged. No migration, data mutation,
+worker change or gateway activation is needed. Deploy this read endpoint before
+or with the web page; no production deployment was performed.
+
+Review `tests/Feature/AdminPaymentDirectoryTest.php` and the web project's
+`docs/PAYMENTS_STEP.md`. Its PROJECT_DOCUMENTATION.md records actual verification
+results and any remaining baseline failures.

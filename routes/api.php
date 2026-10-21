@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminOrderController;
+use App\Http\Controllers\Api\Admin\AdminPaymentController;
 use App\Http\Controllers\Api\Admin\AdminProfileController;
 use App\Http\Controllers\Api\Admin\AdminStoreController;
 use App\Http\Controllers\Api\Admin\AdminStoreRequestController;
@@ -96,6 +97,7 @@ Route::middleware(['locale'])->group(function () {
         Route::patch('/stores/{store}/status', [AdminStoreController::class, 'status']);
 
         Route::get('/orders', [AdminOrderController::class, 'index']);
+        Route::get('/payments', [AdminPaymentController::class, 'index']);
         Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
         Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
         Route::post('/orders/{order}/refund', [AdminOrderController::class, 'refund']);
