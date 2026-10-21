@@ -46,6 +46,16 @@ Vehicle data sources and retrieval dates are stored next to the data:
 
 Vehicle coverage includes current, discontinued and imported nameplates; it cannot establish every privately imported vehicle or every historical trim in Saudi Arabia. A market listing does not imply current official Saudi distribution. The year-specific NHTSA snapshot asserts only the returned year (2024 for current marques and selected historical years for discontinued ones). Historical and regional entries without a verified model year use the nameplate alone in `models`; no year range or part compatibility is invented. Overlapping sources are merged case-insensitively before writing, preserving the original catalogue spelling and explicit Arabic translations. Country is the marque's country of origin, not the current owner's country or the vehicle's assembly plant.
 
+All seeded company names, car names and model entries keep English-only `name_en` values (for example,
+`Toyota`, `Camry` and `Camry 2024`). Their Arabic `name_ar` values combine the catalogue
+name and existing Arabic translation: `Toyota (تويوتا)`, `Camry (كامري)` and `Camry (كامري) 2024`.
+Names without a translation, or with an identical designation, appear only once.
+The seeder derives these labels from the original source data on every run, so
+reruns update existing IDs without duplicating labels or model-year suffixes.
+The same formatter covers every marque and nameplate in all four source catalogues. To apply this display
+change to an existing database with countries already seeded, run only
+`php artisan db:seed --class=CarDataSeeder`; no reset or demo seeding is required.
+
 Business settings such as fees, order limits, and delivery limits are bootstrap defaults, not market facts. Existing values are never reset. Support contacts and policy URLs start empty rather than pointing to invented businesses. Terms and privacy entries explicitly say they are unpublished; the operator must publish their approved content before launch.
 
 No default administrator is created in production. Optional first-time bootstrap uses exported `SEED_ADMIN_EMAIL`, `SEED_ADMIN_MOBILE` (+9665xxxxxxxx), and `SEED_ADMIN_PASSWORD` (at least 12 characters); `SEED_ADMIN_NAME` is optional. Provide all three required values together. Existing administrators' passwords and roles are never reset. Remove bootstrap secrets after initial setup; they are never printed by the seeder.

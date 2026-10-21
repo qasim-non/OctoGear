@@ -25,11 +25,11 @@ class CarDataSeeder extends Seeder
                     throw new RuntimeException("Seed countries before vehicles: {$make['country']}");
                 }
                 $companyId = SeedRecords::reference('cars_companies', ['name_en' => $make['name_en']], [
-                    'name_ar' => $make['name_ar'], 'country_id' => $countryId,
+                    'name_ar' => $this->arabicDisplayName($make['name_en'], $make['name_ar']), 'country_id' => $countryId,
                 ]);
                 foreach ($make['models'] as $model) {
                     $name = $model['name_en'];
-                    $translation = $model['name_ar'];
+                    $translation = $this->arabicDisplayName($name, $model['name_ar']);
                     $carNameId = SeedRecords::reference('cars_names', ['car_company_id' => $companyId, 'name_en' => $name], ['name_ar' => $translation]);
                     // Only NHTSA's explicitly returned model year is asserted.
                     // Regional pages verify a nameplate, not its entire year/trim history.
@@ -70,6 +70,17 @@ class CarDataSeeder extends Seeder
         }
 
         return $makes;
+    }
+
+    private function arabicDisplayName(string $name, string $translation): string
+    {
+        $translation = trim($translation);
+
+        if ($translation === '' || mb_strtolower($translation) === mb_strtolower($name)) {
+            return $name;
+        }
+
+        return $name.' ('.$translation.')';
     }
 
     private function read(string $file): array

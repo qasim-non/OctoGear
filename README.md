@@ -772,3 +772,34 @@ previous image-write error did not recur. The full suite remains non-green.
 Angular typecheck/build and all 45 mocked browser tests passed; desktop and Arabic
 mobile request-review layouts were inspected. No live authenticated review was
 performed against retained records.
+
+### 2026-10-21: admin stores directory and details
+
+The Angular admin now has `/stores` and `/stores/:id`. Existing GET
+`/api/admin/stores` accepts optional `city_id` (positive, non-deleted city) and
+positive `page` validation, alongside name/mobile/status/owner_id. Filters combine
+before the existing 15-row pagination. Name/mobile searches accept the literal
+term `0`; descending ID breaks equal creation timestamps deterministically.
+
+AdminStoreService prepares the ratings average for list/detail responses rather
+than querying ratings once per serialized row. AdminStoreResource preserves the
+float-or-null average and existing fields, adding employee_name, url_location, and
+commercial_registration_number. Detail and status responses also include loaded
+`companies: [{id, name}]`, `pictures` using the existing protected media resource,
+and `pending_change_request_id: integer | null`. Company/city names follow the
+request locale. Lists omit these detail-only relations; deleted owner/city
+relations serialize as null. Storage paths and disks remain private.
+
+The unchanged controller/status request/service operation and admin middleware
+remain authoritative. Activation changes only the store's status, preserving its
+owner's account, existing orders, and pending store-change proposal. No routes,
+migrations, approval rules, or worker settings were added or changed. Deploy these
+additive detail fields before or together with the web page.
+
+The web reuses StoreApi for provider-owned stores and the new general directory,
+the lazy local city catalog, and authenticated on-demand media. Confirmed writes
+are followed by fresh detail reads; uncertain responses require refresh before
+retry. Read the web project's `docs/STORES_STEP.md` for the review order and limits.
+`tests/Feature/AdminStoreDirectoryTest.php` covers the added contract, filters,
+stable pagination, serialization, authorization, and status isolation. Verification
+results are recorded in the web project's `PROJECT_DOCUMENTATION.md`.

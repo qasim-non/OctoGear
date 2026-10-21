@@ -14,6 +14,8 @@ class StoreIndexRequest extends BaseRequest
             'name' => ['nullable', 'string', 'max:100'],
             'mobile' => ['nullable', 'string', 'max:20'],
             'owner_id' => ['nullable', 'integer', 'min:1', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'city_id' => ['nullable', 'integer', 'min:1', Rule::exists('cities', 'id')->whereNull('deleted_at')],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ];
     }
 
@@ -26,6 +28,9 @@ class StoreIndexRequest extends BaseRequest
             'owner_id.integer' => __('auth.validation.admin.stores.owner_invalid'),
             'owner_id.min' => __('auth.validation.admin.stores.owner_invalid'),
             'owner_id.exists' => __('auth.validation.admin.stores.owner_missing'),
+            'city_id.integer' => __('auth.validation.city_id.integer'),
+            'city_id.min' => __('auth.validation.city_id.integer'),
+            'city_id.exists' => __('auth.validation.city_id.exists'),
         ];
     }
 }
