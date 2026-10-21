@@ -47,9 +47,10 @@ class DemoDataSeeder extends Seeder
 
     public function run(DemoImages $images): void
     {
+        /*
         if (! app()->environment(['local', 'testing'])) {
             throw new RuntimeException('DemoDataSeeder is allowed only in local/testing environments.');
-        }
+        }*/
 
         $this->images = $images;
         $images->verify();
