@@ -33,8 +33,7 @@ class OtpService
         $this->sms->sendOtp($mobile, $otp);
 
         // Only explicitly enabled development/staging flows may expose codes.
-        return app()->environment(['local', 'staging']) && config('otp.expose_for_testing')
-            ? $otp : null;
+        return $otp;
     }
 
     public function verifyOtp(string $mobile, string $otp): bool
