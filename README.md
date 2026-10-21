@@ -890,3 +890,38 @@ or with the web page; no production deployment was performed.
 Review `tests/Feature/AdminPaymentDirectoryTest.php` and the web project's
 `docs/PAYMENTS_STEP.md`. Its PROJECT_DOCUMENTATION.md records actual verification
 results and any remaining baseline failures.
+
+## Admin vehicle catalog — 2026-10-21
+
+The web Companies and Car models wireframes now use three read-only endpoints
+under existing `auth:sanctum,admin` and `admin.active` middleware:
+
+- GET `/api/admin/car-companies`: optional `search` (maximum 100 characters),
+  positive `page`; 25 records containing id, localized name, country and
+  models_count (current CarName count).
+- GET `/api/admin/car-names`: the same search/page contract plus optional
+  `company_id` referencing an existing non-deleted company. Rows contain id,
+  localized name and company with its country.
+- GET `/api/admin/car-companies/options`: the complete small company selector,
+  containing only id, name_en and name_ar. No pagination or search is needed;
+  the web loads it lazily and searches locally.
+
+VehicleCatalogPolicy follows current allowed-admin access; sub-admin role/rule
+changes are deferred. AdminVehicleCatalogController delegates to the injected
+AdminVehicleCatalogQueryService. Search matches both language columns, accepts
+`0`, and combines with company scope before stable name_en/id pagination.
+Removed companies/names are excluded; models with removed parents are excluded.
+Country relations and counts are prepared before resources serialize, with no
+per-row queries. Missing/deleted countries return null. All three endpoints use
+private/no-store headers and the standard success/validation envelopes.
+
+Car models in this web wireframe means CarName (`cars_names`), such as Camry,
+not the separate CarModel (`models`) variant/year catalog. Country means the
+manufacturer's country of origin, not the assembly location. Existing public
+reference endpoints, catalog records, soft-delete rules and seeders are unchanged.
+No write routes, migrations, seed runs, worker changes or deployment are included.
+
+Review `tests/Feature/AdminVehicleCatalogTest.php` and the web project's
+`docs/VEHICLE_CATALOG_STEP.md`. Verification results are recorded in that project's
+PROJECT_DOCUMENTATION.md. Deploy these read endpoints before or with the web
+pages; the existing frontend API host setting remains the only URL setting.

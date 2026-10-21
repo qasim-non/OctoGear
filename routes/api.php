@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\AdminProfileController;
 use App\Http\Controllers\Api\Admin\AdminStoreController;
 use App\Http\Controllers\Api\Admin\AdminStoreRequestController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Admin\AdminVehicleCatalogController;
 use App\Http\Controllers\Api\CmsController;
 use App\Http\Controllers\Api\Customer\CustomerCarController;
 use App\Http\Controllers\Api\Customer\CustomerCarPictureController;
@@ -79,6 +80,9 @@ Route::middleware(['locale'])->group(function () {
         Route::get('/profile', [AdminProfileController::class, 'show']);
         Route::patch('/profile/language', [AdminProfileController::class, 'updateLanguage']);
         Route::get('/cities/options', [CityController::class, 'options']);
+        Route::get('/car-companies', [AdminVehicleCatalogController::class, 'companies']);
+        Route::get('/car-companies/options', [AdminVehicleCatalogController::class, 'companyOptions']);
+        Route::get('/car-names', [AdminVehicleCatalogController::class, 'names']);
         Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
         Route::get('/store-requests', [AdminStoreRequestController::class, 'index']);

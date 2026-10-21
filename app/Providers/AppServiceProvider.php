@@ -6,6 +6,8 @@ use App\Contracts\PaymentGateway;
 use App\Contracts\SmsSender;
 use App\Integrations\Payments\PaymentGatewayManager;
 use App\Integrations\Sms\SmsManager;
+use App\Models\CarCompany;
+use App\Models\CarName;
 use App\Models\Conversation;
 use App\Models\CustomerCar;
 use App\Models\DeviceToken;
@@ -31,6 +33,7 @@ use App\Policies\StoreCarComponentPolicy;
 use App\Policies\StorePolicy;
 use App\Policies\StoreRequestPolicy;
 use App\Policies\StoresCarPolicy;
+use App\Policies\VehicleCatalogPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -54,6 +57,8 @@ class AppServiceProvider extends ServiceProvider
 
     private function configurePolicies(): void
     {
+        Gate::policy(CarCompany::class, VehicleCatalogPolicy::class);
+        Gate::policy(CarName::class, VehicleCatalogPolicy::class);
         Gate::policy(CustomerCar::class, CustomerCarPolicy::class);
         Gate::policy(Store::class, StorePolicy::class);
         Gate::policy(StoresCar::class, StoresCarPolicy::class);
