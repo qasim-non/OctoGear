@@ -11,6 +11,7 @@ Before each project-related request, read [CODE.md](CODE.md) and [README.md](REA
 | [CODE.md](CODE.md) | Architecture, project structure, response/exception conventions, services, policies, queries, state machines, transactions, routes, security, tests and future engineering rules. |
 | [README.md](README.md) | Current store-change review, provider dashboard/chats, timezone, general requests, order editing, payment/history, transmission, marketplace, image storage, provider discovery, offers and fulfillment contracts. |
 | [SELLER_ONBOARDING.md](SELLER_ONBOARDING.md) | Seller application, role transitions, mobile verification, review status, correction, reconciliation and deployment. |
+| [SUPPORT_CHAT.md](SUPPORT_CHAT.md) | Support conversations, unread badges, close/reopen, administrator support APIs and realtime delivery. |
 | [CHAT_REALTIME.md](CHAT_REALTIME.md) | Chat HTTP/socket contract, session authorization, snapshots, reconnect/read recovery, mobile behavior, local/phone setup, production workers and verification. |
 | [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) | Device/session ownership, FCM configuration, delivery jobs, retries, privacy, logout, mobile notifications, activation and verification. |
 | [database/seeders/README.md](database/seeders/README.md) | Production/demo separation, reference sources, bootstrap credentials, idempotence, fixture invariants, image lifecycle and isolated verification. |

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Exceptions\PushDeliveryException;
+use App\Models\SupportConversation;
 use App\Models\User;
 use App\Repositories\DeviceTokenRepository;
 use App\Services\Push\FcmSender;
@@ -51,6 +52,13 @@ class SendCustomerPush implements ShouldQueue
         $data = (new PushNotificationPayload)->data($user, $notification->id, $notification->data);
         if ($data === null) {
             return;
+        }
+        if ($data['type'] === 'support_reply') {
+            $conversation = SupportConversation::where('user_id', $user->id)
+                ->find($data['support_conversation_id']);
+            if (! $conversation || $conversation->user_read_through_id >= (int) $data['support_message_id']) {
+                return;
+            }
         }
         // Generic lock-screen text; only validated identifiers leave the server.
         $body = trans('push.'.$data['type'], [], $device->locale);

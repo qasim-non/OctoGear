@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\AdminPaymentController;
 use App\Http\Controllers\Api\Admin\AdminProfileController;
 use App\Http\Controllers\Api\Admin\AdminStoreController;
 use App\Http\Controllers\Api\Admin\AdminStoreRequestController;
+use App\Http\Controllers\Api\Admin\AdminSupportConversationController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Admin\AdminVehicleCatalogController;
 use App\Http\Controllers\Api\CmsController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Api\Shared\DeviceTokenController;
 use App\Http\Controllers\Api\Shared\NotificationController;
 use App\Http\Controllers\Api\Shared\ProfileController;
 use App\Http\Controllers\Api\Shared\RatingController;
+use App\Http\Controllers\Api\Shared\SupportConversationController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -77,12 +79,30 @@ Route::middleware(['locale'])->group(function () {
 
     // Admin panel — web dashboard. Tokens come from /auth/admin/login.
     Route::middleware(['auth:sanctum,admin', 'admin.active'])->prefix('admin')->group(function () {
+        Route::prefix('support')->controller(AdminSupportConversationController::class)->group(function () {
+            Route::get('/realtime', 'realtime');
+            Route::post('/realtime/auth', 'authorizeChannel')->middleware('throttle:30,1');
+            Route::get('/conversations', 'index');
+            Route::get('/conversations/{supportConversation}', 'show');
+            Route::get('/conversations/{supportConversation}/timeline', 'timeline');
+            Route::get('/conversations/{supportConversation}/events', 'events');
+            Route::post('/conversations/{supportConversation}/messages', 'send')->middleware('throttle:supportMessages');
+            Route::patch('/conversations/{supportConversation}/read', 'read');
+            Route::patch('/conversations/{supportConversation}/status', 'status');
+        });
         Route::get('/profile', [AdminProfileController::class, 'show']);
         Route::patch('/profile/language', [AdminProfileController::class, 'updateLanguage']);
         Route::get('/cities/options', [CityController::class, 'options']);
         Route::get('/car-companies', [AdminVehicleCatalogController::class, 'companies']);
         Route::get('/car-companies/options', [AdminVehicleCatalogController::class, 'companyOptions']);
         Route::get('/car-names', [AdminVehicleCatalogController::class, 'names']);
+        Route::get('/catalog-countries/options', [AdminVehicleCatalogController::class, 'countryOptions']);
+        Route::post('/car-companies', [AdminVehicleCatalogController::class, 'createCompany']);
+        Route::patch('/car-companies/{company}', [AdminVehicleCatalogController::class, 'updateCompany']);
+        Route::delete('/car-companies/{company}', [AdminVehicleCatalogController::class, 'deleteCompany']);
+        Route::post('/car-names', [AdminVehicleCatalogController::class, 'createName']);
+        Route::patch('/car-names/{name}', [AdminVehicleCatalogController::class, 'updateName']);
+        Route::delete('/car-names/{name}', [AdminVehicleCatalogController::class, 'deleteName']);
         Route::get('/dashboard', [AdminDashboardController::class, 'show']);
 
         Route::get('/store-requests', [AdminStoreRequestController::class, 'index']);
@@ -215,6 +235,13 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/push/device', [DeviceTokenController::class, 'store'])->middleware('throttle:30,1');
         Route::delete('/push/device', [DeviceTokenController::class, 'destroy'])->middleware('throttle:30,1');
 
+        Route::prefix('support/conversation')->controller(SupportConversationController::class)->group(function () {
+            Route::get('/', 'show');
+            Route::get('/timeline', 'timeline');
+            Route::post('/messages', 'send')->middleware('throttle:supportMessages');
+            Route::patch('/read', 'read');
+            Route::patch('/reopen', 'reopen');
+        });
         Route::get('/chat/realtime', [ChatRealtimeController::class, 'show']);
         Route::post('/chat/realtime/auth', [ChatRealtimeController::class, 'authorizeChannel'])->middleware('throttle:30,1');
         Route::get('/conversations', [ConversationController::class, 'index']);

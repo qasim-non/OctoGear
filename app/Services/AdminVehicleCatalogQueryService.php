@@ -4,9 +4,15 @@ namespace App\Services;
 
 use App\Models\CarCompany;
 use App\Models\CarName;
+use App\Models\Country;
+use App\Models\CustomerCar;
+use App\Models\StoreCompany;
+use App\Models\StoreRequest;
+use App\Models\StoresCar;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class AdminVehicleCatalogQueryService
 {
@@ -46,5 +52,31 @@ class AdminVehicleCatalogQueryService
         }
 
         return $query;
+    }
+
+    public function inUse(CarCompany|CarName $record): bool
+    {
+        if ($record instanceof CarCompany) {
+            return $record->carNames()->exists()
+                || CarName::withTrashed()->where('car_company_id', $record->id)
+                    ->where(fn (Builder $names) => $names
+                        ->whereHas('customerCars', fn (Builder $cars) => $cars->withTrashed())
+                        ->orWhereHas('storesCars', fn (Builder $cars) => $cars->withTrashed()))->exists()
+                || StoreCompany::withTrashed()->where('company_id', $record->id)->exists()
+                || StoreRequest::withTrashed()->where(fn (Builder $requests) => $requests
+                    ->whereJsonContains('company_ids', $record->id)
+                    ->orWhereJsonContains('previous_details->company_ids', $record->id))->exists()
+                || DB::table('order_vehicle_details')->where('car_company_id', $record->id)
+                    ->orWhereIn('car_name_id', CarName::withTrashed()->select('id')->where('car_company_id', $record->id))->exists();
+        }
+
+        return CustomerCar::withTrashed()->where('car_name_id', $record->id)->exists()
+            || StoresCar::withTrashed()->where('car_name_id', $record->id)->exists()
+            || DB::table('order_vehicle_details')->where('car_name_id', $record->id)->exists();
+    }
+
+    public function countryOptions(): Collection
+    {
+        return Country::query()->select('id', 'name_en', 'name_ar')->orderBy('name_en')->orderBy('id')->get();
     }
 }

@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Jobs\BroadcastChatUpdate;
+use App\Models\Admin;
 use App\Models\User;
 
 class ChatRealtimeService
 {
-    public function configuration(User $user): array
+    public function configuration(User|Admin $user): array
     {
         if (! config('chat_realtime.enabled')) {
             return ['enabled' => false];
@@ -16,7 +17,7 @@ class ChatRealtimeService
         return [
             'enabled' => true,
             'url' => rtrim(config('chat_realtime.url'), '/').'/app/'.rawurlencode(config('broadcasting.connections.reverb.key')),
-            'channel' => 'private-chat.sessions.'.$user->currentAccessToken()->id,
+            'channel' => ($user instanceof Admin ? 'private-support.admin.sessions.' : 'private-chat.sessions.').$user->currentAccessToken()->id,
         ];
     }
 

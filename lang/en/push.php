@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'support_reply' => 'You have a new reply from customer service.',
     'invalid' => 'The notification device settings are invalid.',
     'new_offer' => 'A new offer has been submitted on your order.',
     'new_message' => 'You have a new message.',

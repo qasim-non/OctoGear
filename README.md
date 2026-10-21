@@ -893,7 +893,7 @@ results and any remaining baseline failures.
 
 ## Admin vehicle catalog — 2026-10-21
 
-The web Companies and Car models wireframes now use three read-only endpoints
+The web Companies and Car models pages use these read endpoints
 under existing `auth:sanctum,admin` and `admin.active` middleware:
 
 - GET `/api/admin/car-companies`: optional `search` (maximum 100 characters),
@@ -905,6 +905,8 @@ under existing `auth:sanctum,admin` and `admin.active` middleware:
 - GET `/api/admin/car-companies/options`: the complete small company selector,
   containing only id, name_en and name_ar. No pagination or search is needed;
   the web loads it lazily and searches locally.
+- GET `/api/admin/catalog-countries/options`: the complete non-deleted country
+  selector with id, name_en and name_ar, cached/searched locally in the web form.
 
 VehicleCatalogPolicy follows current allowed-admin access; sub-admin role/rule
 changes are deferred. AdminVehicleCatalogController delegates to the injected
@@ -912,16 +914,59 @@ AdminVehicleCatalogQueryService. Search matches both language columns, accepts
 `0`, and combines with company scope before stable name_en/id pagination.
 Removed companies/names are excluded; models with removed parents are excluded.
 Country relations and counts are prepared before resources serialize, with no
-per-row queries. Missing/deleted countries return null. All three endpoints use
+per-row queries. Missing/deleted countries return null. All read endpoints use
 private/no-store headers and the standard success/validation envelopes.
 
 Car models in this web wireframe means CarName (`cars_names`), such as Camry,
 not the separate CarModel (`models`) variant/year catalog. Country means the
 manufacturer's country of origin, not the assembly location. Existing public
-reference endpoints, catalog records, soft-delete rules and seeders are unchanged.
-No write routes, migrations, seed runs, worker changes or deployment are included.
+reference endpoints and seeders retain their existing contracts.
 
-Review `tests/Feature/AdminVehicleCatalogTest.php` and the web project's
+The owner subsequently requested CRUD for companies and model names:
+
+- POST `/api/admin/car-companies`: name_en, name_ar (both required, 1–100
+  characters), and country_id (required key, nullable, existing active country).
+- POST `/api/admin/car-names`: both names and an active car_company_id.
+- PATCH either path plus `/{id}`: the same fields plus `version` from its list
+  row. Existing models keep their company; edits cannot reassign vehicles.
+- DELETE either path plus `/{id}`: JSON body `{ "version": "<row version>" }`.
+  Deletion requires confirmation in the web and is soft deletion only.
+
+List rows now include both names, their parent ID and a version hash of editable
+fields. No extra detail request is needed to open an edit. The policy uses existing
+admin access. Form requests validate; AdminVehicleCatalogService handles short
+transactions and version/duplicate checks; AdminVehicleCatalogQueryService checks
+usage. Changed records return localized 409; missing/deleted records return 404;
+validation/duplicate names return 422 with field errors. Creates return 201,
+updates/deletes 200. Arabic and English errors are in admin_catalog.php.
+
+Companies with current models or retained store/request/order/vehicle usage cannot
+be deleted. Model names referenced by customer cars, stock or orders cannot be
+deleted, including archived usage. No vehicles, media, variants or order snapshots
+are purged. Renames do not rewrite submission-time order labels.
+
+Apply the additive migration before CRUD is used:
+
+```powershell
+php artisan migrate --path=database/migrations/2026_10_21_190000_create_vehicle_catalog_locks_table.php
+```
+
+The singleton row in vehicle_catalog_locks serializes admin catalog writes before
+locking target records, including duplicate checks during concurrent creates.
+Names are compared case-insensitively per language, globally for companies and
+within a company for model names. This avoids retroactive constraints or cleanup
+of retained seed data. Future write paths must use the same service/lock; run
+catalog imports/seeds separately from live admin writes. SQLite verifies behavior;
+production MySQL concurrency/load testing is still a deployment check. The migration
+does not modify catalog data or require a worker, seed or account reset.
+
+Review `tests/Feature/AdminVehicleCatalogTest.php`, `AdminVehicleCatalogCrudTest.php` and the web project's
 `docs/VEHICLE_CATALOG_STEP.md`. Verification results are recorded in that project's
-PROJECT_DOCUMENTATION.md. Deploy these read endpoints before or with the web
+PROJECT_DOCUMENTATION.md. Deploy these endpoints and migration before or with the web
 pages; the existing frontend API host setting remains the only URL setting.
+
+
+## Customer/provider support chat — 2026-10-21
+
+See [SUPPORT_CHAT.md](SUPPORT_CHAT.md) for the approved API, schema, socket,
+notification, Flutter and deferred web contract.

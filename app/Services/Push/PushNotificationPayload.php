@@ -11,6 +11,7 @@ class PushNotificationPayload
         $type = $payload['type'] ?? null;
         $fields = match ($type) {
             'new_message' => ['conversation_id'],
+            'support_reply' => ['support_conversation_id', 'support_message_id'],
             'new_offer' => $user->isCustomer() ? ['order_id', 'offer_id'] : null,
             'offer_accepted' => $user->isProvider() ? ['order_id', 'offer_id'] : null,
             'order_paid', 'order_completed' => $user->isProvider() ? ['order_id'] : null,

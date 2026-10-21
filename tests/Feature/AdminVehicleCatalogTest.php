@@ -10,6 +10,7 @@ use App\Models\CarName;
 use App\Models\Country;
 use App\Models\User;
 use App\Services\AdminVehicleCatalogQueryService;
+use App\Support\VehicleCatalogVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class AdminVehicleCatalogTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_directories_require_an_allowed_admin_and_have_no_write_routes(): void
+    public function test_directories_require_an_allowed_admin_and_writes_require_valid_fields(): void
     {
         foreach (['car-companies', 'car-companies/options', 'car-names'] as $path) {
             $this->app['auth']->forgetGuards();
@@ -32,7 +33,7 @@ class AdminVehicleCatalogTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->withToken(Admin::factory()->create()->createToken('test', ['admin'])->plainTextToken)
             ->getJson('/api/admin/car-companies')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
-        $this->postJson('/api/admin/car-companies', ['name_en' => 'Unexpected'])->assertStatus(405);
+        $this->postJson('/api/admin/car-companies', ['name_en' => 'Unexpected'])->assertUnprocessable();
         $this->assertDatabaseCount('cars_companies', 0);
     }
 
@@ -55,7 +56,7 @@ class AdminVehicleCatalogTest extends TestCase
         foreach (['Toyota', 'تويوتا'] as $search) {
             $this->getJson('/api/admin/car-companies?search='.urlencode($search), ['Accept-Language' => 'en'])
                 ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0', [
-                    'id' => $toyota->id, 'name' => 'Toyota', 'country' => ['id' => $country->id, 'name' => 'Japan'], 'models_count' => 2,
+                    'id' => $toyota->id, 'name' => 'Toyota', 'name_en' => 'Toyota', 'name_ar' => 'تويوتا', 'country_id' => $country->id, 'version' => VehicleCatalogVersion::for($toyota), 'country' => ['id' => $country->id, 'name' => 'Japan'], 'models_count' => 2,
                 ]);
         }
         $this->getJson('/api/admin/car-companies?search=Toyota', ['Accept-Language' => 'ar'])
@@ -80,8 +81,8 @@ class AdminVehicleCatalogTest extends TestCase
         foreach (['Camry', 'كامري', '0'] as $search) {
             $this->getJson('/api/admin/car-names?company_id='.$toyota->id.'&search='.urlencode($search), ['Accept-Language' => 'en'])
                 ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0', [
-                    'id' => $model->id, 'name' => 'Camry 0', 'company' => [
-                        'id' => $toyota->id, 'name' => 'Toyota', 'country' => ['id' => $country->id, 'name' => 'Japan'],
+                    'id' => $model->id, 'name' => 'Camry 0', 'name_en' => 'Camry 0', 'name_ar' => 'كامري', 'car_company_id' => $toyota->id, 'version' => VehicleCatalogVersion::for($model), 'company' => [
+                        'id' => $toyota->id, 'name' => 'Toyota', 'name_en' => 'Toyota', 'name_ar' => 'تويوتا', 'country_id' => $country->id, 'version' => VehicleCatalogVersion::for($toyota), 'country' => ['id' => $country->id, 'name' => 'Japan'],
                     ],
                 ])->assertHeader('Cache-Control', 'no-store, private');
         }

@@ -20,6 +20,7 @@ use App\Models\Store;
 use App\Models\StoreCarComponent;
 use App\Models\StoreRequest;
 use App\Models\StoresCar;
+use App\Models\SupportConversation;
 use App\Policies\ConversationPolicy;
 use App\Policies\CustomerCarPolicy;
 use App\Policies\DeviceTokenPolicy;
@@ -33,6 +34,7 @@ use App\Policies\StoreCarComponentPolicy;
 use App\Policies\StorePolicy;
 use App\Policies\StoreRequestPolicy;
 use App\Policies\StoresCarPolicy;
+use App\Policies\SupportConversationPolicy;
 use App\Policies\VehicleCatalogPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -67,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(OrderOffer::class, OrderOfferPolicy::class);
         Gate::policy(Conversation::class, ConversationPolicy::class);
+        Gate::policy(SupportConversation::class, SupportConversationPolicy::class);
         Gate::policy(Message::class, MessagePolicy::class);
         Gate::policy(Rating::class, RatingPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
@@ -76,6 +79,11 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
+        RateLimiter::for('supportMessages', function (Request $request) {
+            $actor = $request->user();
+
+            return Limit::perMinute(30)->by($actor->getMorphClass().':'.$actor->getKey());
+        });
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(30)->by($request->ip());
         });
