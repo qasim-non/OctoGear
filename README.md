@@ -1,5 +1,14 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
+## Admin accounts, temporary passwords and role authorization — 2026-10-22
+
+Read [ADMIN_ACCOUNTS.md](ADMIN_ACCOUNTS.md) before changing administrator access.
+It documents staff CRUD/archival, generated/manual temporary passwords, mandatory
+first-login password setup before token issuance, personal password settings,
+role permissions, session revocation, audit and the required additive migration.
+Inactive accounts are now denied. This supersedes older allowed-admin and
+no-password-management statements below. No email/SMS provider is required.
+
 ## Admin web session and bearer authentication — 2026-10-19
 
 The Angular/PrimeNG/Sakai web project lives at

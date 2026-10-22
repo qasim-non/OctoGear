@@ -21,7 +21,7 @@ php artisan migrate:fresh --seed --seeder=DemoDataSeeder
 php database/seeders/verify.php
 ```
 
-`DatabaseSeeder` seeds production data by default. The existing `DB_SEED_TEST_DATA=true` setting remains supported through `TestDataSeeder`, which delegates to `DemoDataSeeder`. Both demo entry points reject every environment except `local` and `testing`; `--force` does not bypass that guard. With cached configuration, change the existing configuration through your normal deployment process.
+`DatabaseSeeder` seeds production data and the two owner-requested administrators by default. The existing `DB_SEED_TEST_DATA=true` setting remains supported through `TestDataSeeder`, which delegates to `DemoDataSeeder`. Both demo entry points reject every environment except `local` and `testing`; `--force` does not bypass that guard. With cached configuration, change the existing configuration through your normal deployment process.
 
 Run seeders as one deployment job, not concurrently. They do not truncate tables or disable foreign keys. Existing matching reference IDs are reused; translations and country relationships are corrected. Operator-edited settings/CMS and existing demo records are preserved. Soft-deleted records are not resurrected. Historical duplicate or mislinked rows from the old seeders are not deleted automatically because other records may reference them; these seeders are not a data-repair migration.
 
@@ -58,7 +58,30 @@ change to an existing database with countries already seeded, run only
 
 Business settings such as fees, order limits, and delivery limits are bootstrap defaults, not market facts. Existing values are never reset. Support contacts and policy URLs start empty rather than pointing to invented businesses. Terms and privacy entries explicitly say they are unpublished; the operator must publish their approved content before launch.
 
-No default administrator is created in production. Optional first-time bootstrap uses exported `SEED_ADMIN_EMAIL`, `SEED_ADMIN_MOBILE` (+9665xxxxxxxx), and `SEED_ADMIN_PASSWORD` (at least 12 characters); `SEED_ADMIN_NAME` is optional. Provide all three required values together. Existing administrators' passwords and roles are never reset. Remove bootstrap secrets after initial setup; they are never printed by the seeder.
+`ProductionDataSeeder` creates no default administrator. The default `DatabaseSeeder` additionally creates the two explicitly requested accounts described below. Optional first-time bootstrap uses exported `SEED_ADMIN_EMAIL`, `SEED_ADMIN_MOBILE` (+9665xxxxxxxx), and `SEED_ADMIN_PASSWORD` (at least 12 characters); `SEED_ADMIN_NAME` is optional. Provide all three required values together. Existing administrators' passwords and roles are never reset. Remove bootstrap secrets after initial setup; they are never printed by the seeder.
+
+
+## Owner-requested administrators
+
+`DatabaseSeeder` also calls `RequestedAdminsSeeder`. To create only these accounts,
+run `php artisan db:seed --class=RequestedAdminsSeeder` after the existing
+`2026_10_22_180000_add_admin_account_security.php` migration has been applied.
+`ProductionDataSeeder` and `DemoDataSeeder` retain their separate behavior.
+
+The accounts are Abdulrahman (`abdulrahman_octogear@gmail.com`) and Qasim
+(`qasim00programmer@gmail.com`), both active with the `admin` role. The Arabic
+name in the supplied first email is transliterated to `abdulrahman`. Mobile values
+are empty because no phone numbers were supplied. The owner-specified initial
+password is hashed on insertion; no login tokens or setup challenges are seeded.
+
+Both accounts require a password change. Their temporary passwords expire 24 hours
+after creation, matching the existing admin setup contract. Login before expiry
+returns a setup challenge without an access token; choosing a different password
+through the existing setup screen completes login. New personal passwords retain
+the existing 15-character minimum. Reruns preserve all existing account state,
+including changed passwords, roles, sessions, expiry and archived accounts; they
+never renew an expired temporary password. An existing administrator must use the
+normal reset-password flow if setup expires.
 
 ## Local demo
 
@@ -74,12 +97,12 @@ The dataset contains:
 | Store-car component stock records | 450 |
 | Store requests | 25 (15 accepted, 5 pending, 5 rejected) |
 | Legacy provider request records | 15 accepted |
-| Orders | 253 (original 100 plus 153 provider scenarios) |
+| Orders | 173 general (original 50 plus 123 provider scenarios) |
 | Offers / offer pictures | 132 / 132 |
-| Ratings | 50 |
-| Conversations / messages | 75 / 344 |
+| Ratings | 25 |
+| Conversations / messages | 71 / 284 |
 
-Orders include general and specific requests across pending, awaiting-payment, paid, completed, rejected, and cancelled states. Bids belong only to general orders; each selected offer is linked from the order and competing pending offers are marked not selected. General offer prices are whole-request totals; specific-order payments retain their existing quantity behavior. Payments use the application's integer minor currency units, and paid specific orders consume fixture stock once. Ratings belong to completed purchases. The original offers and conversations use active stores in the customer's city; the provider walkthrough also demonstrates cross-city discovery and offers.
+Seeded orders are general requests across pending, awaiting-payment, paid, completed, and cancelled states. No specific orders are created on a fresh demo seed. Each selected offer is linked from the order and competing pending offers are marked not selected. General offer prices are whole-request totals. Payments use the application's integer minor currency units. Ratings belong to completed purchases. The original offers and conversations use active stores in the customer's city; the provider walkthrough also demonstrates cross-city discovery and offers.
 
 The original 50 general requests split between 25 catalog selections (`component_id` only)
 and 25 custom part names (`component_name` only). Each original customer has a completed general request with two offers, including customers without saved cars. Each general request has a vehicle snapshot with
@@ -104,19 +127,14 @@ The additive provider scenarios contain:
   The existing 15-row pagination remains; All cities includes every city across
   pages, and selecting any city finds at least three photographed requests.
   These requests initially have no offers so the provider can submit new ones.
-- 30 direct requests in the first provider's intact donor inventory: five each
-  pending, rejected, awaiting payment, paid, completed and cancelled. Saved unit
-  prices support actual accept/reject actions; quantities include one and two.
-  Paid/completed fixtures deduct stock only on first creation.
 - 21 general requests with 42 photographed offers. The first provider has pending,
   explicitly rejected, accepted and not-selected offers, including cancellation,
   awaiting-payment, paid and completed history. A second existing store supplies
   competing offers; selected totals and accepted-offer links agree.
-- 25 customer/provider conversations shared by 21 offer and 15 accepted
-  direct-order scenarios, preserving all 144 messages from those scenarios,
-  including read history and unread incoming messages.
-  Completed orders retain existing chat history for reconciliation.
-- Paid payment rows with correct whole-request or quantity-based amounts and
+- 21 customer/provider conversations for the offer scenarios, preserving all
+  84 messages, including read history and unread incoming messages. Completed
+  orders retain existing chat history for reconciliation.
+- Paid payment rows with correct whole-request amounts and
   varied dates for dashboard sales. These are synthetic records only; seeding
   invokes no gateway, notification delivery or socket broadcast.
 
@@ -126,7 +144,7 @@ repair missing private images but do not restore deleted orders or reset stock,
 payment history, conversations or read state. Existing demo timestamps are not
 refreshed on rerun; dashboard date buckets naturally age with the fixtures.
 
-Rerunning preserves existing demo edits and does not reset passwords, stock, payments, or order states. Missing private image copies are repaired from the committed assets. To start an entirely new demo, use a separate disposable development database; these seeders do not clear your data.
+Rerunning preserves existing demo edits and does not reset passwords, stock, payments, or order states. Earlier seeded specific orders remain in retained databases; removing those records and their dependent history requires a separate, reviewed cleanup. A fresh disposable demo database contains no specific orders. Missing private image copies are repaired from the committed assets. To start an entirely new demo, use a separate disposable development database; these seeders do not clear your data.
 
 ## Images
 
@@ -155,7 +173,7 @@ Coverage:
 | `store_pictures` | One or two gallery photos on some stores |
 | `stores.commercial_registration_*` | Clearly marked sample document |
 | `store_requests.commercial_registration_*` | Independent copy of sample document |
-| `order_images` | Optional galleries on general and specific requests; general requests demonstrate multiple photos |
+| `order_images` | Optional galleries on general requests, including multiple photos |
 | `offer_images` | One matching part photo per offer; reruns also backfill older demo offers and repair missing files |
 
 **Neither `components` nor `store_car_components` currently has an image field or picture relation.** Their ten existing part photos are reused as order and offer attachments through the existing media tables. No image paths are hidden in unrelated text fields.
@@ -165,5 +183,5 @@ Coverage:
 `verify.php` uses an isolated SQLite connection even when the project's configured database is MySQL. It checks the 34 approved bilingual cities, representative Saudi/historical nameplates, case-insensitive catalogue duplicates, non-sequential reference IDs, production idempotence, operator content preservation, demo counts, per-customer orders and offers, foreign keys, order/offer/payment/rating consistency, image coverage and metadata, reuse of exactly the existing 36 source assets, rerun stability, missing-file repair and older-offer gallery backfill, rollback cleanup after a simulated storage failure, and production guards. Its temporary image directory is removed afterward.
 
 `ProviderDemoSeederTest` verifies actual provider discovery and city filters,
-protected photos, direct-order acceptance, every offer status, fulfillment,
+protected photos, every offer status, general-order fulfillment,
 dashboard reads and order-linked conversation history on isolated SQLite.

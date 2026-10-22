@@ -8,6 +8,7 @@ Before each project-related request, read [CODE.md](CODE.md) and [README.md](REA
 
 | Source | Required coverage |
 | --- | --- |
+| [ADMIN_ACCOUNTS.md](ADMIN_ACCOUNTS.md) | Admin role matrix, temporary-password setup, account/settings APIs, session revocation, audit and rollout. |
 | [CODE.md](CODE.md) | Architecture, project structure, response/exception conventions, services, policies, queries, state machines, transactions, routes, security, tests and future engineering rules. |
 | [README.md](README.md) | Current store-change review, provider dashboard/chats, timezone, general requests, order editing, payment/history, transmission, marketplace, image storage, provider discovery, offers and fulfillment contracts. |
 | [SELLER_ONBOARDING.md](SELLER_ONBOARDING.md) | Seller application, role transitions, mobile verification, review status, correction, reconciliation and deployment. |

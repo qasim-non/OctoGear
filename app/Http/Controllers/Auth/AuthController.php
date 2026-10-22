@@ -68,6 +68,6 @@ class AuthController extends Controller
             $request->enum('preferred_language', PreferredLanguage::class),
         );
 
-        return $this->success(['token' => $result['token']], __('auth.login.success'));
+        return $this->success($result, __('auth.login.success'))->header('Cache-Control', 'no-store, private');
     }
 }

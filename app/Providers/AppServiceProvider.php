@@ -6,6 +6,7 @@ use App\Contracts\PaymentGateway;
 use App\Contracts\SmsSender;
 use App\Integrations\Payments\PaymentGatewayManager;
 use App\Integrations\Sms\SmsManager;
+use App\Models\Admin;
 use App\Models\CarCompany;
 use App\Models\CarName;
 use App\Models\Conversation;
@@ -21,6 +22,7 @@ use App\Models\StoreCarComponent;
 use App\Models\StoreRequest;
 use App\Models\StoresCar;
 use App\Models\SupportConversation;
+use App\Policies\AdminPolicy;
 use App\Policies\ConversationPolicy;
 use App\Policies\CustomerCarPolicy;
 use App\Policies\DeviceTokenPolicy;
@@ -59,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function configurePolicies(): void
     {
+        Gate::policy(Admin::class, AdminPolicy::class);
         Gate::policy(CarCompany::class, VehicleCatalogPolicy::class);
         Gate::policy(CarName::class, VehicleCatalogPolicy::class);
         Gate::policy(CustomerCar::class, CustomerCarPolicy::class);
@@ -79,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
+        RateLimiter::for('adminPassword', fn (Request $request) => Limit::perMinute(5)->by('admin-password:'.$request->ip()));
         RateLimiter::for('supportMessages', function (Request $request) {
             $actor = $request->user();
 

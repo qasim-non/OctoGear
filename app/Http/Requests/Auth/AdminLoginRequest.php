@@ -12,7 +12,7 @@ class AdminLoginRequest extends BaseRequest
     {
         return [
             'email' => ['required', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['required', 'string', 'min:6', 'max:256'],
             'preferred_language' => ['sometimes', Rule::enum(PreferredLanguage::class)],
         ];
     }

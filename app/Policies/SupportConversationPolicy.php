@@ -11,7 +11,7 @@ class SupportConversationPolicy
 {
     public function access(User|Admin $actor): bool
     {
-        return $actor instanceof Admin ? $actor->isActive() : ! $actor->isBlocked() && ($actor->isCustomer() || $actor->isProvider());
+        return $actor instanceof Admin ? $actor->hasPermission('support.access') : ! $actor->isBlocked() && ($actor->isCustomer() || $actor->isProvider());
     }
 
     public function viewAny(User|Admin $actor): bool

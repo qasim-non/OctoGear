@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\AdminStatus;
 use App\Models\Admin;
 use App\Models\Payment;
 use App\Models\User;
@@ -11,7 +10,7 @@ class PaymentPolicy
 {
     public function viewAdminDirectory(User|Admin $actor): bool
     {
-        return $actor instanceof Admin && $actor->status !== AdminStatus::Blocked;
+        return $actor instanceof Admin && $actor->hasPermission('payments.view');
     }
 
     public function viewAny(User $user): bool

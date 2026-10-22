@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminAccountController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminOrderController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\Api\Shared\ProfileController;
 use App\Http\Controllers\Api\Shared\RatingController;
 use App\Http\Controllers\Api\Shared\SupportConversationController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Auth\AdminPasswordController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +61,7 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:customerLogin');
         Route::post('/register', [AuthController::class, 'register']); // Done
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum,admin');
+        Route::post('/admin/password-setup', [AdminPasswordController::class, 'setup'])->middleware('throttle:adminPassword');
         Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:adminLogin');
     });
 
@@ -79,7 +82,7 @@ Route::middleware(['locale'])->group(function () {
 
     // Admin panel — web dashboard. Tokens come from /auth/admin/login.
     Route::middleware(['auth:sanctum,admin', 'admin.active'])->prefix('admin')->group(function () {
-        Route::prefix('support')->controller(AdminSupportConversationController::class)->group(function () {
+        Route::prefix('support')->middleware('admin.permission:support.access')->controller(AdminSupportConversationController::class)->group(function () {
             Route::get('/realtime', 'realtime');
             Route::post('/realtime/auth', 'authorizeChannel')->middleware('throttle:30,1');
             Route::get('/conversations', 'index');
@@ -90,41 +93,51 @@ Route::middleware(['locale'])->group(function () {
             Route::patch('/conversations/{supportConversation}/read', 'read');
             Route::patch('/conversations/{supportConversation}/status', 'status');
         });
+        Route::patch('/profile/password', [AdminPasswordController::class, 'change'])->middleware('throttle:adminPassword');
+        Route::controller(AdminAccountController::class)->group(function () {
+            Route::get('/accounts', 'index')->middleware('admin.permission:admins.view');
+            Route::get('/accounts/roles', 'roles')->middleware('admin.permission:admins.view');
+            Route::get('/accounts/{admin}/events', 'events')->middleware('admin.permission:admins.view');
+            Route::post('/accounts', 'store')->middleware(['admin.permission:admins.manage', 'throttle:adminPassword']);
+            Route::patch('/accounts/{admin}', 'update')->middleware(['admin.permission:admins.manage', 'throttle:adminPassword']);
+            Route::post('/accounts/{admin}/reset-password', 'resetPassword')->middleware(['admin.permission:admins.manage', 'throttle:adminPassword']);
+            Route::delete('/accounts/{admin}', 'destroy')->middleware(['admin.permission:admins.manage', 'throttle:adminPassword']);
+        });
         Route::get('/profile', [AdminProfileController::class, 'show']);
         Route::patch('/profile/language', [AdminProfileController::class, 'updateLanguage']);
         Route::get('/cities/options', [CityController::class, 'options']);
-        Route::get('/car-companies', [AdminVehicleCatalogController::class, 'companies']);
-        Route::get('/car-companies/options', [AdminVehicleCatalogController::class, 'companyOptions']);
-        Route::get('/car-names', [AdminVehicleCatalogController::class, 'names']);
-        Route::get('/catalog-countries/options', [AdminVehicleCatalogController::class, 'countryOptions']);
-        Route::post('/car-companies', [AdminVehicleCatalogController::class, 'createCompany']);
-        Route::patch('/car-companies/{company}', [AdminVehicleCatalogController::class, 'updateCompany']);
-        Route::delete('/car-companies/{company}', [AdminVehicleCatalogController::class, 'deleteCompany']);
-        Route::post('/car-names', [AdminVehicleCatalogController::class, 'createName']);
-        Route::patch('/car-names/{name}', [AdminVehicleCatalogController::class, 'updateName']);
-        Route::delete('/car-names/{name}', [AdminVehicleCatalogController::class, 'deleteName']);
-        Route::get('/dashboard', [AdminDashboardController::class, 'show']);
+        Route::get('/car-companies', [AdminVehicleCatalogController::class, 'companies'])->middleware('admin.permission:catalog.view');
+        Route::get('/car-companies/options', [AdminVehicleCatalogController::class, 'companyOptions'])->middleware('admin.permission:catalog.view');
+        Route::get('/car-names', [AdminVehicleCatalogController::class, 'names'])->middleware('admin.permission:catalog.view');
+        Route::get('/catalog-countries/options', [AdminVehicleCatalogController::class, 'countryOptions'])->middleware('admin.permission:catalog.view');
+        Route::post('/car-companies', [AdminVehicleCatalogController::class, 'createCompany'])->middleware('admin.permission:catalog.manage');
+        Route::patch('/car-companies/{company}', [AdminVehicleCatalogController::class, 'updateCompany'])->middleware('admin.permission:catalog.manage');
+        Route::delete('/car-companies/{company}', [AdminVehicleCatalogController::class, 'deleteCompany'])->middleware('admin.permission:catalog.manage');
+        Route::post('/car-names', [AdminVehicleCatalogController::class, 'createName'])->middleware('admin.permission:catalog.manage');
+        Route::patch('/car-names/{name}', [AdminVehicleCatalogController::class, 'updateName'])->middleware('admin.permission:catalog.manage');
+        Route::delete('/car-names/{name}', [AdminVehicleCatalogController::class, 'deleteName'])->middleware('admin.permission:catalog.manage');
+        Route::get('/dashboard', [AdminDashboardController::class, 'show'])->middleware('admin.permission:dashboard.view');
 
-        Route::get('/store-requests', [AdminStoreRequestController::class, 'index']);
-        Route::get('/store-requests/{storeRequest}', [AdminStoreRequestController::class, 'show']);
-        Route::post('/store-requests/{storeRequest}/accept', [AdminStoreRequestController::class, 'accept']);
-        Route::post('/store-requests/{storeRequest}/reject', [AdminStoreRequestController::class, 'reject']);
+        Route::get('/store-requests', [AdminStoreRequestController::class, 'index'])->middleware('admin.permission:requests.view');
+        Route::get('/store-requests/{storeRequest}', [AdminStoreRequestController::class, 'show'])->middleware('admin.permission:requests.view');
+        Route::post('/store-requests/{storeRequest}/accept', [AdminStoreRequestController::class, 'accept'])->middleware('admin.permission:requests.manage');
+        Route::post('/store-requests/{storeRequest}/reject', [AdminStoreRequestController::class, 'reject'])->middleware('admin.permission:requests.manage');
 
-        Route::get('/users', [AdminUserController::class, 'index']);
-        Route::get('/users/customers', [AdminUserController::class, 'customers']);
-        Route::get('/users/providers', [AdminUserController::class, 'providers']);
-        Route::get('/users/{user}', [AdminUserController::class, 'show']);
-        Route::patch('/users/{user}/status', [AdminUserController::class, 'status']);
+        Route::get('/users', [AdminUserController::class, 'index'])->middleware('admin.permission:users.view');
+        Route::get('/users/customers', [AdminUserController::class, 'customers'])->middleware('admin.permission:users.view');
+        Route::get('/users/providers', [AdminUserController::class, 'providers'])->middleware('admin.permission:users.view');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->middleware('admin.permission:users.view');
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'status'])->middleware('admin.permission:users.manage');
 
-        Route::get('/stores', [AdminStoreController::class, 'index']);
-        Route::get('/stores/{store}', [AdminStoreController::class, 'show']);
-        Route::patch('/stores/{store}/status', [AdminStoreController::class, 'status']);
+        Route::get('/stores', [AdminStoreController::class, 'index'])->middleware('admin.permission:stores.view');
+        Route::get('/stores/{store}', [AdminStoreController::class, 'show'])->middleware('admin.permission:stores.view');
+        Route::patch('/stores/{store}/status', [AdminStoreController::class, 'status'])->middleware('admin.permission:stores.manage');
 
-        Route::get('/orders', [AdminOrderController::class, 'index']);
-        Route::get('/payments', [AdminPaymentController::class, 'index']);
-        Route::get('/orders/{order}', [AdminOrderController::class, 'show']);
-        Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel']);
-        Route::post('/orders/{order}/refund', [AdminOrderController::class, 'refund']);
+        Route::get('/orders', [AdminOrderController::class, 'index'])->middleware('admin.permission:orders.view');
+        Route::get('/payments', [AdminPaymentController::class, 'index'])->middleware('admin.permission:payments.view');
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->middleware('admin.permission:orders.view');
+        Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->middleware('admin.permission:orders.manage');
+        Route::post('/orders/{order}/refund', [AdminOrderController::class, 'refund'])->middleware('admin.permission:payments.manage');
     });
 
     // Marketplace browsing — shared between customers and providers (read-only).

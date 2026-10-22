@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * @extends Factory<\App\Models\Admin>
+ * @extends Factory<Admin>
  */
 class AdminFactory extends Factory
 {
@@ -19,7 +19,7 @@ class AdminFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'assigned_role' => AdminRole::Employee,
+            'assigned_role' => AdminRole::Admin,
             'mobile' => fake()->numerify('+9665########'),
             'email' => fake()->unique()->safeEmail(),
             'password' => Hash::make('password'),

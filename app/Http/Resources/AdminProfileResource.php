@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\AdminPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,8 @@ class AdminProfileResource extends JsonResource
             'assigned_role' => $this->assigned_role->value,
             'status' => $this->status->value,
             'preferred_language' => $this->preferred_language?->value,
+            'permissions' => AdminPermissions::forRole($this->assigned_role),
+            'password_changed_at' => $this->password_changed_at,
         ];
     }
 }

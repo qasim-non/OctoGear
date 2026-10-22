@@ -28,7 +28,7 @@ class MediaController extends Controller
 
     public function storePicture(Request $request, Store $store, StorePicture $storePicture)
     {
-        $this->viewer($request);
+        $this->viewer($request, 'stores.view');
         abort_unless($storePicture->store_id === $store->id, 404);
 
         return $this->streamImage($storePicture->only(['disk', 'path', 'mime_type', 'size_bytes']));
@@ -36,7 +36,7 @@ class MediaController extends Controller
 
     public function storeCarPicture(Request $request, Store $store, StoresCar $storeCar, StoreCarPicture $storeCarPicture)
     {
-        $this->viewer($request);
+        $this->viewer($request, 'stores.view');
         abort_unless($storeCar->store_id === $store->id && $storeCarPicture->car_id === $storeCar->id, 404);
 
         return $this->streamImage($storeCarPicture->only(['disk', 'path', 'mime_type', 'size_bytes']));
@@ -44,7 +44,7 @@ class MediaController extends Controller
 
     public function storeRegistration(Request $request, Store $store)
     {
-        $viewer = $this->viewer($request);
+        $viewer = $this->viewer($request, 'stores.view');
         if ($viewer instanceof User) {
             $this->authorize('manage', $store);
         }
@@ -54,7 +54,7 @@ class MediaController extends Controller
 
     public function storeRequestPicture(Request $request, StoreRequest $storeRequest, StoreRequestPicture $storeRequestPicture)
     {
-        $viewer = $this->viewer($request);
+        $viewer = $this->viewer($request, 'requests.view');
         abort_unless($storeRequestPicture->store_request_id === $storeRequest->id, 404);
         if ($viewer instanceof User) {
             $this->authorize('view', $storeRequest);
@@ -65,7 +65,7 @@ class MediaController extends Controller
 
     public function storeRequestRegistration(Request $request, StoreRequest $storeRequest)
     {
-        $viewer = $this->viewer($request);
+        $viewer = $this->viewer($request, 'requests.view');
         if ($viewer instanceof User) {
             $this->authorize('view', $storeRequest);
         }
@@ -75,7 +75,7 @@ class MediaController extends Controller
 
     public function orderImage(Request $request, Order $order, OrderImage $orderImage)
     {
-        $viewer = $this->viewer($request);
+        $viewer = $this->viewer($request, 'orders.view');
         abort_unless($orderImage->order_id === $order->id, 404);
         if ($viewer instanceof User) {
             // General pending orders are browsable by providers; that rule must
@@ -89,7 +89,7 @@ class MediaController extends Controller
 
     public function offerImage(Request $request, OrderOffer $offer, OfferImage $offerImage)
     {
-        $viewer = $this->viewer($request);
+        $viewer = $this->viewer($request, 'orders.view');
         abort_unless($offerImage->order_offer_id === $offer->id, 404);
         if ($viewer instanceof User) {
             $this->authorize('view', $offer);
@@ -98,7 +98,7 @@ class MediaController extends Controller
         return $this->streamImage($offerImage->fileMetadata());
     }
 
-    private function viewer(Request $request): User|Admin
+    private function viewer(Request $request, string $permission): User|Admin
     {
         $viewer = $request->user();
         abort_unless(
@@ -106,6 +106,10 @@ class MediaController extends Controller
             || ($viewer instanceof User && $viewer->status === UserStatus::Unblocked),
             403,
         );
+
+        if ($viewer instanceof Admin) {
+            $this->authorize('permission', [Admin::class, $permission]);
+        }
 
         return $viewer;
     }

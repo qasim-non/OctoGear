@@ -11,7 +11,6 @@ use App\Enums\UserStatus;
 use App\Enums\UserType;
 use App\Models\User;
 use App\Notifications\NewMessageNotification;
-use App\Notifications\NewOrderNotification;
 use Carbon\CarbonInterface;
 use Database\Seeders\Support\DemoImages;
 use Database\Seeders\Support\SeedRecords;
@@ -73,7 +72,7 @@ class DemoDataSeeder extends Seeder
             throw $exception;
         }
 
-        $this->command?->info('Demo data ready: 74 users, 15 stores, 39 customer cars, 45 store cars, 450 stock records, and 253 orders. Provider +966500000200 has all order/offer states and contextual chats; discovery covers all 34 cities with part photos. Existing records and image assets are reused.');
+        $this->command?->info('Demo data ready: 74 users, 15 stores, 39 customer cars, 45 store cars, 450 stock records, and 173 general orders. Provider +966500000200 has general request discovery, offer states and contextual chats; discovery covers all 34 cities with part photos. Existing records and image assets are reused.');
     }
 
     private function admins(): int
@@ -302,45 +301,38 @@ class DemoDataSeeder extends Seeder
             $otherSeller = $localStores[1];
             $car = $seller['cars'][1]; // Intact donor; selected parts have usable stock.
             $part = $car['components'][$index % count($this->parts)];
-            $specificStatus = ['pending', 'awaiting_payment', 'paid', 'rejected', 'cancelled'][$index % 5];
             $generalStatus = ['pending', 'awaiting_payment', 'paid', 'cancelled', 'pending'][$index % 5];
             $scenarios = [
-                ['general', $generalStatus, $seller, 'general-open'],
-                ['specific', $specificStatus, $seller, 'specific-open'],
-                ['general', 'completed', $otherSeller, 'general-completed'],
-                ['specific', 'completed', $seller, 'specific-completed'],
+                0 => [$generalStatus, $seller, 'general-open'],
+                2 => ['completed', $otherSeller, 'general-completed'],
             ];
 
-            foreach ($scenarios as $offset => [$type, $status, $chosenStore, $label]) {
+            foreach ($scenarios as $offset => [$status, $chosenStore, $label]) {
                 $notes = sprintf('[DEMO:%02d:%s] %s', $index + 1, $label, $part['name']);
                 $accepted = in_array($status, ['awaiting_payment', 'paid', 'completed'], true);
                 $identity = ['customer_id' => $customer['id'], 'notes' => $notes];
                 $isNew = ! DB::table('orders')->where($identity)->exists();
-                $price = $type === 'specific' || $accepted ? $part['price'] : null;
+                $price = $accepted ? $part['price'] : null;
                 $orderId = SeedRecords::once('orders', $identity, [
-                    'order_type' => $type,
+                    'order_type' => OrderType::General->value,
                     'status' => $status,
                     'quantity' => 1,
                     'offered_price' => $price,
-                    'component_id' => $type === 'general' && $offset === 0 ? $part['component_id'] : null,
-                    'component_name' => $type === 'general' && $offset !== 0 ? $part['name'] : null,
-                    'store_car_component_id' => $type === 'specific' ? $part['id'] : null,
+                    'component_id' => $offset === 0 ? $part['component_id'] : null,
+                    'component_name' => $offset !== 0 ? $part['name'] : null,
+                    'store_car_component_id' => null,
                     'created_at' => now()->subDays(20 - $offset),
                     'updated_at' => now()->subDays(10 - $offset),
                 ]);
-                if ($type === 'general') {
-                    $this->orderVehicle($orderId, $car['id']);
-                }
+                $this->orderVehicle($orderId, $car['id']);
                 if (($index + $offset) % 4 !== 0) {
                     $this->images->picture('order_images', 'order_id', $orderId, $part['image'], 0);
-                    if ($type === 'general') {
-                        $this->images->picture('order_images', 'order_id', $orderId, 'part-mirror.png', 1);
-                    }
+                    $this->images->picture('order_images', 'order_id', $orderId, 'part-mirror.png', 1);
                 }
 
                 // Keep changes made by a tester on reruns: transactions are fixtures only once.
                 if ($isNew) {
-                    if ($type === 'general' && $status !== 'cancelled') {
+                    if ($status !== 'cancelled') {
                         $acceptedOfferId = null;
                         foreach (array_slice($localStores, 0, 2) as $candidate) {
                             $winner = $accepted && $candidate['id'] === $chosenStore['id'];
@@ -362,12 +354,6 @@ class DemoDataSeeder extends Seeder
                         SeedRecords::once('payments', ['order_id' => $orderId], [
                             'amount' => $price, 'payment_method' => 'credit_card', 'payment_status' => 'paid',
                         ]);
-                        if ($type === 'specific') {
-                            $deducted = DB::table('store_car_components')->where('id', $part['id'])->where('stock_quantity', '>=', 1)->decrement('stock_quantity');
-                            if ($deducted !== 1) {
-                                throw new RuntimeException('Insufficient demo stock; transaction rolled back.');
-                            }
-                        }
                     }
                     if ($status === 'completed') {
                         SeedRecords::once('ratings', ['customer_id' => $customer['id'], 'store_id' => $chosenStore['id']], [
@@ -380,17 +366,8 @@ class DemoDataSeeder extends Seeder
 
                 // Also backfill older demo offers and repair missing files on
                 // reruns without resetting offer decisions or tester edits.
-                if ($type === 'general') {
-                    foreach (DB::table('order_offers')->where('order_id', $orderId)->get() as $offer) {
-                        $this->images->picture('offer_images', 'order_offer_id', $offer->id, $part['image'], 0);
-                    }
-                }
-
-                if ($type === 'specific' && $offset === 1) {
-                    $this->notification("order-{$orderId}", $seller['provider_id'], NewOrderNotification::class, [
-                        'type' => 'new_order', 'order_id' => $orderId, 'order_type' => $type,
-                        'message' => 'طلب تجريبي جديد رقم '.$orderId,
-                    ], $index % 2 === 0);
+                foreach (DB::table('order_offers')->where('order_id', $orderId)->get() as $offer) {
+                    $this->images->picture('offer_images', 'order_offer_id', $offer->id, $part['image'], 0);
                 }
             }
 
@@ -424,17 +401,8 @@ class DemoDataSeeder extends Seeder
             foreach ($customers as $index => $customerId) {
                 $sequence = $round * count($customers) + $index;
                 $this->providerOrder("discovery-{$round}-{$index}", $customerId, $seller, $competitor, $car,
-                    $car['components'][$sequence % count($this->parts)], OrderType::General, OrderStatus::Pending,
-                    now()->subMinutes($sequence), null, 1, $round === 2);
-            }
-        }
-
-        foreach (OrderStatus::cases() as $statusIndex => $status) {
-            foreach (range(0, 4) as $variant) {
-                $sequence = $statusIndex * 5 + $variant;
-                $this->providerOrder("direct-{$status->value}-{$variant}", $customers[$sequence], $seller, $competitor, $car,
-                    $car['components'][$sequence % count($this->parts)], OrderType::Specific, $status,
-                    now()->subDays($variant * 5)->subHours(3), null, 1 + $variant % 2);
+                    $car['components'][$sequence % count($this->parts)], OrderStatus::Pending,
+                    now()->subMinutes($sequence), null, $round === 2);
             }
         }
 
@@ -451,16 +419,16 @@ class DemoDataSeeder extends Seeder
             foreach (range(0, 2) as $variant) {
                 $sequence = $index * 3 + $variant;
                 $this->providerOrder("offer-{$index}-{$variant}", $customers[$sequence], $seller, $competitor, $car,
-                    $car['components'][$sequence % count($this->parts)], OrderType::General, $status,
-                    now()->subDays([0, 3, 20][$variant])->subHours(2), $offerStatus, 1, $variant === 2);
+                    $car['components'][$sequence % count($this->parts)], $status,
+                    now()->subDays([0, 3, 20][$variant])->subHours(2), $offerStatus, $variant === 2);
             }
         }
     }
 
     private function providerOrder(
         string $key, int $customerId, array $seller, array $competitor, array $car, array $part,
-        OrderType $type, OrderStatus $status, CarbonInterface $createdAt,
-        ?OfferStatus $offerStatus = null, int $quantity = 1, bool $customPart = false,
+        OrderStatus $status, CarbonInterface $createdAt,
+        ?OfferStatus $offerStatus = null, bool $customPart = false,
     ): void {
         // Identity is independent of editable notes, status and selected offers.
         $identity = ['customer_id' => $customerId, 'idempotency_key' => Uuid::uuid5(Uuid::NAMESPACE_URL, 'octogear-provider-demo:'.$key)->toString()];
@@ -468,20 +436,19 @@ class DemoDataSeeder extends Seeder
         if ($existing?->deleted_at !== null) {
             return;
         }
-        $general = $type === OrderType::General;
         $accepted = in_array($status, [OrderStatus::AwaitingPayment, OrderStatus::Paid, OrderStatus::Completed], true);
         $price = $part['price'];
         $orderId = SeedRecords::once('orders', $identity, [
-            'order_type' => $type->value, 'status' => $status->value,
+            'order_type' => OrderType::General->value, 'status' => $status->value,
             'notes' => '[PROVIDER-DEMO:'.$key.'] '.$part['name'].' - طلب تجريبي مع صورة القطعة.',
-            'component_id' => $general && ! $customPart ? $part['component_id'] : null,
-            'component_name' => $general && $customPart ? $part['name'] : null,
-            'store_car_component_id' => $general ? null : $part['id'],
-            'quantity' => $quantity, 'requested_unit_price' => $general ? null : $price,
+            'component_id' => ! $customPart ? $part['component_id'] : null,
+            'component_name' => $customPart ? $part['name'] : null,
+            'store_car_component_id' => null,
+            'quantity' => 1, 'requested_unit_price' => null,
             'offered_price' => $accepted ? $price : null,
             'created_at' => $createdAt, 'updated_at' => $createdAt,
         ]);
-        if ($existing === null && $general) {
+        if ($existing === null) {
             $this->orderVehicle($orderId, $car['id']);
         }
         $this->images->picture('order_images', 'order_id', $orderId, $part['image'], 0);
@@ -494,7 +461,7 @@ class DemoDataSeeder extends Seeder
         }
 
         $ownOfferId = null;
-        if ($general && $offerStatus !== null) {
+        if ($offerStatus !== null) {
             foreach ([$seller, $competitor] as $candidate) {
                 $own = $candidate['id'] === $seller['id'];
                 $candidateStatus = $own ? $offerStatus : match ($offerStatus) {
@@ -520,20 +487,13 @@ class DemoDataSeeder extends Seeder
         }
         if (in_array($status, [OrderStatus::Paid, OrderStatus::Completed], true)) {
             SeedRecords::once('payments', ['order_id' => $orderId], [
-                'amount' => $price * $quantity,
+                'amount' => $price,
                 'payment_method' => PaymentMethod::CreditCard->value,
                 'payment_status' => PaymentStatus::Paid->value,
                 'created_at' => $createdAt, 'updated_at' => $createdAt,
             ]);
-            if (! $general) {
-                $deducted = DB::table('store_car_components')->where('id', $part['id'])
-                    ->whereNull('deleted_at')->where('stock_quantity', '>=', $quantity)->decrement('stock_quantity', $quantity);
-                if ($deducted !== 1) {
-                    throw new RuntimeException('Insufficient provider demo stock; transaction rolled back.');
-                }
-            }
         }
-        if ($ownOfferId !== null || (! $general && $accepted)) {
+        if ($ownOfferId !== null) {
             $this->providerConversation($orderId, $ownOfferId, $customerId, $seller['provider_id'], $createdAt);
         }
     }

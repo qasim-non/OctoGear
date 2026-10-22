@@ -20,6 +20,9 @@ class SupportSessionRepository
 
     public function adminChannels(): array
     {
-        return $this->sessions->channels(new Admin, Admin::where('status', AdminStatus::Active)->pluck('employee_id')->all(), 'private-support.admin.sessions.');
+        $ids = Admin::where('status', AdminStatus::Active)->get(['employee_id', 'assigned_role', 'status', 'must_change_password'])
+            ->filter(fn (Admin $admin) => $admin->hasPermission('support.access'))->modelKeys();
+
+        return $this->sessions->channels(new Admin, $ids, 'private-support.admin.sessions.');
     }
 }

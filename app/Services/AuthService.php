@@ -2,20 +2,17 @@
 
 namespace App\Services;
 
-use App\Enums\AdminStatus;
 use App\Enums\PreferredLanguage;
 use App\Enums\UserStatus;
 use App\Enums\UserType;
 use App\Exceptions\BusinessRuleException;
-use App\Models\Admin;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 
 class AuthService
 {
     public function __construct(
         protected OtpService $otpService,
+        protected AdminCredentialService $adminCredentials,
     ) {}
 
     public function sendOtp(string $mobile): ?string
@@ -92,39 +89,6 @@ class AuthService
 
     public function adminLogin(string $email, string $password, ?PreferredLanguage $preferredLanguage = null): array
     {
-        $admin = Admin::where('email', $email)->first();
-
-        if (! $admin || ! Hash::check($password, $admin->password)) {
-            Log::warning('Admin login failed', ['email' => $email]);
-
-            throw new BusinessRuleException(
-                message: 'Invalid admin credentials',
-                messageKey: 'auth.login.invalid',
-                statusCode: 401,
-            );
-        }
-
-        if ($admin->status === AdminStatus::Blocked) {
-            Log::warning('Blocked admin login attempt', [
-                'admin_id' => $admin->employee_id,
-                'email' => $email,
-            ]);
-
-            throw new BusinessRuleException(
-                message: 'Blocked admin login attempt',
-                messageKey: 'auth.admin.blocked',
-                statusCode: 403,
-            );
-        }
-
-        // First sign-in initializes the choice; another browser must not overwrite it.
-        if ($preferredLanguage !== null) {
-            Admin::whereKey($admin->getKey())->whereNull('preferred_language')
-                ->update(['preferred_language' => $preferredLanguage->value]);
-        }
-
-        $token = $admin->createToken('admin-token', ['admin'])->plainTextToken;
-
-        return ['token' => $token];
+        return $this->adminCredentials->login($email, $password, $preferredLanguage);
     }
 }

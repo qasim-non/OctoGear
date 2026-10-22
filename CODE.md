@@ -1,3 +1,16 @@
+## Administrator security — 2026-10-22
+
+Read ADMIN_ACCOUNTS.md and the web project's docs/ADMIN_ACCOUNTS_STEP.md.
+AdminPermissions → registered AdminPolicy → route permission middleware controls
+all business admin access. Existing object rules remain. AdminCredentialService
+owns temporary setup/password/session decisions; AdminAccountService owns locked
+staff changes and AdminAccountRepository owns lists/audit queries. No token is
+issued until a new account chooses its own password. Existing role assignments
+remain, with the documented restricted matrix now enforced on HTTP/media/realtime.
+Inactive/blocked/pending accounts are denied. Apply the additive security migration
+before updated code; do not run a reset. These rules supersede historical admin
+login/inactive/policy descriptions below. Mobile auth/OTP behavior is unchanged.
+
 ## Shared conversation identity — 2026-10-20
 
 The customer/provider pair identifies the conversation across direct, offer and

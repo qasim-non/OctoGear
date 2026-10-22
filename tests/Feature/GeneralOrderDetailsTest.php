@@ -397,7 +397,8 @@ class GeneralOrderDetailsTest extends TestCase
         $this->assertNotNull($order->vehicleDetails->fuel_type);
         $order->vehicleDetails->update(['car_name_en' => 'Preserve original snapshot']);
         $this->seed(DemoDataSeeder::class);
-        $this->assertDatabaseCount('orders', 253);
+        $this->assertDatabaseCount('orders', 173);
+        $this->assertDatabaseMissing('orders', ['order_type' => 'specific']);
         $this->assertDatabaseCount('order_vehicle_details', 173);
         $this->assertSame('Preserve original snapshot', $order->fresh()->vehicleDetails->car_name_en);
     }

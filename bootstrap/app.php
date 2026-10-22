@@ -3,6 +3,7 @@
 use App\Exceptions\BusinessRuleException;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\EnsureAdminIsActive;
+use App\Http\Middleware\EnsureAdminPermission;
 use App\Http\Middleware\EnsureIsCustomer;
 use App\Http\Middleware\EnsureIsCustomerOrProvider;
 use App\Http\Middleware\EnsureIsProvider;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'locale' => SetLocale::class,
             'user.active' => EnsureUserIsActive::class,
             'admin.active' => EnsureAdminIsActive::class,
+            'admin.permission' => EnsureAdminPermission::class,
             'customer' => EnsureIsCustomer::class,
             'provider' => EnsureIsProvider::class,
             'auth.provider' => EnsureIsCustomerOrProvider::class,
@@ -41,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['password', 'password_confirmation', 'current_password', 'challenge']);
         $exceptions->renderable(function (AuthenticationException $e, Request $request) {
             return response()->json([
                 'success' => false,

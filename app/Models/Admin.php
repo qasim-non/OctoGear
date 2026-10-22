@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AdminRole;
 use App\Enums\AdminStatus;
 use App\Enums\PreferredLanguage;
+use App\Support\AdminPermissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -59,6 +60,11 @@ class Admin extends Authenticatable
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'must_change_password' => 'boolean',
+            'temporary_password_expires_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'security_version' => 'integer',
         ];
     }
 
@@ -70,5 +76,11 @@ class Admin extends Authenticatable
     public function isActive(): bool
     {
         return $this->status === AdminStatus::Active;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return $this->isActive() && ! $this->must_change_password
+            && in_array($permission, AdminPermissions::forRole($this->assigned_role), true);
     }
 }

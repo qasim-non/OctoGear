@@ -27,12 +27,12 @@ class AdminPaymentDirectoryTest extends TestCase
         $payment = Payment::factory()->create(['order_id' => Order::factory()->state(['customer_id' => User::factory()])]);
         $before = $payment->fresh()->getAttributes();
         $this->getJson('/api/admin/payments')->assertUnauthorized();
-        foreach ([User::factory()->customer()->create(), User::factory()->provider()->create(), Admin::factory()->blocked()->create()] as $actor) {
+        foreach ([User::factory()->customer()->create(), User::factory()->provider()->create(), Admin::factory()->blocked()->create(), Admin::factory()->create(['status' => 'inactive'])] as $actor) {
             $this->app['auth']->forgetGuards();
             $this->withToken($actor->createToken('test')->plainTextToken)->getJson('/api/admin/payments')->assertForbidden();
             $this->assertFalse(Gate::forUser($actor)->allows('viewAdminDirectory', Payment::class));
         }
-        foreach (['active', 'inactive'] as $status) {
+        foreach (['active'] as $status) {
             $this->app['auth']->forgetGuards();
             $admin = Admin::factory()->create(['status' => $status]);
             $this->withToken($admin->createToken('admin', ['admin'])->plainTextToken)->getJson('/api/admin/payments')

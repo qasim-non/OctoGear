@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -54,7 +55,7 @@ class AdminOrderResource extends JsonResource
                     'city' => $this->fulfillmentStore()->city ? ['id' => $this->fulfillmentStore()->city->id, 'name' => $locale === 'en' ? $this->fulfillmentStore()->city->name_en : $this->fulfillmentStore()->city->name_ar] : null,
                 ] : null,
             ),
-            'payment' => $this->whenLoaded('payment', fn () => $this->payment ? [
+            'payment' => $this->when($request->user() instanceof Admin && $request->user()->hasPermission('payments.view') && $this->relationLoaded('payment'), fn () => $this->payment ? [
                 'id' => $this->payment->id,
                 'amount' => $this->payment->amount,
                 'payment_method' => $this->payment->payment_method->value,

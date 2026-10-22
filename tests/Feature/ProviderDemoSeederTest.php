@@ -45,19 +45,12 @@ class ProviderDemoSeederTest extends TestCase
                 }
             }
 
+            $this->assertDatabaseMissing('orders', ['order_type' => 'specific']);
+            $this->getJson('/api/provider/orders/specific')->assertOk()->assertJsonCount(0, 'data');
             foreach (OrderStatus::cases() as $status) {
-                $rows = $this->getJson('/api/provider/orders/specific?status='.$status->value)->assertOk()->json('data');
-                $this->assertGreaterThanOrEqual(5, count($rows));
-                foreach ($rows as $row) {
-                    $this->assertSame($status->value, $row['status']);
-                }
+                $this->getJson('/api/provider/orders/specific?status='.$status->value)
+                    ->assertOk()->assertJsonCount(0, 'data');
             }
-            $pending = Order::where('notes', 'like', '[PROVIDER-DEMO:direct-pending-%')->firstOrFail();
-            $this->getJson('/api/provider/orders/'.$pending->id)->assertOk()
-                ->assertJsonPath('data.can_accept', true)->assertJsonPath('data.can_reject', true);
-            $this->postJson('/api/provider/orders/'.$pending->id.'/accept', [
-                'expected_unit_price' => $pending->requested_unit_price, 'expected_quantity' => $pending->quantity,
-            ])->assertOk()->assertJsonPath('data.status', 'awaiting_payment');
 
             foreach (OfferStatus::cases() as $status) {
                 $offer = OrderOffer::where('status', $status)->whereHas('store', fn ($q) => $q->where('user_id', $provider->id))
@@ -67,13 +60,14 @@ class ProviderDemoSeederTest extends TestCase
             }
             foreach (['paid', 'completed'] as $status) {
                 $this->getJson('/api/provider/orders/paid?status='.$status)->assertOk();
-                $order = Order::where('notes', 'like', '[PROVIDER-DEMO:direct-'.$status.'-%')->firstOrFail();
+                $key = $status === 'paid' ? 'offer-3' : 'offer-4';
+                $order = Order::where('notes', 'like', '[PROVIDER-DEMO:'.$key.'-%')->firstOrFail();
                 $this->getJson('/api/provider/orders/paid/'.$order->id)->assertOk()
                     ->assertJsonPath('data.gross_amount', $order->payment->amount);
             }
             $this->getJson('/api/provider/dashboard')->assertOk();
             $this->getJson('/api/conversations?with_messages=true')->assertOk();
-            foreach (['direct-awaiting_payment', 'direct-paid', 'direct-completed', 'offer-2', 'offer-3', 'offer-4'] as $key) {
+            foreach (['offer-2', 'offer-3', 'offer-4'] as $key) {
                 $order = Order::where('notes', 'like', '[PROVIDER-DEMO:'.$key.'-%')->firstOrFail();
                 $chat = Conversation::where('customer_id', $order->customer_id)->where('provider_id', $provider->id)->firstOrFail();
                 $this->getJson('/api/provider/orders/'.$order->id.'/conversation')->assertOk()

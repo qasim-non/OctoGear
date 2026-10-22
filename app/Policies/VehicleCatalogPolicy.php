@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\AdminStatus;
 use App\Models\Admin;
 use App\Models\User;
 
@@ -10,21 +9,21 @@ class VehicleCatalogPolicy
 {
     public function create(User|Admin $actor): bool
     {
-        return $this->viewAny($actor);
+        return $actor instanceof Admin && $actor->hasPermission('catalog.manage');
     }
 
     public function update(User|Admin $actor): bool
     {
-        return $this->viewAny($actor);
+        return $this->create($actor);
     }
 
     public function delete(User|Admin $actor): bool
     {
-        return $this->viewAny($actor);
+        return $this->create($actor);
     }
 
     public function viewAny(User|Admin $actor): bool
     {
-        return $actor instanceof Admin && $actor->status !== AdminStatus::Blocked;
+        return $actor instanceof Admin && $actor->hasPermission('catalog.view');
     }
 }

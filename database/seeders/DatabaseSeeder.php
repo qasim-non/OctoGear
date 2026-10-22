@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        $this->call(RequestedAdminsSeeder::class);
+
         $this->command?->info('Database seeding completed!');
     }
 }

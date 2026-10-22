@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\AdminStatus;
 use App\Http\Traits\ApiResponse;
 use App\Models\Admin;
 use Closure;
@@ -22,7 +21,7 @@ class EnsureAdminIsActive
             return $this->forbidden(__('auth.middleware.admin_required'));
         }
 
-        if ($admin->status === AdminStatus::Blocked) {
+        if (! $admin->isActive() || $admin->must_change_password) {
             Log::warning('Blocked admin access attempt', [
                 'admin_id' => $admin->employee_id,
                 'email' => $admin->email,
