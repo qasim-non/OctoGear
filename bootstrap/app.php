@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureIsCustomer;
 use App\Http\Middleware\EnsureIsCustomerOrProvider;
 use App\Http\Middleware\EnsureIsProvider;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\ProtectBrowserRefresh;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -38,12 +39,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer' => EnsureIsCustomer::class,
             'provider' => EnsureIsProvider::class,
             'auth.provider' => EnsureIsCustomerOrProvider::class,
+            'browser.refresh' => ProtectBrowserRefresh::class,
         ]);
 
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontFlash(['password', 'password_confirmation', 'current_password', 'challenge']);
+        $exceptions->dontFlash(['password', 'password_confirmation', 'current_password', 'challenge', 'refresh_token', 'token']);
         $exceptions->renderable(function (AuthenticationException $e, Request $request) {
             return response()->json([
                 'success' => false,

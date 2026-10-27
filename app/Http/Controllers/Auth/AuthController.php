@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\AdminLoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\SendOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Http\Responses\AuthSessionResponse;
 use App\Services\AuthService;
 use App\Services\DeviceTokenService;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ use Illuminate\Http\Request;
 class AuthController extends Controller
 {
     public function __construct(
-        protected AuthService $authService
+        protected AuthService $authService,
+        private AuthSessionResponse $sessions,
     ) {}
 
     public function sendOtp(SendOtpRequest $request)
@@ -33,7 +35,7 @@ class AuthController extends Controller
             $request->validated('otp'),
         );
 
-        return $this->success(
+        return $this->sessions->make($request,
             $result,
             $result['is_new'] ? __('auth.otp.verified') : __('auth.login.success')
         );
@@ -50,14 +52,14 @@ class AuthController extends Controller
             PreferredLanguage::tryFrom($data['preferred_language'] ?? $request->header('Accept-Language', '')),
         );
 
-        return $this->success(['token' => $result['token']], __('auth.register.completed'));
+        return $this->sessions->make($request, $result, __('auth.register.completed'));
     }
 
     public function logout(Request $request, DeviceTokenService $devices)
     {
         $devices->logout($request->user());
 
-        return $this->success(null, __('auth.logout.success'));
+        return $this->sessions->clear($this->success(null, __('auth.logout.success')));
     }
 
     public function adminLogin(AdminLoginRequest $request)
@@ -66,8 +68,9 @@ class AuthController extends Controller
             $request->validated('email'),
             $request->validated('password'),
             $request->enum('preferred_language', PreferredLanguage::class),
+            $request->header('X-Auth-Client') === 'web',
         );
 
-        return $this->success($result, __('auth.login.success'))->header('Cache-Control', 'no-store, private');
+        return $this->sessions->make($request, $result, __('auth.login.success'));
     }
 }

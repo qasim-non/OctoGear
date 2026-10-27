@@ -87,17 +87,14 @@ class AuthMobileTest extends TestCase
             ->once()
             ->with('+966555555555')
             ->andReturn($user);
-        $mock->shouldReceive('createToken')
-            ->once()
-            ->with($user)
-            ->andReturn('token-abc');
 
         $this->app->instance(OtpService::class, $mock);
 
         $this->postJson('/api/auth/otp/verify', ['mobile' => '0555555555', 'otp' => '1234'])
             ->assertOk()
             ->assertJsonPath('data.is_new', false)
-            ->assertJsonPath('data.token', 'token-abc');
+            ->assertJsonStructure(['data' => ['token', 'refresh_token', 'session_id', 'access_expires_at', 'session_expires_at']]);
+        $this->assertDatabaseHas('auth_sessions', ['actor_type' => $user->getMorphClass(), 'actor_id' => $user->id]);
     }
 
     public function test_registration_stores_mobile_in_e164(): void

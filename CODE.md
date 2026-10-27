@@ -1,3 +1,10 @@
+## Rotating authentication sessions — 2026-10-23
+
+Read AUTH_SESSIONS.md. AuthSessionService owns 10-minute access and rotating refresh,
+with a fixed 14-day login, stable push/socket anchors and family revocation. Native
+clients use secure storage; admin refresh uses an origin-protected HttpOnly cookie.
+OtpService retains OTP utilities only; issuance moved to the shared session service.
+
 ## Administrator security — 2026-10-22
 
 Read ADMIN_ACCOUNTS.md and the web project's docs/ADMIN_ACCOUNTS_STEP.md.

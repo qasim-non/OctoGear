@@ -17,7 +17,7 @@ class ConversationPolicy
     public function subscribeSession(User $user, mixed $channel): bool
     {
         return $this->subscribe($user)
-            && $channel === 'private-chat.sessions.'.$user->currentAccessToken()->id;
+            && $channel === 'private-chat.sessions.'.$user->currentAccessToken()->channelId();
     }
 
     private function isParticipant(User $user, Conversation $conversation): bool

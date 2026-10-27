@@ -16,6 +16,7 @@ use App\Models\Message;
 use App\Models\Order;
 use App\Models\OrderOffer;
 use App\Models\Payment;
+use App\Models\PersonalAccessToken;
 use App\Models\Rating;
 use App\Models\Store;
 use App\Models\StoreCarComponent;
@@ -44,6 +45,7 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -55,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        Sanctum::authenticateAccessTokensUsing(fn (PersonalAccessToken $token, bool $valid) => $valid
+            && (! $token->auth_session_id || $token->authSession?->isActive()));
         $this->configurePolicies();
         $this->configureRateLimiting();
     }
@@ -82,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
+        RateLimiter::for('tokenRefresh', fn (Request $request) => Limit::perMinute(20)->by('refresh:'.$request->ip()));
         RateLimiter::for('adminPassword', fn (Request $request) => Limit::perMinute(5)->by('admin-password:'.$request->ip()));
         RateLimiter::for('supportMessages', function (Request $request) {
             $actor = $request->user();

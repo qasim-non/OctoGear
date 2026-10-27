@@ -11,9 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class AdminCredentialService
 {
-    public function login(string $email, string $password, ?PreferredLanguage $language): array
+    public function __construct(private AuthSessionService $sessions) {}
+
+    public function login(string $email, string $password, ?PreferredLanguage $language, bool $browser = false): array
     {
-        return DB::transaction(function () use ($email, $password, $language) {
+        return DB::transaction(function () use ($email, $password, $language, $browser) {
             $admin = Admin::whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->lockForUpdate()->first();
             if (! $admin) {
                 Hash::make($password);
@@ -39,16 +41,16 @@ class AdminCredentialService
                 return ['requires_password_change' => true, 'challenge' => $challenge, 'expires_in' => 600];
             }
 
-            return $this->session($admin);
+            return $this->session($admin, $browser);
         });
     }
 
-    public function completeSetup(string $challenge, string $password): array
+    public function completeSetup(string $challenge, string $password, bool $browser = false): array
     {
         $hash = hash('sha256', $challenge);
         $id = DB::table('admin_password_challenges')->where('token_hash', $hash)->value('admin_id');
 
-        return DB::transaction(function () use ($id, $hash, $password) {
+        return DB::transaction(function () use ($id, $hash, $password, $browser) {
             $admin = $id ? Admin::whereKey($id)->lockForUpdate()->first() : null;
             $row = $id ? DB::table('admin_password_challenges')->where('admin_id', $id)->lockForUpdate()->first() : null;
             if (! $admin || ! $row || ! hash_equals($row->token_hash, $hash) || now()->gte($row->expires_at)
@@ -59,7 +61,7 @@ class AdminCredentialService
             $this->replacePassword($admin, $password);
             $this->audit($admin, 'password_setup', $admin->getKey());
 
-            return $this->session($admin);
+            return $this->session($admin, $browser);
         });
     }
 
@@ -83,7 +85,7 @@ class AdminCredentialService
 
     public function revoke(Admin $admin): void
     {
-        $admin->tokens()->delete();
+        $this->sessions->revokeAll($admin);
         DB::table('admin_password_challenges')->where('admin_id', $admin->getKey())->delete();
     }
 
@@ -113,10 +115,10 @@ class AdminCredentialService
         }
     }
 
-    private function session(Admin $admin): array
+    private function session(Admin $admin, bool $browser): array
     {
         $admin->forceFill(['last_login_at' => now()])->save();
 
-        return ['token' => $admin->createToken('admin-token', ['admin'])->plainTextToken];
+        return $this->sessions->start($admin, $browser);
     }
 }

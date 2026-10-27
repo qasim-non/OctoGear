@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\Shared\SupportConversationController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Auth\AdminPasswordController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\RefreshTokenController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['locale'])->group(function () {
@@ -61,8 +62,12 @@ Route::middleware(['locale'])->group(function () {
         Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:customerLogin');
         Route::post('/register', [AuthController::class, 'register']); // Done
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum,admin');
-        Route::post('/admin/password-setup', [AdminPasswordController::class, 'setup'])->middleware('throttle:adminPassword');
-        Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:adminLogin');
+        Route::post('/refresh', [RefreshTokenController::class, 'refresh'])->middleware('throttle:tokenRefresh');
+        Route::post('/session/logout', [RefreshTokenController::class, 'logout'])->middleware('throttle:tokenRefresh');
+        Route::post('/admin/refresh', [RefreshTokenController::class, 'refresh'])->middleware(['browser.refresh', 'throttle:tokenRefresh']);
+        Route::post('/admin/logout', [RefreshTokenController::class, 'logout'])->middleware(['browser.refresh', 'throttle:tokenRefresh']);
+        Route::post('/admin/password-setup', [AdminPasswordController::class, 'setup'])->middleware(['browser.refresh', 'throttle:adminPassword']);
+        Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware(['browser.refresh', 'throttle:adminLogin']);
     });
 
     // All done

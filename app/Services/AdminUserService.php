@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Admin oversight for end users (customers + providers).
  */
 class AdminUserService
 {
+    public function __construct(private AuthSessionService $sessions) {}
+
     public function index(array $filters): LengthAwarePaginator
     {
         $type = $filters['type'] ?? null;
@@ -37,8 +40,14 @@ class AdminUserService
 
     public function setStatus(User $user, UserStatus $status): User
     {
-        $user->update(['status' => $status]);
+        return DB::transaction(function () use ($user, $status) {
+            $user = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $user->update(['status' => $status]);
+            if ($status === UserStatus::Blocked) {
+                $this->sessions->revokeAll($user);
+            }
 
-        return $user->refresh();
+            return $user;
+        }, 3);
     }
 }

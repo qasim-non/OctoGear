@@ -1,5 +1,9 @@
 # Admin accounts and authorization — 2026-10-22
 
+Session update (2026-10-23): AUTH_SESSIONS.md supersedes token issuance/revocation
+details below. Completed login/setup issues 10-minute access and rotating refresh
+within a fixed 14-day login. Browser refresh is HttpOnly; revocation covers both.
+
 This supersedes earlier documentation that any non-blocked admin could access
 every admin endpoint. Existing role values and passwords are preserved. Inactive,
 blocked, archived and pending-password-setup accounts cannot access the protected

@@ -1,3 +1,9 @@
+## Session rotation — 2026-10-23
+
+See AUTH_SESSIONS.md. Device bindings keep the first access-token ID as a stable
+login anchor. Expired access alone does not stop background push; the parent login's
+expiry/revocation does. Logout deletes all access tokens and the bound registration.
+
 ## Provider notifications — implementation contract (2026-10-17)
 
 Providers open Notifications from the dashboard bell or More. The shared inbox

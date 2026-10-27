@@ -29,6 +29,6 @@ class SupportConversationPolicy
         $token = $actor->currentAccessToken();
 
         return $actor instanceof Admin && $this->access($actor) && $token instanceof PersonalAccessToken
-            && $channel === 'private-support.admin.sessions.'.$token->id;
+            && $channel === 'private-support.admin.sessions.'.$token->channelId();
     }
 }

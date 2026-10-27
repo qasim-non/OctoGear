@@ -1,5 +1,9 @@
 # Support chat — 2026-10-21
 
+Session update (2026-10-23): AUTH_SESSIONS.md defines stable login channel anchors,
+10-minute access and fixed 14-day login. Refresh does not change the channel;
+delivery excludes revoked/expired parent logins even if a socket remains open.
+
 Approved scope: one text-only support conversation per User account, surviving
 customer/provider role changes. First send creates the conversation and message
 atomically; previews never write. Closed history stays readable and explicitly

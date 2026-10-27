@@ -1,9 +1,16 @@
 <?php
 
+use App\Repositories\AuthSessionRepository;
 use App\Services\CustomerCarService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+
+Artisan::command('auth-sessions:prune', function () {
+    app(AuthSessionRepository::class)->prune();
+    $this->info('Expired authentication credentials cleaned.');
+})->purpose('Clean expired logins and refresh recovery receipts, preserving active channel anchors');
+Schedule::command('auth-sessions:prune')->everyFiveMinutes()->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

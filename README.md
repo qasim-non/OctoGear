@@ -1,5 +1,12 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
+## Access and refresh sessions — 2026-10-23
+
+Read [AUTH_SESSIONS.md](AUTH_SESSIONS.md) for the new additive migration, endpoints,
+10-minute access / 14-day login policy, browser cookies/CORS, client rollout and
+cleanup scheduler. Realtime/push follow the stable login across token rotations.
+Existing tokens are bounded during migration; updated clients require one login.
+
 ## Admin accounts, temporary passwords and role authorization — 2026-10-22
 
 Read [ADMIN_ACCOUNTS.md](ADMIN_ACCOUNTS.md) before changing administrator access.

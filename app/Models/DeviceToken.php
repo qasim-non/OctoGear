@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\DevicePlatform;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class DeviceToken extends Model
 {

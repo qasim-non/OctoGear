@@ -13,6 +13,7 @@ class AuthService
     public function __construct(
         protected OtpService $otpService,
         protected AdminCredentialService $adminCredentials,
+        protected AuthSessionService $sessions,
     ) {}
 
     public function sendOtp(string $mobile): ?string
@@ -35,7 +36,7 @@ class AuthService
 
         if ($user) {
             return [
-                'token' => $this->otpService->createToken($user),
+                ...$this->sessions->start($user),
                 'is_new' => false,
                 'type' => $user->type->value,
             ];
@@ -66,9 +67,7 @@ class AuthService
 
         $user = $this->createUser($mobile, $fullName, $cityId, $preferredLanguage);
 
-        return [
-            'token' => $this->otpService->createToken($user),
-        ];
+        return $this->sessions->start($user);
     }
 
     public function createUser(
@@ -87,8 +86,8 @@ class AuthService
         ]);
     }
 
-    public function adminLogin(string $email, string $password, ?PreferredLanguage $preferredLanguage = null): array
+    public function adminLogin(string $email, string $password, ?PreferredLanguage $preferredLanguage = null, bool $browser = false): array
     {
-        return $this->adminCredentials->login($email, $password, $preferredLanguage);
+        return $this->adminCredentials->login($email, $password, $preferredLanguage, $browser);
     }
 }

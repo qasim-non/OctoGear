@@ -17,7 +17,7 @@ class ChatRealtimeService
         return [
             'enabled' => true,
             'url' => rtrim(config('chat_realtime.url'), '/').'/app/'.rawurlencode(config('broadcasting.connections.reverb.key')),
-            'channel' => ($user instanceof Admin ? 'private-support.admin.sessions.' : 'private-chat.sessions.').$user->currentAccessToken()->id,
+            'channel' => ($user instanceof Admin ? 'private-support.admin.sessions.' : 'private-chat.sessions.').$user->currentAccessToken()->channelId(),
         ];
     }
 

@@ -33,7 +33,7 @@ class OtpService
         $this->sms->sendOtp($mobile, $otp);
 
         // Only explicitly enabled development/staging flows may expose codes.
-        return $otp;
+        return app()->environment('local', 'staging') && config('otp.expose_for_testing') ? $otp : null;
     }
 
     public function verifyOtp(string $mobile, string $otp): bool
@@ -73,10 +73,5 @@ class OtpService
     public function consumePendingToken(string $intent, string $token): ?string
     {
         return Cache::pull("pending:{$intent}:{$token}");
-    }
-
-    public function createToken(User $user, array $abilities = ['*']): string
-    {
-        return $user->createToken('auth-token', $abilities)->plainTextToken;
     }
 }

@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Models\User;
 use App\Services\AdminCredentialService;
 use App\Services\AuthService;
+use App\Services\AuthSessionService;
 use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +28,7 @@ class AuthServiceTest extends TestCase
             ->andReturn(false);
 
         try {
-            (new AuthService($otp, app(AdminCredentialService::class)))->verifyOtp('+966555555555', '0000');
+            (new AuthService($otp, app(AdminCredentialService::class), app(AuthSessionService::class)))->verifyOtp('+966555555555', '0000');
 
             $this->fail('Expected BusinessRuleException to be thrown.');
         } catch (BusinessRuleException $e) {
@@ -39,16 +40,16 @@ class AuthServiceTest extends TestCase
 
     public function test_verify_otp_returns_token_for_existing_user(): void
     {
-        $user = User::factory()->make(['id' => 1]);
+        $user = User::factory()->create();
 
         $otp = Mockery::mock(OtpService::class);
         $otp->shouldReceive('verifyOtp')->once()->andReturn(true);
         $otp->shouldReceive('findByMobile')->once()->andReturn($user);
-        $otp->shouldReceive('createToken')->once()->with($user)->andReturn('token-abc');
 
-        $result = (new AuthService($otp, app(AdminCredentialService::class)))->verifyOtp('+966555555555', '1234');
+        $result = (new AuthService($otp, app(AdminCredentialService::class), app(AuthSessionService::class)))->verifyOtp('+966555555555', '1234');
 
-        $this->assertSame('token-abc', $result['token']);
+        $this->assertIsString($result['token']);
+        $this->assertIsString($result['refresh_token']);
         $this->assertFalse($result['is_new']);
         $this->assertSame('customer', $result['type']);
     }
@@ -63,7 +64,7 @@ class AuthServiceTest extends TestCase
             ->with('registration', '+966555555555')
             ->andReturn('temp-token');
 
-        $result = (new AuthService($otp, app(AdminCredentialService::class)))->verifyOtp('+966555555555', '1234');
+        $result = (new AuthService($otp, app(AdminCredentialService::class), app(AuthSessionService::class)))->verifyOtp('+966555555555', '1234');
 
         $this->assertSame('temp-token', $result['temp_token']);
         $this->assertTrue($result['is_new']);
@@ -79,7 +80,7 @@ class AuthServiceTest extends TestCase
             ->andReturn(null);
 
         try {
-            (new AuthService($otp, app(AdminCredentialService::class)))->register('bad-token', 'Test User', 1);
+            (new AuthService($otp, app(AdminCredentialService::class), app(AuthSessionService::class)))->register('bad-token', 'Test User', 1);
 
             $this->fail('Expected BusinessRuleException to be thrown.');
         } catch (BusinessRuleException $e) {
@@ -97,14 +98,11 @@ class AuthServiceTest extends TestCase
             ->once()
             ->with('registration', 'valid-token')
             ->andReturn('+966555555555');
-        $otp->shouldReceive('createToken')
-            ->once()
-            ->with(Mockery::type(User::class))
-            ->andReturn('new-token');
 
-        $result = (new AuthService($otp, app(AdminCredentialService::class)))->register('valid-token', 'Test User', $city->id);
+        $result = (new AuthService($otp, app(AdminCredentialService::class), app(AuthSessionService::class)))->register('valid-token', 'Test User', $city->id);
 
-        $this->assertSame('new-token', $result['token']);
+        $this->assertIsString($result['token']);
+        $this->assertIsString($result['refresh_token']);
         $this->assertDatabaseHas('users', [
             'mobile' => '+966555555555',
             'full_name' => 'Test User',
@@ -121,7 +119,7 @@ class AuthServiceTest extends TestCase
         ]);
 
         try {
-            (new AuthService(app(OtpService::class), app(AdminCredentialService::class)))->adminLogin('admin@test.com', 'wrong-password');
+            (new AuthService(app(OtpService::class), app(AdminCredentialService::class), app(AuthSessionService::class)))->adminLogin('admin@test.com', 'wrong-password');
 
             $this->fail('Expected BusinessRuleException to be thrown.');
         } catch (BusinessRuleException $e) {
@@ -138,7 +136,7 @@ class AuthServiceTest extends TestCase
         ]);
 
         try {
-            (new AuthService(app(OtpService::class), app(AdminCredentialService::class)))->adminLogin('admin@test.com', 'secret123');
+            (new AuthService(app(OtpService::class), app(AdminCredentialService::class), app(AuthSessionService::class)))->adminLogin('admin@test.com', 'secret123');
 
             $this->fail('Expected BusinessRuleException to be thrown.');
         } catch (BusinessRuleException $e) {
@@ -154,7 +152,7 @@ class AuthServiceTest extends TestCase
             'password' => Hash::make('secret123'),
         ]);
 
-        $result = (new AuthService(app(OtpService::class), app(AdminCredentialService::class)))->adminLogin('admin@test.com', 'secret123');
+        $result = (new AuthService(app(OtpService::class), app(AdminCredentialService::class), app(AuthSessionService::class)))->adminLogin('admin@test.com', 'secret123');
 
         $this->assertIsString($result['token']);
         $this->assertNotEmpty($result['token']);

@@ -3,15 +3,16 @@
 namespace App\Repositories;
 
 use App\Models\DeviceToken;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class DeviceTokenRepository
 {
     public function register(User $user, PersonalAccessToken $session, array $data): void
     {
+        $session = PersonalAccessToken::findOrFail($session->channelId());
         // Lock the session before changing its subscription, including during logout.
         PersonalAccessToken::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
         DeviceToken::query()->where('personal_access_token_id', $session->id)
@@ -30,6 +31,7 @@ class DeviceTokenRepository
 
     public function unregister(PersonalAccessToken $session): void
     {
+        $session = PersonalAccessToken::findOrFail($session->channelId());
         PersonalAccessToken::query()->whereKey($session->id)->lockForUpdate()->first();
         DeviceToken::query()->where('personal_access_token_id', $session->id)->delete();
     }
@@ -57,11 +59,7 @@ class DeviceTokenRepository
         return DeviceToken::query()->where('user_id', $user->id)->where('platform', 'android')
             ->where('last_seen_at', '>=', now()->subDays(config('push.stale_days')))
             ->whereHas('accessToken', function ($query) use ($user) {
-                $query->where('tokenable_type', $user->getMorphClass())->where('tokenable_id', $user->id)
-                    ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
-                if ($minutes = config('sanctum.expiration')) {
-                    $query->where('created_at', '>', now()->subMinutes($minutes));
-                }
+                $query->where('tokenable_type', $user->getMorphClass())->where('tokenable_id', $user->id)->activeLogin();
             });
     }
 }

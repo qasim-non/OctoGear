@@ -1,3 +1,9 @@
+## Session rotation — 2026-10-23
+
+See AUTH_SESSIONS.md. Channel suffixes now identify the login's first token anchor;
+they remain stable through refresh. Subscription still requires a valid current
+access token; delivery checks the parent login's fixed expiry and revocation.
+
 ## Shared conversation identity — 2026-10-20
 
 The customer/provider pair identifies the conversation across direct, offer and

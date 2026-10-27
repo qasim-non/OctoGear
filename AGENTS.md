@@ -4,6 +4,10 @@ These instructions apply to work in `OctoGear-api`. Read them before answering p
 
 ## 1. Required documentation for every request
 
+Read [AUTH_SESSIONS.md](AUTH_SESSIONS.md) for authentication/token, browser-cookie,
+logout, push-session or realtime-session work. Its 10-minute access/14-day login
+contract supersedes historical non-expiring token and token-ID lifecycle notes.
+
 Before each project-related request, read [CODE.md](CODE.md) and [README.md](README.md), including the architecture conventions and the current feature contracts. Do not depend solely on memory from a previous request. Read the additional feature documents below before working on their subjects. On the first implementation task in a new chat, read all six documents to establish the full project context.
 
 | Source | Required coverage |

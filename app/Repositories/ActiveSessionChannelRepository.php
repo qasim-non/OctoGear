@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Models\PersonalAccessToken;
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class ActiveSessionChannelRepository
 {
@@ -12,8 +12,7 @@ class ActiveSessionChannelRepository
     {
         return PersonalAccessToken::query()->where('tokenable_type', $actor->getMorphClass())
             ->whereIn('tokenable_id', $ids)
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-            ->when(config('sanctum.expiration'), fn ($q, $minutes) => $q->where('created_at', '>', now()->subMinutes($minutes)))
-            ->pluck('id')->map(fn ($id) => $prefix.$id)->all();
+            ->activeLogin()->with('authSession')->get()
+            ->map(fn ($token) => $prefix.$token->channelId())->unique()->values()->all();
     }
 }
